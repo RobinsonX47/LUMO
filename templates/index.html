@@ -1,119 +1,204 @@
-{% extends "base.html" %} {% block title %}LUMO – Home{% endblock %} {% block
-content %}
+{% extends "base.html" %}
+{% block title %}CineSphere – Discover Movies{% endblock %}
+{% block content %}
 
-<section class="hero-carousel">
-  {% for movie in trending %}
-  <div
-    class="hero-slide"
-    data-horizontal="{{ movie.horizontal_poster_path or movie.poster_path or '' }}"
-    data-poster="{{ movie.poster_path or '' }}"
-  >
-    <!-- full-bleed background image + bottom blur -->
-    <div class="hero-poster-area">
-      <img class="hero-poster-img" src="" alt="{{ movie.title }} poster" />
-      <div class="hero-poster-blur"></div>
-      <div class="hero-gradient-bottom"></div>
-    </div>
-
-    <div class="hero-body">
-      <div class="hero-kv">
-        <div class="hero-title">{{ movie.title }}</div>
-        <div class="hero-badges">
-          <span class="badge rating"
-            >⭐ {{ (movie.avg_rating or 0)|round(1) }}/10</span
-          >
-          {% if movie.release_year %}<span class="badge year"
-            >{{ movie.release_year }}</span
-          >{% endif %}
-          <!-- genres omitted here (use admin or route to pass names if desired) -->
+<!-- Hero Carousel Section -->
+<section class="hero-carousel" style="margin: -90px -4vw 48px; padding-top: 90px; position: relative; overflow: hidden;">
+  <div class="carousel-container" style="position: relative; height: 70vh; min-height: 500px;">
+    {% for movie in hero_movies %}
+    <div class="carousel-slide {% if loop.first %}active{% endif %}" data-slide="{{ loop.index0 }}">
+      <div class="backdrop-overlay" style="position: absolute; inset: 0; background: linear-gradient(to right, rgba(5,8,22,0.95) 0%, rgba(5,8,22,0.7) 50%, rgba(5,8,22,0.3) 100%);">
+        {% if movie.backdrop_url %}
+        <img src="{{ movie.backdrop_url }}" alt="{{ movie.title }}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.4;" />
+        {% endif %}
+      </div>
+      
+      <div class="carousel-content" style="position: relative; z-index: 10; max-width: 1400px; margin: 0 auto; padding: 0 4vw; height: 100%; display: flex; align-items: center;">
+        <div style="max-width: 600px;">
+          <h1 style="font-size: 3.5rem; font-weight: 800; margin-bottom: 16px; line-height: 1.1;">
+            {{ movie.title }}
+          </h1>
+          
+          <div style="display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;">
+            {% if movie.release_date %}
+            <span class="badge-pill">{{ movie.release_date[:4] }}</span>
+            {% endif %}
+            <span class="badge-pill">⭐ {{ movie.vote_average|round(1) }}/10</span>
+          </div>
+          
+          <p style="font-size: 1.1rem; line-height: 1.7; color: var(--muted); margin-bottom: 32px;">
+            {{ movie.overview[:200] }}{% if movie.overview|length > 200 %}...{% endif %}
+          </p>
+          
+          <div style="display: flex; gap: 16px;">
+            <a href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}" class="btn-primary" style="display: inline-flex; align-items: center; gap: 8px; padding: 14px 32px; border-radius: 12px; background: linear-gradient(135deg, #7b5cff, #a78bfa); color: white; text-decoration: none; font-weight: 600;">
+              <span>ℹ️</span> More Info
+            </a>
+          </div>
         </div>
       </div>
-
-      <p class="hero-copy text-muted">
-        {{ (movie.description[:280] ~ '...') if movie.description else '' }}
-      </p>
-
-      <div class="hero-actions">
-        <a class="btn btn-play" href="#">▶ Play</a>
-        <a
-          class="btn btn-ghost"
-          href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}"
-          >See More</a
-        >
-      </div>
     </div>
-  </div>
-  {% endfor %}
-
-  <div class="hero-prev" role="button" aria-label="Previous">◀</div>
-  <div class="hero-next" role="button" aria-label="Next">▶</div>
-  <div class="hero-dots">
-    {% for movie in trending %}
-    <button
-      aria-label="Slide {{ loop.index }}"
-      class="{% if loop.first %}active{% endif %}"
-    ></button>
     {% endfor %}
+    
+    <!-- Carousel Controls -->
+    <button class="carousel-btn prev" onclick="changeSlide(-1)" style="position: absolute; left: 20px; top: 50%; transform: translateY(-50%); z-index: 20; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(148, 163, 184, 0.3); color: white; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; font-size: 1.5rem; backdrop-filter: blur(10px);">
+      ‹
+    </button>
+    <button class="carousel-btn next" onclick="changeSlide(1)" style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); z-index: 20; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(148, 163, 184, 0.3); color: white; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; font-size: 1.5rem; backdrop-filter: blur(10px);">
+      ›
+    </button>
+    
+    <!-- Carousel Indicators -->
+    <div class="carousel-indicators" style="position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 20; display: flex; gap: 10px;">
+      {% for movie in hero_movies %}
+      <button onclick="goToSlide({{ loop.index0 }})" class="indicator {% if loop.first %}active{% endif %}" data-slide="{{ loop.index0 }}" style="width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; background: transparent; cursor: pointer; transition: all 0.3s;"></button>
+      {% endfor %}
+    </div>
   </div>
 </section>
 
-<section class="trending-section" style="margin-top: 24px">
-  <div class="trending-header">
-    <h2 class="trending-title">
-      <span class="top-label">TOP 10</span>
-      <span class="section-sub">Content</span>
-    </h2>
-    <div class="trending-controls">
-      <button class="btn btn-ghost" aria-label="prev">◀</button>
-      <button class="btn btn-ghost" aria-label="next">▶</button>
-    </div>
+<!-- Trending Movies Section -->
+<section style="margin-bottom: 48px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+    <h2 style="margin: 0;">🔥 Trending This Week</h2>
   </div>
-
-  <div class="trending-row" role="list">
+  
+  <div class="movie-grid">
     {% for movie in trending %}
-    <a
-      href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}"
-      class="trending-card"
-      role="listitem"
-    >
-      <div class="trending-poster-wrap">
-        <img
-          src="{{ movie.poster_path }}"
-          alt="{{ movie.title }}"
-          class="trending-poster"
-        />
-        <div class="poster-overlay">
-          <span class="poster-rating"
-            >⭐ {{ (movie.avg_rating or 0)|round(1) }}</span
-          >
+    <a href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}" style="text-decoration: none; color: inherit;">
+      <div class="card-glass">
+        {% if movie.poster_url %}
+        <img src="{{ movie.poster_url }}" alt="{{ movie.title }}" class="movie-poster" />
+        {% else %}
+        <div class="movie-poster" style="background: linear-gradient(135deg, #4f46e5, #ec4899); display: flex; align-items: center; justify-content: center; font-size: 3rem;">🎬</div>
+        {% endif %}
+        <div class="movie-title">{{ movie.title }}</div>
+        <div class="movie-meta">
+          {% if movie.release_date %}{{ movie.release_date[:4] }} • {% endif %}
+          ⭐ {{ movie.vote_average|round(1) }}/10
         </div>
-        <div class="top-number">{{ loop.index }}</div>
-      </div>
-      <div class="trending-info">
-        <div class="trending-name">{{ movie.title }}</div>
-        <div class="trending-year">{{ movie.release_year or '' }}</div>
       </div>
     </a>
     {% endfor %}
   </div>
 </section>
 
-<section style="margin-top: 28px">
-  <h2 class="section-title">Top Rated</h2>
+<!-- Top Rated Movies Section -->
+<section style="margin-bottom: 48px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+    <h2 style="margin: 0;">🏆 Top Rated of All Time</h2>
+  </div>
+  
   <div class="movie-grid">
     {% for movie in top_rated %}
-    <a
-      href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}"
-      class="card-link"
-    >
+    <a href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}" style="text-decoration: none; color: inherit;">
       <div class="card-glass">
-        <img src="{{ movie.poster_path }}" class="movie-poster" />
+        {% if movie.poster_url %}
+        <img src="{{ movie.poster_url }}" alt="{{ movie.title }}" class="movie-poster" />
+        {% else %}
+        <div class="movie-poster" style="background: linear-gradient(135deg, #4f46e5, #ec4899); display: flex; align-items: center; justify-content: center; font-size: 3rem;">🎬</div>
+        {% endif %}
         <div class="movie-title">{{ movie.title }}</div>
-        <div class="movie-meta">⭐ {{ movie.avg_rating or 0 }}/5</div>
+        <div class="movie-meta">
+          {% if movie.release_date %}{{ movie.release_date[:4] }} • {% endif %}
+          ⭐ {{ movie.vote_average|round(1) }}/10
+        </div>
       </div>
     </a>
     {% endfor %}
   </div>
 </section>
+
+<!-- Browse by Genre Section -->
+<section style="margin-bottom: 48px;">
+  <h2 style="margin-bottom: 24px;">🎭 Browse by Genre</h2>
+  
+  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px;">
+    {% for genre in genres %}
+    <a href="{{ url_for('main.movies_by_genre', genre_id=genre.id) }}" style="text-decoration: none;">
+      <div class="genre-card" style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(148, 163, 184, 0.35); border-radius: 16px; padding: 20px; text-align: center; transition: all 0.3s; backdrop-filter: blur(20px);">
+        <div style="font-size: 2rem; margin-bottom: 8px;">🎬</div>
+        <div style="font-weight: 600;">{{ genre.name }}</div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+<style>
+  .carousel-slide {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.8s ease-in-out;
+    pointer-events: none;
+  }
+  
+  .carousel-slide.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  
+  .carousel-btn:hover {
+    background: rgba(123, 92, 255, 0.8);
+    transform: translateY(-50%) scale(1.1);
+  }
+  
+  .indicator.active {
+    background: white !important;
+  }
+  
+  .genre-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(129, 140, 248, 0.75);
+    box-shadow: 0 12px 24px rgba(123, 92, 255, 0.3);
+  }
+  
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(123, 92, 255, 0.5);
+  }
+  
+  @media (max-width: 768px) {
+    .carousel-content h1 {
+      font-size: 2rem !important;
+    }
+    
+    .carousel-container {
+      height: 50vh !important;
+      min-height: 400px !important;
+    }
+  }
+</style>
+
+<script>
+  let currentSlide = 0;
+  const slides = document.querySelectorAll('.carousel-slide');
+  const indicators = document.querySelectorAll('.indicator');
+  const totalSlides = slides.length;
+  
+  function showSlide(n) {
+    slides.forEach(slide => slide.classList.remove('active'));
+    indicators.forEach(ind => ind.classList.remove('active'));
+    
+    currentSlide = (n + totalSlides) % totalSlides;
+    
+    slides[currentSlide].classList.add('active');
+    indicators[currentSlide].classList.add('active');
+  }
+  
+  function changeSlide(direction) {
+    showSlide(currentSlide + direction);
+  }
+  
+  function goToSlide(n) {
+    showSlide(n);
+  }
+  
+  // Auto-advance carousel every 5 seconds
+  setInterval(() => {
+    changeSlide(1);
+  }, 5000);
+</script>
 
 {% endblock %}

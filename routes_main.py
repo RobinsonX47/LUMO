@@ -1,26 +1,48 @@
-from flask import Blueprint, render_template
-from extensions import db
-from models import Movie, ViewLog
-from sqlalchemy import func
-from datetime import datetime, timedelta
+from flask import Blueprint, render_template, request
+from tmdb_service import TMDBService
 
 main_bp = Blueprint("main", __name__)
 
 @main_bp.route("/")
 def home():
-    top_rated = Movie.query.order_by(Movie.avg_rating.desc()).limit(6).all()
-
-    week_ago = datetime.utcnow() - timedelta(days=7)
-    trending_query = (
-        db.session.query(Movie, func.count(ViewLog.id).label("views"))
-        .join(ViewLog)
-        .filter(ViewLog.viewed_at >= week_ago)
-        .group_by(Movie.id)
-        .order_by(func.count(ViewLog.id).desc())
-        .limit(6)
-        .all()
+    # Get hero carousel movies (5 random popular movies)
+    hero_movies = TMDBService.get_random_hero_movies(5)
+    
+    # Get trending movies of the week
+    trending_movies = TMDBService.get_trending_movies('week')
+    
+    # Get top rated movies of all time
+    top_rated_movies = TMDBService.get_top_rated_movies()
+    
+    # Get all genres for genre selection
+    genres = TMDBService.get_genres()
+    
+    return render_template(
+        "index.html",
+        hero_movies=hero_movies,
+        trending=trending_movies,
+        top_rated=top_rated_movies,
+        genres=genres
     )
 
-    trending_movies = [t[0] for t in trending_query] if trending_query else []
-
-    return render_template("index.html", top_rated=top_rated, trending=trending_movies)
+@main_bp.route("/genre/<int:genre_id>")
+def movies_by_genre(genre_id):
+    page = request.args.get('page', 1, type=int)
+    movies = TMDBService.get_movies_by_genre(genre_id, page)
+    genres = TMDBService.get_genres()
+    
+    # Find genre name
+    genre_name = "Movies"
+    for genre in genres:
+        if genre['id'] == genre_id:
+            genre_name = genre['name']
+            break
+    
+    return render_template(
+        "movies/genre.html",
+        movies=movies,
+        genres=genres,
+        current_genre_id=genre_id,
+        genre_name=genre_name,
+        page=page
+    )

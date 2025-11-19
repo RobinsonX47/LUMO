@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}{{ genre_name }} Movies – CineSphere{% endblock %}
+{% block content %}
+
+<section style="margin-bottom: 32px;">
+  <h1 style="margin-bottom: 16px;">{{ genre_name }} Movies</h1>
+  
+  <!-- Genre Filter Pills -->
+  <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px;">
+    {% for genre in genres %}
+    <a href="{{ url_for('main.movies_by_genre', genre_id=genre.id) }}" 
+       style="text-decoration: none;">
+      <div class="genre-pill {% if genre.id == current_genre_id %}active{% endif %}" 
+           style="padding: 8px 16px; border-radius: 999px; border: 1px solid rgba(148, 163, 184, 0.5); background: {% if genre.id == current_genre_id %}linear-gradient(135deg, #7b5cff, #a78bfa){% else %}rgba(15, 23, 42, 0.5){% endif %}; color: var(--text); transition: all 0.3s; cursor: pointer;">
+        {{ genre.name }}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- Movies Grid -->
+<div class="movie-grid">
+  {% for movie in movies %}
+    <a href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}" style="text-decoration: none; color: inherit;">
+      <div class="card-glass">
+        {% if movie.poster_url %}
+        <img src="{{ movie.poster_url }}" alt="{{ movie.title }}" class="movie-poster" />
+        {% else %}
+        <div class="movie-poster" style="background: linear-gradient(135deg, #4f46e5, #ec4899); display: flex; align-items: center; justify-content: center; font-size: 3rem;">
+          🎬
+        </div>
+        {% endif %}
+        <div class="movie-title">{{ movie.title }}</div>
+        <div class="movie-meta">
+          {% if movie.release_date %}{{ movie.release_date[:4] }} • {% endif %}
+          ⭐ {{ movie.vote_average|round(1) }}/10
+        </div>
+      </div>
+    </a>
+  {% else %}
+    <p style="grid-column: 1 / -1; text-align: center; color: var(--muted); padding: 40px;">
+      No movies found in this genre.
+    </p>
+  {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if movies|length >= 20 %}
+<div style="display: flex; justify-content: center; gap: 12px; margin-top: 48px;">
+  {% if page > 1 %}
+  <a href="{{ url_for('main.movies_by_genre', genre_id=current_genre_id, page=page-1) }}" 
+     class="btn-secondary" 
+     style="padding: 12px 24px; border-radius: 12px; border: 1px solid rgba(148, 163, 184, 0.3); background: rgba(15, 23, 42, 0.5); color: var(--text); text-decoration: none;">
+    ← Previous
+  </a>
+  {% endif %}
+  
+  <span style="padding: 12px 24px; border-radius: 12px; border: 1px solid rgba(148, 163, 184, 0.3); background: rgba(123, 92, 255, 0.2);">
+    Page {{ page }}
+  </span>
+  
+  <a href="{{ url_for('main.movies_by_genre', genre_id=current_genre_id, page=page+1) }}" 
+     class="btn-secondary" 
+     style="padding: 12px 24px; border-radius: 12px; border: 1px solid rgba(148, 163, 184, 0.3); background: rgba(15, 23, 42, 0.5); color: var(--text); text-decoration: none;">
+    Next →
+  </a>
+</div>
+{% endif %}
+
+<style>
+  .genre-pill:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(123, 92, 255, 0.3);
+  }
+  
+  .btn-secondary:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+</style>
+
+{% endblock %}

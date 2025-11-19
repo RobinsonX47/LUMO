@@ -4,3 +4,7 @@ instance/
 *.pyc
 *.db
 .env
+.DS_Store
+*.log
+.vscode/
+.idea/

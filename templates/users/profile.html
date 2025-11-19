@@ -1,66 +1,134 @@
-{% extends "base.html" %} {% block title %}My Profile – LUMO{% endblock %} {%
-block content %}
+{% extends "base.html" %}
+{% block title %}{{ user.name }}'s Profile – CineSphere{% endblock %}
+{% block content %}
 
-<div class="profile-header">
-  {% if user.avatar %}
-  <div>
-    <img
-      src="{{ url_for('static', filename='uploads/' ~ user.avatar) }}"
-      alt="avatar"
-      class="profile-avatar-img"
-    />
+<div class="profile-header card-glass" style="padding: 32px; margin-bottom: 48px;">
+  <div style="display: flex; gap: 24px; align-items: center;">
+    <div class="profile-avatar">{{ user.name[0]|upper }}</div>
+    <div style="flex: 1;">
+      <h1 style="margin-bottom: 8px;">{{ user.name }}</h1>
+      <div style="display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap;">
+        <span class="badge-pill">📅 Member since {{ user.created_at.strftime('%b %Y') }}</span>
+        <span class="badge-pill">⭐ {{ reviewed_movies|length }} Reviews</span>
+        <span class="badge-pill">📋 {{ watchlist|length }} in Watchlist</span>
+      </div>
+      {% if user.bio %}
+      <p style="color: var(--muted); line-height: 1.6; margin-bottom: 16px;">
+        {{ user.bio }}
+      </p>
+      {% else %}
+      <p style="color: var(--muted); line-height: 1.6; margin-bottom: 16px;">
+        No bio yet.
+      </p>
+      {% endif %}
+      <a href="{{ url_for('users.edit_profile') }}" 
+         class="btn-secondary"
+         style="display: inline-block; padding: 10px 24px; border-radius: 12px; border: 1px solid rgba(148, 163, 184, 0.3); background: rgba(15, 23, 42, 0.5); color: var(--text); text-decoration: none; font-size: 0.9rem;">
+        ✏️ Edit Profile
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Flash Messages -->
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <div style="background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); border-radius: 12px; padding: 12px; margin-bottom: 24px; color: #86efac;">
+      {% for message in messages %}
+        {{ message }}
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<!-- Reviewed Movies -->
+<section style="margin-bottom: 48px;">
+  <h2 style="margin-bottom: 24px;">🎬 Movies You've Reviewed</h2>
+  
+  {% if reviewed_movies %}
+  <div class="movie-grid">
+    {% for item in reviewed_movies %}
+    <a href="{{ url_for('movies.movie_detail', movie_id=item.movie.id) }}" style="text-decoration: none; color: inherit;">
+      <div class="card-glass">
+        {% if item.movie.poster_url %}
+        <img src="{{ item.movie.poster_url }}" alt="{{ item.movie.title }}" class="movie-poster" />
+        {% else %}
+        <div class="movie-poster" style="background: linear-gradient(135deg, #4f46e5, #ec4899); display: flex; align-items: center; justify-content: center; font-size: 3rem;">
+          🎬
+        </div>
+        {% endif %}
+        <div class="movie-title">{{ item.movie.title }}</div>
+        <div style="display: flex; gap: 4px; color: #fbbf24; margin: 8px 0; font-size: 0.9rem;">
+          {% for i in range(item.review.rating) %}⭐{% endfor %}
+        </div>
+        <div class="movie-meta" style="font-size: 0.8rem; line-height: 1.4;">
+          {{ item.review.review_text[:80] }}{% if item.review.review_text|length > 80 %}...{% endif %}
+        </div>
+      </div>
+    </a>
+    {% endfor %}
   </div>
   {% else %}
-  <div class="profile-avatar">{{ user.name[0]|upper }}</div>
-  {% endif %}
-  <div>
-    <h2>{{ user.name }}</h2>
-    <span class="badge-pill"
-      >Member since {{ user.created_at.strftime('%b %Y') }}</span
-    >
-    <p style="margin-top: 8px" class="text-muted">
-      {{ user.bio or "No bio yet. (You can add one later.)" }}
-    </p>
-    <p style="margin-top: 6px">
-      <a class="btn btn-sm" href="{{ url_for('users.edit_profile') }}"
-        >Edit profile</a
-      >
-    </p>
+  <div class="card-glass" style="padding: 40px; text-align: center;">
+    <p style="color: var(--muted); margin-bottom: 16px;">You haven't reviewed any movies yet.</p>
+    <a href="{{ url_for('movies.movie_list') }}" 
+       class="btn-primary"
+       style="display: inline-block; padding: 12px 32px; border-radius: 12px; background: linear-gradient(135deg, #7b5cff, #a78bfa); color: white; text-decoration: none; font-weight: 600;">
+      Browse Movies
+    </a>
   </div>
-</div>
+  {% endif %}
+</section>
 
-<h3 class="section-title">Watched Movies & Ratings</h3>
-<div class="movie-grid">
-  {% for movie, review in watched %}
-  <a
-    href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}"
-    class="card-link"
-  >
-    <div class="card-glass">
-      <img src="{{ movie.poster_path }}" class="movie-poster" />
-      <div class="movie-title">{{ movie.title }}</div>
-      <div class="movie-meta">
-        ⭐ {{ review.rating }}/5 · {{ review.review_text[:60] }}...
+<!-- Watchlist -->
+<section style="margin-bottom: 48px;">
+  <h2 style="margin-bottom: 24px;">📋 Your Watchlist</h2>
+  
+  {% if watchlist %}
+  <div class="movie-grid">
+    {% for movie in watchlist %}
+    <a href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}" style="text-decoration: none; color: inherit;">
+      <div class="card-glass">
+        {% if movie.poster_url %}
+        <img src="{{ movie.poster_url }}" alt="{{ movie.title }}" class="movie-poster" />
+        {% else %}
+        <div class="movie-poster" style="background: linear-gradient(135deg, #4f46e5, #ec4899); display: flex; align-items: center; justify-content: center; font-size: 3rem;">
+          🎬
+        </div>
+        {% endif %}
+        <div class="movie-title">{{ movie.title }}</div>
+        <div class="movie-meta">
+          {% if movie.release_date %}{{ movie.release_date[:4] }} • {% endif %}
+          ⭐ {{ movie.vote_average|round(1) }}/10
+        </div>
       </div>
-    </div>
-  </a>
-  {% endfor %}
-</div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="card-glass" style="padding: 40px; text-align: center;">
+    <p style="color: var(--muted); margin-bottom: 16px;">Your watchlist is empty.</p>
+    <a href="{{ url_for('movies.movie_list') }}" 
+       class="btn-primary"
+       style="display: inline-block; padding: 12px 32px; border-radius: 12px; background: linear-gradient(135deg, #7b5cff, #a78bfa); color: white; text-decoration: none; font-weight: 600;">
+      Discover Movies
+    </a>
+  </div>
+  {% endif %}
+</section>
 
-<h3 class="section-title">Watchlist</h3>
-<div class="movie-grid">
-  {% for movie in watchlist %}
-  <a
-    href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}"
-    class="card-link"
-  >
-    <div class="card-glass">
-      <img src="{{ movie.poster_path }}" class="movie-poster" />
-      <div class="movie-title">{{ movie.title }}</div>
-      <div class="movie-meta">In your watchlist</div>
-    </div>
-  </a>
-  {% endfor %}
-</div>
+<style>
+  .btn-primary:hover, .btn-secondary:hover {
+    transform: translateY(-2px);
+  }
+  
+  .btn-primary:hover {
+    box-shadow: 0 12px 24px rgba(123, 92, 255, 0.4);
+  }
+  
+  .btn-secondary:hover {
+    border-color: var(--accent);
+  }
+</style>
 
 {% endblock %}

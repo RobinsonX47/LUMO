@@ -1,217 +1,244 @@
-# 🎬 LUMO
+# 🎬 LUMO - Complete Setup Guide with TMDB Integration
 
-A modern, professional movie rating and discovery platform built with Flask. LUMO features a beautiful glassmorphic UI with a dark theme, user authentication, movie reviews, and watchlist management.
-
-## ✨ Features
-
-- **User Authentication**: Secure registration and login system
-- **Movie Discovery**: Browse and search through a curated collection of movies
-- **Review System**: Rate and review movies on a 5-star scale
-- **Personal Watchlist**: Save movies to watch later
-- **User Profiles**: View your watched movies and ratings
-- **Trending Section**: Discover popular movies based on view counts
-- **Top Rated**: See the highest-rated movies
-- **Modern UI**: Glassmorphic design with smooth animations
-
-## 🚀 Getting Started
-
-### Prerequisites
+## 📋 Prerequisites
 
 - Python 3.8 or higher
-- pip (Python package manager)
+- TMDB API Key (free)
 
-### Installation
+## 🔑 Step 1: Get Your TMDB API Key
 
-1. **Clone or download the project**
+1. Go to [https://www.themoviedb.org/](https://www.themoviedb.org/)
+2. Create a free account
+3. Go to Settings → API
+4. Request an API key (choose "Developer" option)
+5. Fill out the form (you can use placeholder information for personal projects)
+6. Copy your API Key (v3 auth)
 
-2. **Create a virtual environment**
+## 🚀 Step 2: Install Dependencies
 
-   ```bash
-   python -m venv venv
-   ```
+```bash
+# Create virtual environment
+python -m venv venv
 
-3. **Activate the virtual environment**
+# Activate virtual environment
+# Windows:
+venv\Scripts\activate
+# macOS/Linux:
+source venv/bin/activate
 
-   - Windows:
-     ```bash
-     venv\Scripts\activate
-     ```
-   - macOS/Linux:
-     ```bash
-     source venv/bin/activate
-     ```
+# Install requirements
+pip install -r requirements.txt
+```
 
-4. **Install dependencies**
+## ⚙️ Step 3: Configure Your API Key
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+### Option 1: Environment Variable (Recommended for production)
 
-5. **Initialize the database**
+**Windows:**
+```bash
+set TMDB_API_KEY=your_api_key_here
+```
 
-   ```bash
-   python app.py
-   ```
+**macOS/Linux:**
+```bash
+export TMDB_API_KEY=your_api_key_here
+```
 
-   This will create the `instance/cine_sphere.db` SQLite database.
+### Option 2: Direct in config.py (For development only)
 
-6. **Seed the database with sample movies** (optional but recommended)
+Open `config.py` and replace:
+```python
+TMDB_API_KEY = os.environ.get("TMDB_API_KEY") or "YOUR_TMDB_API_KEY_HERE"
+```
 
-   ```bash
-   python seed_data.py
-   ```
+With:
+```python
+TMDB_API_KEY = os.environ.get("TMDB_API_KEY") or "your_actual_api_key_here"
+```
 
-7. **Run the application**
+**⚠️ WARNING:** Never commit your API key to version control!
 
-   ```bash
-   python app.py
-   ```
+### Option 3: Using .env file (Best practice)
 
-8. **Open your browser** and navigate to:
-   ```
-   http://localhost:5000
-   ```
+1. Create a `.env` file in your project root:
+```
+TMDB_API_KEY=your_actual_api_key_here
+SECRET_KEY=your_secret_key_here
+```
+
+2. Install python-dotenv:
+```bash
+pip install python-dotenv
+```
+
+3. Update `config.py` to load from .env:
+```python
+from dotenv import load_dotenv
+load_dotenv()
+
+class Config:
+    SECRET_KEY = os.environ.get("SECRET_KEY") or "change-this-secret-key-in-production"
+    TMDB_API_KEY = os.environ.get("TMDB_API_KEY")
+    # ... rest of config
+```
+
+## 🗄️ Step 4: Initialize Database
+
+```bash
+python app.py
+```
+
+This will:
+- Create the `instance` folder
+- Create the `cine_sphere.db` SQLite database
+- Set up all tables
+
+The app will start running. Press `Ctrl+C` to stop it.
+
+## 🎯 Step 5: Run the Application
+
+```bash
+python app.py
+```
+
+Open your browser and go to: **http://localhost:5000**
+
+## ✨ What You Can Do
+
+### Home Page Features:
+- **Hero Carousel**: 5 random popular movies with auto-rotation
+- **Trending This Week**: Top 10 trending movies
+- **Top Rated**: Top 10 rated movies of all time
+- **Browse by Genre**: Filter movies by genre
+
+### Movie Features:
+- Search movies by title
+- View detailed movie information
+- Watch trailers
+- Add movies to watchlist
+- Write and edit reviews (1-5 stars)
+- See similar movie recommendations
+- View cast information
+
+### User Features:
+- Register and login
+- Personal profile with statistics
+- View all your reviews
+- Manage your watchlist
+- Edit profile and bio
+
+## 🔧 Troubleshooting
+
+### "TMDB API Error" Messages
+- Check that your API key is correctly set
+- Verify your internet connection
+- Ensure the API key hasn't expired
+
+### No Movies Showing
+- API key might be invalid
+- Check your internet connection
+- Look at terminal/console for error messages
+
+### Database Errors
+```bash
+# Delete the database and restart
+rm instance/cine_sphere.db  # On Windows: del instance\cine_sphere.db
+python app.py
+```
+
+### Import Errors
+```bash
+# Make sure all dependencies are installed
+pip install -r requirements.txt
+```
 
 ## 📁 Project Structure
 
 ```
-cinesphere/
-├── app.py                 # Application factory and initialization
-├── config.py              # Configuration settings
-├── extensions.py          # Flask extensions (SQLAlchemy, LoginManager)
-├── models.py              # Database models
-├── routes_auth.py         # Authentication routes
-├── routes_main.py         # Home page routes
-├── routes_movies.py       # Movie-related routes
-├── routes_users.py        # User profile routes
-├── seed_data.py           # Database seeding script
-├── requirements.txt       # Python dependencies
+LUMO/
+├── app.py                    # Application entry point
+├── config.py                 # Configuration with TMDB settings
+├── extensions.py             # Flask extensions
+├── models.py                 # Database models (TMDB integrated)
+├── tmdb_service.py          # TMDB API service (NEW)
+├── routes_auth.py           # Authentication routes
+├── routes_main.py           # Home and genre routes (TMDB)
+├── routes_movies.py         # Movie routes (TMDB)
+├── routes_users.py          # User profile routes (TMDB)
+├── requirements.txt         # Python dependencies
 ├── static/
-│   ├── css/
-│   │   └── style.css     # Styling
-│   └── js/
-│       └── main.js       # JavaScript (empty, ready for future use)
+│   └── css/
+│       └── style.css        # Styling
 └── templates/
-    ├── base.html         # Base template
-    ├── index.html        # Home page
+    ├── base.html           # Base template
+    ├── index.html          # Home with carousel (NEW)
     ├── auth/
-    │   ├── login.html    # Login page
-    │   └── register.html # Registration page
+    │   ├── login.html
+    │   └── register.html
     ├── movies/
-    │   ├── list.html     # Movie listing page
-    │   └── detail.html   # Movie detail page
+    │   ├── list.html
+    │   ├── detail.html     # Movie detail (TMDB)
+    │   └── genre.html      # Genre filtering (NEW)
     └── users/
-        └── profile.html  # User profile page
+        ├── profile.html    # User profile (TMDB)
+        └── edit_profile.html
 ```
 
-## 🎨 Key Features Explained
+## 🎨 Key Changes from Old Version
 
-### Authentication System
+### Database Changes:
+- ✅ Removed local `Movie` table
+- ✅ Reviews now use `tmdb_movie_id` instead of local movie ID
+- ✅ Watchlist now uses `tmdb_movie_id` with cached title/poster
+- ✅ All movie data fetched dynamically from TMDB
 
-- Secure password hashing using Werkzeug
-- Flask-Login for session management
-- Protected routes requiring authentication
+### New Features:
+- ✅ Hero carousel with 5 random movies
+- ✅ Trending movies section
+- ✅ Top rated movies section
+- ✅ Genre browsing with filter pills
+- ✅ Cast information on movie details
+- ✅ Similar movie recommendations
+- ✅ Trailers from YouTube
+- ✅ TMDB ratings alongside user ratings
 
-### Movie Management
+### Benefits:
+- 📦 No manual movie data entry needed
+- 🔄 Always up-to-date movie information
+- 🎬 Access to 1,000,000+ movies
+- 🖼️ High-quality posters and backdrops
+- 📊 Accurate ratings and popularity data
 
-- Browse all movies with search functionality
-- View detailed movie information including ratings and reviews
-- Add movies to your personal watchlist
-- Submit and update reviews
+## 🔐 Security Notes
 
-### User Experience
+Before deploying to production:
 
-- Responsive design that works on all devices
-- Glassmorphic UI with backdrop blur effects
-- Smooth hover animations and transitions
-- Star rating system for reviews
-
-### Database Models
-
-- **User**: User accounts with authentication
-- **Movie**: Movie information and metadata
-- **Review**: User reviews and ratings
-- **Watchlist**: User's saved movies
-- **ViewLog**: Track movie views for trending calculation
-- **Genre**: Movie genres (ready for future use)
-
-## 🔒 Security Notes
-
-**Important**: Before deploying to production:
-
-1. Change the `SECRET_KEY` in `config.py`:
-
-   ```python
-   SECRET_KEY = "your-secure-random-secret-key"
-   ```
-
-   Generate a secure key using:
-
-   ```python
-   import secrets
-   secrets.token_hex(32)
-   ```
-
-2. Set `debug=False` in production
-3. Use a production-ready database (PostgreSQL recommended)
-4. Add environment variable support for sensitive data
-
-## 🛠️ Customization
-
-### Adding More Movies
-
-1. Edit `seed_data.py` to add your movies to the `movies_data` list
-2. Run the seed script again:
-   ```bash
-   python seed_data.py
-   ```
-
-### Changing the Theme
-
-- Edit `static/css/style.css`
-- Modify CSS variables in the `:root` selector:
-  ```css
-  :root {
-    --bg: #050816;
-    --accent: #7b5cff;
-    --text: #f5f5f7;
-    --muted: #a1a1aa;
-  }
-  ```
-
-## 📝 Future Enhancements
-
-Potential features to add:
-
-- Movie recommendations based on user preferences
-- Social features (follow users, share reviews)
-- Advanced search with genre filters
-- Movie trailers embedded in detail page
-- User avatars upload
-- Admin panel for movie management
-- API integration with TMDB or similar services
-- Export watchlist functionality
-
-## 🐛 Troubleshooting
-
-**Database errors**: Delete `instance/cine_sphere.db` and restart the app to recreate
-
-**Import errors**: Make sure virtual environment is activated and dependencies are installed
-
-**Port already in use**: Change the port in `app.py`:
-
+1. **Change SECRET_KEY** in `config.py`:
 ```python
-app.run(debug=True, port=5001)
+import secrets
+SECRET_KEY = secrets.token_hex(32)
 ```
 
-## 📄 License
+2. **Use environment variables** for sensitive data
+3. **Set debug=False** in production
+4. **Use a production database** (PostgreSQL recommended)
+5. **Add .env to .gitignore**
 
-This project is open source and available for educational purposes.
+## 📊 API Rate Limits
 
-## 🤝 Contributing
+TMDB Free Tier:
+- 40 requests per 10 seconds
+- This is plenty for a personal project
+- For production, consider caching responses
 
-Feel free to fork this project and submit pull requests with improvements!
+## 🆘 Need Help?
 
----
+- TMDB API Documentation: https://developers.themoviedb.org/3
+- Check the console/terminal for error messages
+- Ensure your API key is valid and active
 
-Made with ❤️ for movie lovers
+## 🎉 You're All Set!
+
+Your professional movie rating platform is ready to use with full TMDB integration!
+
+Enjoy discovering and rating movies! 🍿
