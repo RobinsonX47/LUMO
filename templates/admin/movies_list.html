@@ -1,0 +1,34 @@
+{% extends "base.html" %} {% block title %}Admin — Movies — LUMO{% endblock %}
+{% block content %}
+
+<div class="card-glass">
+  <div
+    style="display: flex; justify-content: space-between; align-items: center"
+  >
+    <h2>Movies</h2>
+    <a class="btn" href="{{ url_for('admin.add_movie') }}">Add Movie</a>
+  </div>
+
+  <div style="margin-top: 16px" class="movie-grid">
+    {% for movie in movies %}
+    <div class="card-glass">
+      <a
+        href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}"
+        class="card-link"
+      >
+        <img
+          src="{{ movie.poster_path or '/static/images/posters/default.jpg' }}"
+          class="movie-poster"
+        />
+        <div class="movie-title">{{ movie.title }}</div>
+        <div class="movie-meta">
+          {{ movie.release_year or '' }} · {{ movie.duration_minutes or '' }}
+          min
+        </div>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% endblock %}

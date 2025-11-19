@@ -2,7 +2,17 @@
 block content %}
 
 <div class="profile-header">
+  {% if user.avatar %}
+  <div>
+    <img
+      src="{{ url_for('static', filename='uploads/' ~ user.avatar) }}"
+      alt="avatar"
+      class="profile-avatar-img"
+    />
+  </div>
+  {% else %}
   <div class="profile-avatar">{{ user.name[0]|upper }}</div>
+  {% endif %}
   <div>
     <h2>{{ user.name }}</h2>
     <span class="badge-pill"
@@ -11,10 +21,15 @@ block content %}
     <p style="margin-top: 8px" class="text-muted">
       {{ user.bio or "No bio yet. (You can add one later.)" }}
     </p>
+    <p style="margin-top: 6px">
+      <a class="btn btn-sm" href="{{ url_for('users.edit_profile') }}"
+        >Edit profile</a
+      >
+    </p>
   </div>
 </div>
 
-<h3 style="margin: 24px 0 12px">Watched Movies & Ratings</h3>
+<h3 class="section-title">Watched Movies & Ratings</h3>
 <div class="movie-grid">
   {% for movie, review in watched %}
   <a
@@ -32,7 +47,7 @@ block content %}
   {% endfor %}
 </div>
 
-<h3 style="margin: 24px 0 12px">Watchlist</h3>
+<h3 class="section-title">Watchlist</h3>
 <div class="movie-grid">
   {% for movie in watchlist %}
   <a

@@ -1,33 +1,105 @@
 {% extends "base.html" %} {% block title %}LUMO – Home{% endblock %} {% block
 content %}
 
-<section style="margin-bottom: 32px">
-  <h1 style="margin-bottom: 8px">Welcome to LUMO</h1>
-  <p class="text-muted">
-    Discover movies, rate what you’ve watched, and show off your taste.
-  </p>
+<section class="hero-carousel">
+  {% for movie in trending %}
+  <div
+    class="hero-slide"
+    data-horizontal="{{ movie.horizontal_poster_path or movie.poster_path or '' }}"
+    data-poster="{{ movie.poster_path or '' }}"
+  >
+    <!-- full-bleed background image + bottom blur -->
+    <div class="hero-poster-area">
+      <img class="hero-poster-img" src="" alt="{{ movie.title }} poster" />
+      <div class="hero-poster-blur"></div>
+      <div class="hero-gradient-bottom"></div>
+    </div>
+
+    <div class="hero-body">
+      <div class="hero-kv">
+        <div class="hero-title">{{ movie.title }}</div>
+        <div class="hero-badges">
+          <span class="badge rating"
+            >⭐ {{ (movie.avg_rating or 0)|round(1) }}/10</span
+          >
+          {% if movie.release_year %}<span class="badge year"
+            >{{ movie.release_year }}</span
+          >{% endif %}
+          <!-- genres omitted here (use admin or route to pass names if desired) -->
+        </div>
+      </div>
+
+      <p class="hero-copy text-muted">
+        {{ (movie.description[:280] ~ '...') if movie.description else '' }}
+      </p>
+
+      <div class="hero-actions">
+        <a class="btn btn-play" href="#">▶ Play</a>
+        <a
+          class="btn btn-ghost"
+          href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}"
+          >See More</a
+        >
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+
+  <div class="hero-prev" role="button" aria-label="Previous">◀</div>
+  <div class="hero-next" role="button" aria-label="Next">▶</div>
+  <div class="hero-dots">
+    {% for movie in trending %}
+    <button
+      aria-label="Slide {{ loop.index }}"
+      class="{% if loop.first %}active{% endif %}"
+    ></button>
+    {% endfor %}
+  </div>
 </section>
 
-<section style="margin-bottom: 32px">
-  <h2>Trending this week</h2>
-  <div class="movie-grid">
+<section class="trending-section" style="margin-top: 24px">
+  <div class="trending-header">
+    <h2 class="trending-title">
+      <span class="top-label">TOP 10</span>
+      <span class="section-sub">Content</span>
+    </h2>
+    <div class="trending-controls">
+      <button class="btn btn-ghost" aria-label="prev">◀</button>
+      <button class="btn btn-ghost" aria-label="next">▶</button>
+    </div>
+  </div>
+
+  <div class="trending-row" role="list">
     {% for movie in trending %}
     <a
       href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}"
-      class="card-link"
+      class="trending-card"
+      role="listitem"
     >
-      <div class="card-glass">
-        <img src="{{ movie.poster_path }}" class="movie-poster" />
-        <div class="movie-title">{{ movie.title }}</div>
-        <div class="movie-meta">⭐ {{ movie.avg_rating or 0 }}/5</div>
+      <div class="trending-poster-wrap">
+        <img
+          src="{{ movie.poster_path }}"
+          alt="{{ movie.title }}"
+          class="trending-poster"
+        />
+        <div class="poster-overlay">
+          <span class="poster-rating"
+            >⭐ {{ (movie.avg_rating or 0)|round(1) }}</span
+          >
+        </div>
+        <div class="top-number">{{ loop.index }}</div>
+      </div>
+      <div class="trending-info">
+        <div class="trending-name">{{ movie.title }}</div>
+        <div class="trending-year">{{ movie.release_year or '' }}</div>
       </div>
     </a>
     {% endfor %}
   </div>
 </section>
 
-<section>
-  <h2>Top Rated</h2>
+<section style="margin-top: 28px">
+  <h2 class="section-title">Top Rated</h2>
   <div class="movie-grid">
     {% for movie in top_rated %}
     <a

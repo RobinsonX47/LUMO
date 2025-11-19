@@ -1,0 +1,46 @@
+{% extends "base.html" %} {% block title %}Edit Profile – LUMO{% endblock %} {%
+block content %}
+
+<h2>Edit Profile</h2>
+
+<form
+  method="post"
+  enctype="multipart/form-data"
+  class="card-glass profile-form"
+>
+  <div class="profile-header">
+    <div class="avatar-wrap {% if user.avatar %}has-avatar{% endif %}">
+      <img
+        id="avatarPreview"
+        {%
+        if
+        user.avatar
+        %}src="{{ url_for('static', filename='uploads/' ~ user.avatar) }}"
+        {%
+        endif
+        %}
+        alt="avatar"
+        class="profile-avatar-img"
+      />
+      <div class="profile-avatar">{{ user.name[0]|upper }}</div>
+    </div>
+
+    <div class="profile-editor">
+      <label for="bio">Bio</label>
+      <textarea name="bio" id="bio">{{ user.bio or '' }}</textarea>
+
+      <div class="file-input-wrap">
+        <label for="avatar" class="file-label">Change profile picture</label>
+        <input type="file" name="avatar" id="avatar" accept="image/*" />
+        <span class="file-name" id="avatarFilename">No file chosen</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="profile-actions">
+    <button type="submit" class="btn">Save</button>
+    <a href="{{ url_for('users.profile') }}" class="btn btn-link">Cancel</a>
+  </div>
+</form>
+
+{% endblock %}

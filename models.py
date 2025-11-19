@@ -28,6 +28,8 @@ class Movie(db.Model):
     duration_minutes = db.Column(db.Integer)
     trailer_url = db.Column(db.String(255))
     poster_path = db.Column(db.String(255))
+    tmdb_id = db.Column(db.Integer, unique=True, index=True)
+    horizontal_poster_path = db.Column(db.String(255))
     avg_rating = db.Column(db.Float, default=0.0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 

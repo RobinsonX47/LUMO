@@ -20,11 +20,13 @@ def create_app():
     from routes_auth import auth_bp
     from routes_movies import movies_bp
     from routes_users import users_bp
+    from routes_admin import admin_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(movies_bp, url_prefix="/movies")
     app.register_blueprint(users_bp, url_prefix="/users")
+    app.register_blueprint(admin_bp, url_prefix="/admin")
 
     # Create database tables
     with app.app_context():
