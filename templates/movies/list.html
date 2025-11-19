@@ -1,97 +1,52 @@
-{% extends "base.html" %} {% block title %}Browse Movies – CineSphere{% endblock
-%} {% block content %}
+{% extends "base.html" %}
+{% block title %}Browse Movies – LUMO{% endblock %}
+{% block content %}
 
-<section style="margin-bottom: 32px">
-  <h1 style="margin-bottom: 16px">Browse Movies</h1>
-
-  <form
-    method="GET"
-    action="{{ url_for('movies.movie_list') }}"
-    style="margin-bottom: 32px"
-  >
-    <div style="position: relative; max-width: 600px">
-      <input
-        type="text"
-        name="q"
-        placeholder="Search movies..."
+<section style="margin-bottom: 32px;">
+  <h1 style="margin-bottom: 16px;">Browse Movies</h1>
+  
+  <form method="GET" action="{{ url_for('movies.movie_list') }}" style="margin-bottom: 32px;">
+    <div style="position: relative; max-width: 600px;">
+      <input 
+        type="text" 
+        name="q" 
+        placeholder="Search movies..." 
         value="{{ request.args.get('q', '') }}"
-        style="
-          width: 100%;
-          padding: 14px 20px 14px 48px;
-          border-radius: 16px;
-          border: 1px solid rgba(148, 163, 184, 0.3);
-          background: rgba(15, 23, 42, 0.5);
-          color: var(--text);
-          font-size: 1rem;
-          backdrop-filter: blur(10px);
-        "
+        style="width: 100%; padding: 14px 20px 14px 48px; border-radius: 16px; border: 1px solid rgba(148, 163, 184, 0.3); background: rgba(15, 23, 42, 0.5); color: var(--text); font-size: 1rem; backdrop-filter: blur(10px);"
       />
-      <span
-        style="
-          position: absolute;
-          left: 18px;
-          top: 50%;
-          transform: translateY(-50%);
-          font-size: 1.2rem;
-        "
-        >🔍</span
-      >
+      <span style="position: absolute; left: 18px; top: 50%; transform: translateY(-50%); font-size: 1.2rem;">🔍</span>
     </div>
   </form>
 
   {% if request.args.get('q') %}
-  <p style="color: var(--muted); margin-bottom: 16px">
-    Found {{ movies|length }} result(s) for "{{ request.args.get('q') }}"
-  </p>
+    <p style="color: var(--muted); margin-bottom: 16px;">
+      Found {{ movies|length }} result(s) for "{{ request.args.get('q') }}"
+    </p>
   {% endif %}
 </section>
 
 <div class="movie-grid">
   {% for movie in movies %}
-  <a
-    href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}"
-    style="text-decoration: none; color: inherit"
-  >
-    <div class="card-glass">
-      {% if movie.poster_path %}
-      <img
-        src="{{ movie.poster_path }}"
-        alt="{{ movie.title }}"
-        class="movie-poster"
-      />
-      {% else %}
-      <div
-        class="movie-poster"
-        style="
-          background: linear-gradient(135deg, #4f46e5, #ec4899);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 3rem;
-        "
-      >
-        🎬
+    <a href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}" style="text-decoration: none; color: inherit;">
+      <div class="card-glass">
+        {% if movie.poster_path %}
+          <img src="{{ movie.poster_path }}" alt="{{ movie.title }}" class="movie-poster" />
+        {% else %}
+          <div class="movie-poster" style="background: linear-gradient(135deg, #4f46e5, #ec4899); display: flex; align-items: center; justify-content: center; font-size: 3rem;">
+            🎬
+          </div>
+        {% endif %}
+        <div class="movie-title">{{ movie.title }}</div>
+        <div class="movie-meta">
+          {% if movie.release_year %}{{ movie.release_year }} • {% endif %}
+          ⭐ {{ movie.avg_rating|round(1) }}/5
+        </div>
       </div>
-      {% endif %}
-      <div class="movie-title">{{ movie.title }}</div>
-      <div class="movie-meta">
-        {% if movie.release_year %}{{ movie.release_year }} • {% endif %} ⭐ {{
-        movie.avg_rating|round(1) }}/5
-      </div>
-    </div>
-  </a>
+    </a>
   {% else %}
-  <p
-    style="
-      grid-column: 1 / -1;
-      text-align: center;
-      color: var(--muted);
-      padding: 40px;
-    "
-  >
-    No movies found. {% if request.args.get('q') %}Try a different search
-    term.{% endif %}
-  </p>
+    <p style="grid-column: 1 / -1; text-align: center; color: var(--muted); padding: 40px;">
+      No movies found. {% if request.args.get('q') %}Try a different search term.{% endif %}
+    </p>
   {% endfor %}
 </div>
 
