@@ -1,0 +1,51 @@
+{% extends "base.html" %} {% block title %}My Profile – CineSphere{% endblock %}
+{% block content %}
+
+<div class="profile-header">
+  <div class="profile-avatar">{{ user.name[0]|upper }}</div>
+  <div>
+    <h2>{{ user.name }}</h2>
+    <span class="badge-pill"
+      >Member since {{ user.created_at.strftime('%b %Y') }}</span
+    >
+    <p style="margin-top: 8px" class="text-muted">
+      {{ user.bio or "No bio yet. (You can add one later.)" }}
+    </p>
+  </div>
+</div>
+
+<h3 style="margin: 24px 0 12px">Watched Movies & Ratings</h3>
+<div class="movie-grid">
+  {% for movie, review in watched %}
+  <a
+    href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}"
+    class="card-link"
+  >
+    <div class="card-glass">
+      <img src="{{ movie.poster_path }}" class="movie-poster" />
+      <div class="movie-title">{{ movie.title }}</div>
+      <div class="movie-meta">
+        ⭐ {{ review.rating }}/5 · {{ review.review_text[:60] }}...
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+
+<h3 style="margin: 24px 0 12px">Watchlist</h3>
+<div class="movie-grid">
+  {% for movie in watchlist %}
+  <a
+    href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}"
+    class="card-link"
+  >
+    <div class="card-glass">
+      <img src="{{ movie.poster_path }}" class="movie-poster" />
+      <div class="movie-title">{{ movie.title }}</div>
+      <div class="movie-meta">In your watchlist</div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "base.html" %} {% block title %}CineSphere – Home{% endblock %} {%
+block content %}
+
+<section style="margin-bottom: 32px">
+  <h1 style="margin-bottom: 8px">Welcome to CineSphere</h1>
+  <p class="text-muted">
+    Discover movies, rate what you’ve watched, and show off your taste.
+  </p>
+</section>
+
+<section style="margin-bottom: 32px">
+  <h2>Trending this week</h2>
+  <div class="movie-grid">
+    {% for movie in trending %}
+    <a
+      href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}"
+      class="card-link"
+    >
+      <div class="card-glass">
+        <img src="{{ movie.poster_path }}" class="movie-poster" />
+        <div class="movie-title">{{ movie.title }}</div>
+        <div class="movie-meta">⭐ {{ movie.avg_rating or 0 }}/5</div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+<section>
+  <h2>Top Rated</h2>
+  <div class="movie-grid">
+    {% for movie in top_rated %}
+    <a
+      href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}"
+      class="card-link"
+    >
+      <div class="card-glass">
+        <img src="{{ movie.poster_path }}" class="movie-poster" />
+        <div class="movie-title">{{ movie.title }}</div>
+        <div class="movie-meta">⭐ {{ movie.avg_rating or 0 }}/5</div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+{% endblock %}
