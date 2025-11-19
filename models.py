@@ -67,7 +67,8 @@ class Review(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    movie_id = db.Column(db.Integer, db.ForeignKey("movies.id"), nullable=False)
+    movie_id = db.Column(db.Integer, db.ForeignKey("movies.id"), nullable=True)  # For local movies
+    tmdb_movie_id = db.Column(db.Integer, nullable=True)  # For TMDB movies
     rating = db.Column(db.Integer, nullable=False)  # 1-5 stars
     review_text = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -75,16 +76,24 @@ class Review(db.Model):
 
     # Add unique constraint so user can only review a movie once
     __table_args__ = (
-        db.UniqueConstraint('user_id', 'movie_id', name='unique_user_movie_review'),
+        db.UniqueConstraint('user_id', 'tmdb_movie_id', name='unique_user_tmdb_review'),
     )
 
 
 class Watchlist(db.Model):
     __tablename__ = "watchlist"
 
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), primary_key=True)
-    movie_id = db.Column(db.Integer, db.ForeignKey("movies.id"), primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    movie_id = db.Column(db.Integer, db.ForeignKey("movies.id"), nullable=True)  # For local movies
+    tmdb_movie_id = db.Column(db.Integer, nullable=True)  # For TMDB movies
+    movie_title = db.Column(db.String(200))  # Cache title
+    poster_path = db.Column(db.String(255))  # Cache poster
     added_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'tmdb_movie_id', name='unique_user_tmdb_watchlist'),
+    )
 
 
 @login_manager.user_loader

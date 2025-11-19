@@ -1,244 +1,266 @@
-# 🎬 LUMO - Complete Setup Guide with TMDB Integration
+# 🎬 LUMO - Movie Rating Platform (Fixed & Enhanced)
+
+## 🔥 What's New
+
+### Bug Fixes
+✅ Fixed carousel not working when logged in
+✅ Fixed search results not showing movie details
+✅ Fixed top-rated movies detail page errors
+✅ Fixed genre page errors
+✅ Fixed carousel arrow buttons and drag functionality
+✅ Added 10-second carousel interval (was 5 seconds)
+✅ Fixed rounded carousel edges
+
+### Visual Enhancements
+🎨 New black & grey minimalist color scheme
+✨ Apple-style glass morphism effects throughout
+🖼️ Added favicon support
+🎯 Improved typography and spacing
+📱 Better responsive design
+🌈 Smooth transitions and hover effects
 
 ## 📋 Prerequisites
 
 - Python 3.8 or higher
 - TMDB API Key (free)
 
-## 🔑 Step 1: Get Your TMDB API Key
+## 🚀 Quick Setup
 
-1. Go to [https://www.themoviedb.org/](https://www.themoviedb.org/)
-2. Create a free account
+### Step 1: Get TMDB API Key
+
+1. Visit [TMDB](https://www.themoviedb.org/)
+2. Create free account
 3. Go to Settings → API
-4. Request an API key (choose "Developer" option)
-5. Fill out the form (you can use placeholder information for personal projects)
-6. Copy your API Key (v3 auth)
+4. Request API key (Developer option)
+5. Copy your API Key (v3 auth)
 
-## 🚀 Step 2: Install Dependencies
+### Step 2: Install Dependencies
 
 ```bash
 # Create virtual environment
 python -m venv venv
 
-# Activate virtual environment
-# Windows:
+# Activate (Windows)
 venv\Scripts\activate
-# macOS/Linux:
+
+# Activate (Mac/Linux)
 source venv/bin/activate
 
 # Install requirements
 pip install -r requirements.txt
 ```
 
-## ⚙️ Step 3: Configure Your API Key
+### Step 3: Configure API Key
 
-### Option 1: Environment Variable (Recommended for production)
+**Option 1: Environment Variable (Recommended)**
 
-**Windows:**
+Windows:
 ```bash
 set TMDB_API_KEY=your_api_key_here
 ```
 
-**macOS/Linux:**
+Mac/Linux:
 ```bash
 export TMDB_API_KEY=your_api_key_here
 ```
 
-### Option 2: Direct in config.py (For development only)
+**Option 2: Direct in config.py**
 
-Open `config.py` and replace:
+Open `config.py` and update:
 ```python
-TMDB_API_KEY = os.environ.get("TMDB_API_KEY") or "YOUR_TMDB_API_KEY_HERE"
+TMDB_API_KEY = "your_actual_api_key_here"
 ```
 
-With:
-```python
-TMDB_API_KEY = os.environ.get("TMDB_API_KEY") or "your_actual_api_key_here"
-```
-
-**⚠️ WARNING:** Never commit your API key to version control!
-
-### Option 3: Using .env file (Best practice)
-
-1. Create a `.env` file in your project root:
-```
-TMDB_API_KEY=your_actual_api_key_here
-SECRET_KEY=your_secret_key_here
-```
-
-2. Install python-dotenv:
-```bash
-pip install python-dotenv
-```
-
-3. Update `config.py` to load from .env:
-```python
-from dotenv import load_dotenv
-load_dotenv()
-
-class Config:
-    SECRET_KEY = os.environ.get("SECRET_KEY") or "change-this-secret-key-in-production"
-    TMDB_API_KEY = os.environ.get("TMDB_API_KEY")
-    # ... rest of config
-```
-
-## 🗄️ Step 4: Initialize Database
+### Step 4: Run Migration Script
 
 ```bash
-python app.py
+python scripts/migrate_to_tmdb.py
 ```
 
 This will:
-- Create the `instance` folder
-- Create the `cine_sphere.db` SQLite database
-- Set up all tables
+- Backup your existing database
+- Add required columns for TMDB integration
+- Update table structure
 
-The app will start running. Press `Ctrl+C` to stop it.
+### Step 5: Replace Files
 
-## 🎯 Step 5: Run the Application
+Replace these files with the fixed versions:
+
+1. **models.py** - Updated with tmdb_movie_id fields
+2. **static/css/style.css** - New black/grey theme with glass effects
+3. **static/js/carousel.js** - Fixed carousel with 10s interval and drag support
+4. **templates/base.html** - Added favicon support
+5. **templates/index.html** - Fixed home page with working carousel
+6. **templates/movies/genre.html** - Create this file for genre pages
+
+### Step 6: Run the Application
 
 ```bash
 python app.py
 ```
 
-Open your browser and go to: **http://localhost:5000**
+Visit: **http://localhost:5000**
 
-## ✨ What You Can Do
+## 🎯 Key Features
 
-### Home Page Features:
-- **Hero Carousel**: 5 random popular movies with auto-rotation
+### Home Page
+- **Hero Carousel**: 5 popular movies with:
+  - 10-second auto-rotation
+  - Click/drag navigation
+  - Keyboard arrow support
+  - Smooth transitions
+  - Rounded corners
 - **Trending This Week**: Top 10 trending movies
-- **Top Rated**: Top 10 rated movies of all time
-- **Browse by Genre**: Filter movies by genre
+- **Top Rated**: Top 10 rated movies
+- **Genre Browser**: Filter by genre
 
-### Movie Features:
-- Search movies by title
-- View detailed movie information
-- Watch trailers
-- Add movies to watchlist
-- Write and edit reviews (1-5 stars)
-- See similar movie recommendations
-- View cast information
+### Movie Details
+- Full movie information from TMDB
+- High-quality posters and backdrops
+- Cast information
+- Similar movie recommendations
+- User reviews and ratings
+- Watchlist management
+- Trailer links
 
-### User Features:
-- Register and login
-- Personal profile with statistics
-- View all your reviews
-- Manage your watchlist
-- Edit profile and bio
+### User Features
+- User registration and login
+- Personal profile with stats
+- Review management
+- Watchlist tracking
+- Profile editing
 
-## 🔧 Troubleshooting
+## 🎨 Design Features
 
-### "TMDB API Error" Messages
-- Check that your API key is correctly set
-- Verify your internet connection
-- Ensure the API key hasn't expired
+### Modern Black & Grey Theme
+- Primary: Pure black (#000000)
+- Secondary: Dark grey (#0a0a0a)
+- Tertiary: Medium grey (#141414)
+- Accent: Apple blue (#0a84ff)
 
-### No Movies Showing
-- API key might be invalid
-- Check your internet connection
-- Look at terminal/console for error messages
+### Glass Morphism Effects
+- Backdrop blur (40px)
+- Transparency layers
+- Smooth borders
+- Hover animations
+- Depth shadows
+
+### Typography
+- SF Pro Display font family
+- Antialiased text rendering
+- Proper letter spacing
+- Responsive sizing
+
+## 🐛 Troubleshooting
 
 ### Database Errors
 ```bash
-# Delete the database and restart
-rm instance/cine_sphere.db  # On Windows: del instance\cine_sphere.db
-python app.py
+# Run migration script
+python scripts/migrate_to_tmdb.py
 ```
 
-### Import Errors
-```bash
-# Make sure all dependencies are installed
-pip install -r requirements.txt
-```
+### Carousel Not Working
+1. Check browser console for errors
+2. Ensure `static/js/carousel.js` is updated
+3. Clear browser cache
 
-## 📁 Project Structure
+### Movies Not Loading
+1. Verify TMDB_API_KEY is set correctly
+2. Check internet connection
+3. Look at terminal for error messages
+
+### Genre Page Errors
+1. Ensure `templates/movies/genre.html` exists
+2. Check routes_main.py is correct
+
+### Search Not Working
+1. Verify tmdb_service.py is working
+2. Check API key is valid
+3. Look for TMDB API errors in console
+
+## 📁 Updated Project Structure
 
 ```
 LUMO/
-├── app.py                    # Application entry point
-├── config.py                 # Configuration with TMDB settings
-├── extensions.py             # Flask extensions
-├── models.py                 # Database models (TMDB integrated)
-├── tmdb_service.py          # TMDB API service (NEW)
-├── routes_auth.py           # Authentication routes
-├── routes_main.py           # Home and genre routes (TMDB)
-├── routes_movies.py         # Movie routes (TMDB)
-├── routes_users.py          # User profile routes (TMDB)
-├── requirements.txt         # Python dependencies
+├── app.py
+├── config.py
+├── extensions.py
+├── models.py ⭐ (UPDATED)
+├── tmdb_service.py
+├── routes_auth.py
+├── routes_main.py
+├── routes_movies.py
+├── routes_users.py
+├── routes_admin.py
+├── requirements.txt
 ├── static/
-│   └── css/
-│       └── style.css        # Styling
-└── templates/
-    ├── base.html           # Base template
-    ├── index.html          # Home with carousel (NEW)
-    ├── auth/
-    │   ├── login.html
-    │   └── register.html
-    ├── movies/
-    │   ├── list.html
-    │   ├── detail.html     # Movie detail (TMDB)
-    │   └── genre.html      # Genre filtering (NEW)
-    └── users/
-        ├── profile.html    # User profile (TMDB)
-        └── edit_profile.html
+│   ├── css/
+│   │   └── style.css ⭐ (UPDATED)
+│   ├── js/
+│   │   ├── carousel.js ⭐ (UPDATED)
+│   │   └── main.js
+│   └── images/
+│       └── logo.svg
+├── templates/
+│   ├── base.html ⭐ (UPDATED)
+│   ├── index.html ⭐ (UPDATED)
+│   ├── auth/
+│   ├── movies/
+│   │   ├── list.html
+│   │   ├── detail.html
+│   │   └── genre.html ⭐ (NEW)
+│   └── users/
+└── scripts/
+    └── migrate_to_tmdb.py ⭐ (NEW)
 ```
 
-## 🎨 Key Changes from Old Version
+## 🔧 Configuration
 
-### Database Changes:
-- ✅ Removed local `Movie` table
-- ✅ Reviews now use `tmdb_movie_id` instead of local movie ID
-- ✅ Watchlist now uses `tmdb_movie_id` with cached title/poster
-- ✅ All movie data fetched dynamically from TMDB
+### API Rate Limits
+- TMDB Free: 40 requests per 10 seconds
+- Sufficient for personal use
+- Consider caching for production
 
-### New Features:
-- ✅ Hero carousel with 5 random movies
-- ✅ Trending movies section
-- ✅ Top rated movies section
-- ✅ Genre browsing with filter pills
-- ✅ Cast information on movie details
-- ✅ Similar movie recommendations
-- ✅ Trailers from YouTube
-- ✅ TMDB ratings alongside user ratings
+### Security Notes
+Before production:
+1. Change SECRET_KEY
+2. Use environment variables
+3. Set debug=False
+4. Use production database (PostgreSQL)
+5. Add .env to .gitignore
 
-### Benefits:
-- 📦 No manual movie data entry needed
-- 🔄 Always up-to-date movie information
-- 🎬 Access to 1,000,000+ movies
-- 🖼️ High-quality posters and backdrops
-- 📊 Accurate ratings and popularity data
+## 📊 Feature Checklist
 
-## 🔐 Security Notes
-
-Before deploying to production:
-
-1. **Change SECRET_KEY** in `config.py`:
-```python
-import secrets
-SECRET_KEY = secrets.token_hex(32)
-```
-
-2. **Use environment variables** for sensitive data
-3. **Set debug=False** in production
-4. **Use a production database** (PostgreSQL recommended)
-5. **Add .env to .gitignore**
-
-## 📊 API Rate Limits
-
-TMDB Free Tier:
-- 40 requests per 10 seconds
-- This is plenty for a personal project
-- For production, consider caching responses
-
-## 🆘 Need Help?
-
-- TMDB API Documentation: https://developers.themoviedb.org/3
-- Check the console/terminal for error messages
-- Ensure your API key is valid and active
+- ✅ Hero carousel with 10s interval
+- ✅ Rounded carousel edges
+- ✅ Drag to navigate carousel
+- ✅ Arrow button navigation
+- ✅ Keyboard navigation
+- ✅ Fixed logged-in carousel display
+- ✅ Search results working
+- ✅ Top-rated movies working
+- ✅ Genre filtering working
+- ✅ Glass morphism design
+- ✅ Black & grey color scheme
+- ✅ Favicon in tab
+- ✅ Minimalist interface
+- ✅ Movie detail cards
+- ✅ Responsive design
+- ✅ Smooth animations
 
 ## 🎉 You're All Set!
 
-Your professional movie rating platform is ready to use with full TMDB integration!
+Your enhanced LUMO platform is ready with:
+- Modern minimalist design
+- Apple-style glass effects
+- All bugs fixed
+- Smooth user experience
 
 Enjoy discovering and rating movies! 🍿
+
+## 🆘 Support
+
+- TMDB API Docs: https://developers.themoviedb.org/3
+- Check console for errors
+- Verify API key is valid
+- Run migration script if database errors occur

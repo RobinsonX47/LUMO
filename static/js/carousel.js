@@ -3,98 +3,142 @@ document.addEventListener('DOMContentLoaded', function () {
   if (!carousel) return;
 
   const slides = Array.from(carousel.querySelectorAll('.hero-slide'));
+  const indicators = Array.from(carousel.querySelectorAll('.carousel-indicators button'));
+  const prevBtn = carousel.querySelector('.carousel-btn.prev');
+  const nextBtn = carousel.querySelector('.carousel-btn.next');
+  
   let current = 0;
   let autoTimer = null;
-  const AUTO_INTERVAL = 5000;
+  let isDragging = false;
+  let startX = 0;
+  let currentX = 0;
+  
+  const AUTO_INTERVAL = 10000; // 10 seconds
 
-  const dots = Array.from(carousel.querySelectorAll('.hero-dots button'));
-
-  function show(index) {
+  function showSlide(index) {
+    // Normalize index
     index = (index + slides.length) % slides.length;
-    slides.forEach((s, i) => {
-      s.style.transform = `translateX(${100 * (i - index)}%)`;
-      s.classList.toggle('active', i === index);
-    });
-    dots.forEach((d, i) => d.classList.toggle('active', i === index));
     current = index;
+    
+    // Update slides
+    slides.forEach((slide, i) => {
+      slide.classList.remove('active');
+      if (i === index) {
+        slide.classList.add('active');
+      }
+    });
+    
+    // Update indicators
+    indicators.forEach((indicator, i) => {
+      indicator.classList.remove('active');
+      if (i === index) {
+        indicator.classList.add('active');
+      }
+    });
   }
 
-  function next() { show(current + 1); }
-  function prev() { show(current - 1); }
-
-  function startAuto() {
-    stopAuto();
-    autoTimer = setInterval(next, AUTO_INTERVAL);
+  function nextSlide() {
+    showSlide(current + 1);
   }
-  function stopAuto() { if (autoTimer) clearInterval(autoTimer); autoTimer = null; }
 
-  // init positions
-  slides.forEach((s, i) => { s.style.transition = 'transform 0.45s cubic-bezier(.2,.9,.3,1)'; });
-  show(0);
-  startAuto();
+  function prevSlide() {
+    showSlide(current - 1);
+  }
 
-  // arrow controls
-  const left = carousel.querySelector('.hero-prev');
-  const right = carousel.querySelector('.hero-next');
-  if (left) left.addEventListener('click', () => { prev(); startAuto(); });
-  if (right) right.addEventListener('click', () => { next(); startAuto(); });
+  function startAutoplay() {
+    stopAutoplay();
+    autoTimer = setInterval(nextSlide, AUTO_INTERVAL);
+  }
 
-  // dots click
-  dots.forEach((d, i) => {
-    d.addEventListener('click', function () { show(i); startAuto(); });
-  });
+  function stopAutoplay() {
+    if (autoTimer) {
+      clearInterval(autoTimer);
+      autoTimer = null;
+    }
+  }
 
-  // keyboard
-  window.addEventListener('keydown', function (e) {
-    if (e.key === 'ArrowLeft') { prev(); startAuto(); }
-    else if (e.key === 'ArrowRight') { next(); startAuto(); }
-  });
+  // Initialize
+  showSlide(0);
+  startAutoplay();
 
-  // drag (pointer events)
-  let pointerStartX = 0;
-  let pointerDelta = 0;
-  let dragging = false;
+  // Button controls
+  if (prevBtn) {
+    prevBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      prevSlide();
+      startAutoplay();
+    });
+  }
 
-  carousel.addEventListener('pointerdown', function (e) {
-    dragging = true;
-    pointerStartX = e.clientX;
-    stopAuto();
-    carousel.setPointerCapture(e.pointerId);
-  });
+  if (nextBtn) {
+    nextBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      nextSlide();
+      startAutoplay();
+    });
+  }
 
-  carousel.addEventListener('pointermove', function (e) {
-    if (!dragging) return;
-    pointerDelta = e.clientX - pointerStartX;
-    // tiny translate for slides
-    slides.forEach((s, i) => {
-      const offset = i - current;
-      s.style.transform = `translateX(${100 * offset + (pointerDelta / carousel.clientWidth) * 100}%)`;
+  // Indicator controls
+  indicators.forEach((indicator, index) => {
+    indicator.addEventListener('click', function(e) {
+      e.preventDefault();
+      showSlide(index);
+      startAutoplay();
     });
   });
 
-  carousel.addEventListener('pointerup', function (e) {
-    if (!dragging) return;
-    dragging = false;
-    carousel.releasePointerCapture(e.pointerId);
-    const threshold = carousel.clientWidth * 0.15;
-    if (pointerDelta > threshold) {
-      prev();
-    } else if (pointerDelta < -threshold) {
-      next();
-    } else {
-      show(current);
+  // Keyboard navigation
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowLeft') {
+      prevSlide();
+      startAutoplay();
+    } else if (e.key === 'ArrowRight') {
+      nextSlide();
+      startAutoplay();
     }
-    pointerDelta = 0;
-    startAuto();
   });
 
-  // ensure images/backgrounds are set from data attributes and blurred element
-  slides.forEach(s => {
-    const img = s.dataset.horizontal || s.dataset.poster;
-    const imgEl = s.querySelector('.hero-poster-img');
-    const blurEl = s.querySelector('.hero-poster-blur');
-    if (imgEl && img) imgEl.src = img;
-    if (blurEl && img) blurEl.style.backgroundImage = `url(${img})`;
-  });
+  // Touch/Mouse drag support
+  carousel.addEventListener('mousedown', handleDragStart);
+  carousel.addEventListener('touchstart', handleDragStart);
+  carousel.addEventListener('mousemove', handleDragMove);
+  carousel.addEventListener('touchmove', handleDragMove);
+  carousel.addEventListener('mouseup', handleDragEnd);
+  carousel.addEventListener('touchend', handleDragEnd);
+  carousel.addEventListener('mouseleave', handleDragEnd);
 
+  function handleDragStart(e) {
+    isDragging = true;
+    startX = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
+    currentX = startX;
+    stopAutoplay();
+    carousel.style.cursor = 'grabbing';
+  }
+
+  function handleDragMove(e) {
+    if (!isDragging) return;
+    e.preventDefault();
+    currentX = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
+  }
+
+  function handleDragEnd(e) {
+    if (!isDragging) return;
+    isDragging = false;
+    carousel.style.cursor = 'grab';
+    
+    const diff = currentX - startX;
+    const threshold = 50; // Minimum drag distance to trigger slide change
+    
+    if (diff > threshold) {
+      prevSlide();
+    } else if (diff < -threshold) {
+      nextSlide();
+    }
+    
+    startAutoplay();
+  }
+
+  // Pause autoplay on hover
+  carousel.addEventListener('mouseenter', stopAutoplay);
+  carousel.addEventListener('mouseleave', startAutoplay);
 });

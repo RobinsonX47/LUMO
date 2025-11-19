@@ -1,17 +1,25 @@
 {% extends "base.html" %}
-{% block title %}{{ genre_name }} Movies – CineSphere{% endblock %}
+{% block title %}{{ genre_name }} Movies – LUMO{% endblock %}
 {% block content %}
 
-<section style="margin-bottom: 32px;">
-  <h1 style="margin-bottom: 16px;">{{ genre_name }} Movies</h1>
+<section style="margin-bottom: 40px;">
+  <h1 style="margin-bottom: 24px;">{{ genre_name }} Movies</h1>
   
   <!-- Genre Filter Pills -->
-  <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px;">
+  <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 32px;">
     {% for genre in genres %}
     <a href="{{ url_for('main.movies_by_genre', genre_id=genre.id) }}" 
        style="text-decoration: none;">
       <div class="genre-pill {% if genre.id == current_genre_id %}active{% endif %}" 
-           style="padding: 8px 16px; border-radius: 999px; border: 1px solid rgba(148, 163, 184, 0.5); background: {% if genre.id == current_genre_id %}linear-gradient(135deg, #7b5cff, #a78bfa){% else %}rgba(15, 23, 42, 0.5){% endif %}; color: var(--text); transition: all 0.3s; cursor: pointer;">
+           style="padding: 10px 18px; border-radius: 12px; 
+                  background: {% if genre.id == current_genre_id %}var(--accent){% else %}rgba(255, 255, 255, 0.08){% endif %}; 
+                  border: 1px solid {% if genre.id == current_genre_id %}var(--accent){% else %}var(--glass-border){% endif %};
+                  color: var(--text-primary); 
+                  transition: all 0.2s ease; 
+                  cursor: pointer;
+                  font-weight: 500;
+                  backdrop-filter: blur(20px);
+                  -webkit-backdrop-filter: blur(20px);">
         {{ genre.name }}
       </div>
     </a>
@@ -22,12 +30,13 @@
 <!-- Movies Grid -->
 <div class="movie-grid">
   {% for movie in movies %}
-    <a href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}" style="text-decoration: none; color: inherit;">
+    <a href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}" class="card-link">
       <div class="card-glass">
         {% if movie.poster_url %}
         <img src="{{ movie.poster_url }}" alt="{{ movie.title }}" class="movie-poster" />
         {% else %}
-        <div class="movie-poster" style="background: linear-gradient(135deg, #4f46e5, #ec4899); display: flex; align-items: center; justify-content: center; font-size: 3rem;">
+        <div class="movie-poster" style="background: linear-gradient(135deg, var(--accent), #0066cc); 
+                                        display: flex; align-items: center; justify-content: center; font-size: 3rem;">
           🎬
         </div>
         {% endif %}
@@ -39,7 +48,7 @@
       </div>
     </a>
   {% else %}
-    <p style="grid-column: 1 / -1; text-align: center; color: var(--muted); padding: 40px;">
+    <p style="grid-column: 1 / -1; text-align: center; color: var(--text-secondary); padding: 60px 20px;">
       No movies found in this genre.
     </p>
   {% endfor %}
@@ -47,22 +56,26 @@
 
 <!-- Pagination -->
 {% if movies|length >= 20 %}
-<div style="display: flex; justify-content: center; gap: 12px; margin-top: 48px;">
+<div style="display: flex; justify-content: center; gap: 12px; margin-top: 60px;">
   {% if page > 1 %}
   <a href="{{ url_for('main.movies_by_genre', genre_id=current_genre_id, page=page-1) }}" 
      class="btn-secondary" 
-     style="padding: 12px 24px; border-radius: 12px; border: 1px solid rgba(148, 163, 184, 0.3); background: rgba(15, 23, 42, 0.5); color: var(--text); text-decoration: none;">
+     style="padding: 12px 24px;">
     ← Previous
   </a>
   {% endif %}
   
-  <span style="padding: 12px 24px; border-radius: 12px; border: 1px solid rgba(148, 163, 184, 0.3); background: rgba(123, 92, 255, 0.2);">
+  <span style="padding: 12px 24px; border-radius: 10px; 
+               background: rgba(255, 255, 255, 0.08); 
+               border: 1px solid var(--glass-border);
+               backdrop-filter: blur(20px);
+               -webkit-backdrop-filter: blur(20px);">
     Page {{ page }}
   </span>
   
   <a href="{{ url_for('main.movies_by_genre', genre_id=current_genre_id, page=page+1) }}" 
      class="btn-secondary" 
-     style="padding: 12px 24px; border-radius: 12px; border: 1px solid rgba(148, 163, 184, 0.3); background: rgba(15, 23, 42, 0.5); color: var(--text); text-decoration: none;">
+     style="padding: 12px 24px;">
     Next →
   </a>
 </div>
@@ -71,12 +84,11 @@
 <style>
   .genre-pill:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(123, 92, 255, 0.3);
+    box-shadow: 0 4px 12px rgba(10, 132, 255, 0.3);
   }
   
-  .btn-secondary:hover {
-    border-color: var(--accent);
-    transform: translateY(-2px);
+  .genre-pill:not(.active):hover {
+    background: rgba(255, 255, 255, 0.12);
   }
 </style>
 
