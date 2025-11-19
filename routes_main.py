@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template
-from app import db
+from extensions import db
 from models import Movie, ViewLog
 from sqlalchemy import func
 from datetime import datetime, timedelta
@@ -11,7 +11,7 @@ def home():
     top_rated = Movie.query.order_by(Movie.avg_rating.desc()).limit(6).all()
 
     week_ago = datetime.utcnow() - timedelta(days=7)
-    trending = (
+    trending_query = (
         db.session.query(Movie, func.count(ViewLog.id).label("views"))
         .join(ViewLog)
         .filter(ViewLog.viewed_at >= week_ago)
@@ -21,7 +21,6 @@ def home():
         .all()
     )
 
-    # trending is list of (Movie, views)
-    trending_movies = [t[0] for t in trending]
+    trending_movies = [t[0] for t in trending_query] if trending_query else []
 
     return render_template("index.html", top_rated=top_rated, trending=trending_movies)
