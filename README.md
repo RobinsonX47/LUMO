@@ -1,6 +1,6 @@
-# 🎬 CineSphere
+# 🎬 LUMO
 
-A modern, professional movie rating and discovery platform built with Flask. CineSphere features a beautiful glassmorphic UI with a dark theme, user authentication, movie reviews, and watchlist management.
+A modern, professional movie rating and discovery platform built with Flask. LUMO features a beautiful glassmorphic UI with a dark theme, user authentication, movie reviews, and watchlist management.
 
 ## ✨ Features
 
