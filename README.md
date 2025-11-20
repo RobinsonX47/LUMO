@@ -395,15 +395,15 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📧 Contact & Support
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/lumo/issues)
+- **Issues**: [GitHub Issues](https://github.com/RobinsonX47/lumo/issues)
 - **Email**: your.email@example.com
-- **Documentation**: [Wiki](https://github.com/yourusername/lumo/wiki)
+- **Documentation**: [Wiki](https://github.com/RobinsonX47/lumo/wiki)
 
 ---
 
 <div align="center">
 
-**Made with ❤️ by [Your Name]**
+**Made with ❤️ by [Robinson Minj]**
 
 ⭐ Star this repo if you find it helpful!
 
