@@ -2,27 +2,60 @@
 {% block title %}{{ movie.title }} – LUMO{% endblock %}
 {% block content %}
 
-<!-- Premium Movie Hero with Auto-Playing Trailer -->
-<div id="movieHero" class="premium-hero">
-  <!-- Poster/Info Overlay (fades out after 3s) -->
-  <div id="heroOverlay" class="hero-overlay-content">
-    <div class="hero-content-grid">
-      <div class="hero-poster-wrapper">
+<!-- Fullscreen Premium Movie Hero with Auto-Playing Trailer -->
+<div id="movieHero" class="premium-hero-fullscreen">
+  
+  <!-- YouTube Trailer Background (fullscreen, highest quality) -->
+  {% if movie.trailer_key %}
+  <div id="trailerContainer" class="trailer-container-fullscreen">
+    <div id="trailerPlayer"></div>
+    <div class="trailer-fade-overlay"></div>
+    
+    <!-- Mute/Unmute Button -->
+    <button id="muteBtn" class="mute-btn-premium">
+      <svg id="muteIcon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+        <line x1="23" y1="9" x2="17" y2="15"></line>
+        <line x1="17" y1="9" x2="23" y2="15"></line>
+      </svg>
+    </button>
+
+    <!-- Scroll indicator -->
+    <div class="scroll-indicator">
+      <span>Scroll for details</span>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="7 13 12 18 17 13"></polyline>
+        <polyline points="7 6 12 11 17 6"></polyline>
+      </svg>
+    </div>
+  </div>
+  {% else %}
+  <!-- Fallback poster if no trailer -->
+  <div class="hero-poster-fallback">
+    <img src="{{ movie.backdrop_url }}" alt="{{ movie.title }}" />
+    <div class="hero-gradient-overlay"></div>
+  </div>
+  {% endif %}
+
+  <!-- Movie Info Overlay (appears on scroll or hover) -->
+  <div id="heroOverlay" class="hero-info-overlay">
+    <div class="hero-content-wrapper">
+      <div class="hero-poster-column">
         {% if movie.poster_url %}
-        <img src="{{ movie.poster_url }}" alt="{{ movie.title }}" class="hero-poster-img" />
+        <img src="{{ movie.poster_url }}" alt="{{ movie.title }}" class="hero-poster-premium" />
         {% else %}
         <div class="hero-poster-placeholder">🎬</div>
         {% endif %}
       </div>
 
-      <div class="hero-info">
-        <h1 class="hero-title">{{ movie.title }}</h1>
+      <div class="hero-details-column">
+        <h1 class="hero-title-premium">{{ movie.title }}</h1>
         
         {% if movie.tagline %}
-        <p class="hero-tagline">"{{ movie.tagline }}"</p>
+        <p class="hero-tagline-premium">"{{ movie.tagline }}"</p>
         {% endif %}
         
-        <div class="hero-meta-badges">
+        <div class="hero-meta-row">
           {% if movie.release_date %}
           <span class="badge-pill">📅 {{ movie.release_date[:4] }}</span>
           {% endif %}
@@ -36,176 +69,169 @@
         </div>
 
         {% if movie.genres %}
-        <div class="hero-genres">
+        <div class="hero-genres-row">
           {% for genre in movie.genres %}
-          <a href="{{ url_for('main.movies_by_genre', genre_id=genre.id) }}" class="genre-tag">{{ genre.name }}</a>
+          <a href="{{ url_for('main.movies_by_genre', genre_id=genre.id) }}" class="genre-tag-premium">{{ genre.name }}</a>
           {% endfor %}
         </div>
         {% endif %}
 
         {% if movie.overview %}
-        <p class="hero-overview">{{ movie.overview }}</p>
+        <p class="hero-overview-premium">{{ movie.overview }}</p>
         {% endif %}
 
-        <div class="hero-actions">
-          {% if movie.trailer_url %}
-          <a href="{{ movie.trailer_url }}" target="_blank" class="btn-primary">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polygon points="5 3 19 12 5 21 5 3"></polygon>
-            </svg>
-            Watch Trailer
-          </a>
-          {% endif %}
-          
+        <div class="hero-actions-row">
           {% if current_user.is_authenticated %}
           <form method="POST" action="{{ url_for('movies.toggle_watchlist', movie_id=movie.id) }}" style="display: inline;">
-            <button type="submit" class="btn-secondary btn-watchlist">
+            <button type="submit" class="btn-primary btn-watchlist-premium">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="{% if in_watchlist %}currentColor{% else %}none{% endif %}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
               </svg>
               {% if in_watchlist %}In Watchlist{% else %}Add to Watchlist{% endif %}
             </button>
           </form>
+          {% else %}
+          <a href="{{ url_for('auth.login') }}" class="btn-primary">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+            </svg>
+            Sign in to Add
+          </a>
           {% endif %}
+          
+          <button class="btn-secondary" onclick="document.getElementById('reviewSection').scrollIntoView({behavior: 'smooth'})">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            Write Review
+          </button>
         </div>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- YouTube Trailer Background (starts after 3s) -->
-  {% if movie.trailer_key %}
-  <div id="trailerContainer" class="trailer-container">
-    <div id="trailerPlayer"></div>
-    <div class="trailer-fade-bottom"></div>
-    
-    <!-- Mute/Unmute Button -->
-    <button id="muteBtn" class="mute-btn">
-      <svg id="muteIcon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-        <line x1="23" y1="9" x2="17" y2="15"></line>
-        <line x1="17" y1="9" x2="23" y2="15"></line>
-      </svg>
-    </button>
-  </div>
+<!-- Content Section (scrollable) -->
+<div class="movie-detail-content">
+  
+  <!-- Cast Section -->
+  {% if movie.credits and movie.credits.cast %}
+  <section class="content-section">
+    <h2>✨ Cast</h2>
+    <div class="cast-grid-premium">
+      {% for actor in movie.credits.cast[:10] %}
+      <div class="cast-card-premium">
+        {% if actor.profile_path %}
+        <img src="https://image.tmdb.org/t/p/original{{ actor.profile_path }}" alt="{{ actor.name }}" class="cast-photo-premium" />
+        {% else %}
+        <div class="cast-photo-placeholder">👤</div>
+        {% endif %}
+        <div class="cast-name-premium">{{ actor.name }}</div>
+        <div class="cast-character-premium">{{ actor.character }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- Reviews Section -->
+  <section class="content-section" id="reviewSection">
+    <h2>💬 User Reviews</h2>
+
+    {% if current_user.is_authenticated %}
+      <div class="review-form-card-premium">
+        <h3>{% if user_review %}Edit Your Review{% else %}Write a Review{% endif %}</h3>
+        
+        <form method="POST" action="{{ url_for('movies.add_review', movie_id=movie.id) }}">
+          <div class="form-group">
+            <label>Your Rating</label>
+            <div class="star-rating-input-premium">
+              {% for i in range(1, 6) %}
+                <input type="radio" name="rating" value="{{ i }}" id="rating{{ i }}" 
+                       {% if user_review and user_review.rating == i %}checked{% endif %}
+                       required />
+                <label for="rating{{ i }}" class="star-label-premium">⭐</label>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Your Review</label>
+            <textarea name="review_text" rows="4" required placeholder="Share your thoughts...">{% if user_review %}{{ user_review.review_text }}{% endif %}</textarea>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn-primary">
+              {% if user_review %}Update Review{% else %}Submit Review{% endif %}
+            </button>
+            
+            {% if user_review %}
+            <button type="button" onclick="if(confirm('Delete this review?')) document.getElementById('deleteForm').submit();" 
+                    class="btn-danger-premium">Delete Review</button>
+            {% endif %}
+          </div>
+        </form>
+        
+        {% if user_review %}
+        <form id="deleteForm" method="POST" action="{{ url_for('movies.delete_review', movie_id=movie.id) }}" style="display: none;"></form>
+        {% endif %}
+      </div>
+    {% else %}
+      <div class="auth-prompt-card-premium">
+        <p>Sign in to write a review</p>
+        <a href="{{ url_for('auth.login') }}" class="btn-primary">Sign In</a>
+      </div>
+    {% endif %}
+
+    <div class="reviews-list-premium">
+      {% for review in reviews %}
+        <div class="review-card-premium">
+          <div class="review-header-premium">
+            <div>
+              <strong class="reviewer-name-premium">{{ review.user.name }}</strong>
+              <div class="review-date-premium">
+                {{ review.created_at.strftime('%B %d, %Y') }}
+                {% if review.updated_at != review.created_at %}<span class="edited-tag">(edited)</span>{% endif %}
+              </div>
+            </div>
+            <div class="review-stars-premium">
+              {% for i in range(review.rating) %}⭐{% endfor %}
+            </div>
+          </div>
+          <p class="review-text-premium">{{ review.review_text }}</p>
+        </div>
+      {% else %}
+        <p class="no-reviews-msg">No reviews yet. Be the first to review!</p>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- Similar Movies -->
+  {% if movie.similar and movie.similar.results %}
+  <section class="content-section">
+    <h2>🎬 You Might Also Like</h2>
+    <div class="movie-grid">
+      {% for similar in movie.similar.results[:6] %}
+      <a href="{% if movie.media_type == 'tv' %}{{ url_for('movies.tv_detail', tv_id=similar.id) }}{% else %}{{ url_for('movies.movie_detail', movie_id=similar.id) }}{% endif %}" class="card-link">
+        <div class="card-glass">
+          {% if similar.poster_path %}
+          <img src="https://image.tmdb.org/t/p/original{{ similar.poster_path }}" alt="{{ similar.title or similar.name }}" class="movie-poster" />
+          {% else %}
+          <div class="movie-poster movie-poster-placeholder">🎬</div>
+          {% endif %}
+          <div class="movie-title">{{ similar.title or similar.name }}</div>
+          <div class="movie-meta">⭐ {{ similar.vote_average|round(1) }}/10</div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
   {% endif %}
 </div>
 
-<!-- Cast Section -->
-{% if movie.credits and movie.credits.cast %}
-<section class="content-section">
-  <h2>Cast</h2>
-  <div class="cast-grid">
-    {% for actor in movie.credits.cast[:10] %}
-    <div class="cast-card">
-      {% if actor.profile_path %}
-      <img src="https://image.tmdb.org/t/p/w185{{ actor.profile_path }}" alt="{{ actor.name }}" class="cast-photo" />
-      {% else %}
-      <div class="cast-photo-placeholder">👤</div>
-      {% endif %}
-      <div class="cast-name">{{ actor.name }}</div>
-      <div class="cast-character">{{ actor.character }}</div>
-    </div>
-    {% endfor %}
-  </div>
-</section>
-{% endif %}
-
-<!-- Reviews Section -->
-<section class="content-section">
-  <h2>User Reviews</h2>
-
-  {% if current_user.is_authenticated %}
-    <div class="review-form-card">
-      <h3>{% if user_review %}Edit Your Review{% else %}Write a Review{% endif %}</h3>
-      
-      <form method="POST" action="{{ url_for('movies.add_review', movie_id=movie.id) }}">
-        <div class="form-group">
-          <label>Your Rating</label>
-          <div class="star-rating-input">
-            {% for i in range(1, 6) %}
-              <input type="radio" name="rating" value="{{ i }}" id="rating{{ i }}" 
-                     {% if user_review and user_review.rating == i %}checked{% endif %}
-                     required />
-              <label for="rating{{ i }}" class="star-label">⭐</label>
-            {% endfor %}
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label>Your Review</label>
-          <textarea name="review_text" rows="4" required placeholder="Share your thoughts...">{% if user_review %}{{ user_review.review_text }}{% endif %}</textarea>
-        </div>
-
-        <div class="form-actions">
-          <button type="submit" class="btn-primary">
-            {% if user_review %}Update Review{% else %}Submit Review{% endif %}
-          </button>
-          
-          {% if user_review %}
-          <button type="button" onclick="if(confirm('Delete this review?')) document.getElementById('deleteForm').submit();" 
-                  class="btn-danger">Delete Review</button>
-          {% endif %}
-        </div>
-      </form>
-      
-      {% if user_review %}
-      <form id="deleteForm" method="POST" action="{{ url_for('movies.delete_review', movie_id=movie.id) }}" style="display: none;"></form>
-      {% endif %}
-    </div>
-  {% else %}
-    <div class="auth-prompt-card">
-      <p>Sign in to write a review</p>
-      <a href="{{ url_for('auth.login') }}" class="btn-primary">Sign In</a>
-    </div>
-  {% endif %}
-
-  <div class="reviews-list">
-    {% for review in reviews %}
-      <div class="review-card">
-        <div class="review-header">
-          <div>
-            <strong class="reviewer-name">{{ review.user.name }}</strong>
-            <div class="review-date">
-              {{ review.created_at.strftime('%B %d, %Y') }}
-              {% if review.updated_at != review.created_at %}<span class="edited-tag">(edited)</span>{% endif %}
-            </div>
-          </div>
-          <div class="review-stars">
-            {% for i in range(review.rating) %}⭐{% endfor %}
-          </div>
-        </div>
-        <p class="review-text">{{ review.review_text }}</p>
-      </div>
-    {% else %}
-      <p class="no-reviews-msg">No reviews yet. Be the first to review!</p>
-    {% endfor %}
-  </div>
-</section>
-
-<!-- Similar Movies -->
-{% if movie.similar and movie.similar.results %}
-<section class="content-section">
-  <h2>Similar {% if movie.media_type == 'tv' %}Shows{% else %}Movies{% endif %}</h2>
-  <div class="movie-grid">
-    {% for similar in movie.similar.results[:6] %}
-    <a href="{% if movie.media_type == 'tv' %}{{ url_for('movies.tv_detail', tv_id=similar.id) }}{% else %}{{ url_for('movies.movie_detail', movie_id=similar.id) }}{% endif %}" class="card-link">
-      <div class="card-glass">
-        {% if similar.poster_path %}
-        <img src="https://image.tmdb.org/t/p/w500{{ similar.poster_path }}" alt="{{ similar.title or similar.name }}" class="movie-poster" />
-        {% else %}
-        <div class="movie-poster movie-poster-placeholder">🎬</div>
-        {% endif %}
-        <div class="movie-title">{{ similar.title or similar.name }}</div>
-        <div class="movie-meta">⭐ {{ similar.vote_average|round(1) }}/10</div>
-      </div>
-    </a>
-    {% endfor %}
-  </div>
-</section>
-{% endif %}
-
 <style>
-  .premium-hero {
+  /* Premium Fullscreen Hero */
+  .premium-hero-fullscreen {
     position: relative;
     width: 100vw;
     left: 50%;
@@ -213,158 +239,63 @@
     margin-left: -50vw;
     margin-right: -50vw;
     margin-top: -100px;
-    margin-bottom: 60px;
-    min-height: 600px;
+    height: 100vh;
     overflow: hidden;
-    border-radius: 0 0 24px 24px;
+    background: #000;
   }
 
-  .hero-overlay-content {
-    position: relative;
-    z-index: 10;
-    background: linear-gradient(180deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.85) 100%);
-    padding: 100px 4vw 60px;
-    transition: opacity 0.8s ease;
-  }
-
-  .hero-overlay-content.fade-out {
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  .hero-content-grid {
-    max-width: 1400px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: 320px 1fr;
-    gap: 48px;
-    align-items: start;
-  }
-
-  .hero-poster-img {
-    width: 100%;
-    border-radius: 16px;
-    box-shadow: 0 24px 80px rgba(0,0,0,0.8);
-  }
-
-  .hero-poster-placeholder {
-    width: 100%;
-    aspect-ratio: 2/3;
-    background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 6rem;
-  }
-
-  .hero-title {
-    font-size: 3rem;
-    font-weight: 700;
-    margin-bottom: 12px;
-    line-height: 1.1;
-  }
-
-  .hero-tagline {
-    font-style: italic;
-    color: var(--text-secondary);
-    font-size: 1.2rem;
-    margin-bottom: 24px;
-  }
-
-  .hero-meta-badges {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin-bottom: 20px;
-  }
-
-  .badge-highlight {
-    background: rgba(10, 132, 255, 0.25);
-    border-color: var(--accent);
-    color: var(--accent);
-  }
-
-  .hero-genres {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-bottom: 24px;
-  }
-
-  .genre-tag {
-    padding: 8px 16px;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.08);
-    color: var(--text-secondary);
-    text-decoration: none;
-    font-size: 0.9rem;
-    font-weight: 500;
-    border: 1px solid var(--glass-border);
-    transition: var(--transition);
-  }
-
-  .genre-tag:hover {
-    background: rgba(255, 255, 255, 0.15);
-    border-color: var(--accent);
-    color: var(--accent);
-  }
-
-  .hero-overview {
-    color: var(--text-secondary);
-    line-height: 1.8;
-    font-size: 1.1rem;
-    margin-bottom: 32px;
-  }
-
-  .hero-actions {
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
-
-  .btn-watchlist svg {
-    transition: var(--transition);
-  }
-
-  .btn-watchlist:hover svg {
-    transform: scale(1.1);
-  }
-
-  /* Trailer Container */
-  .trailer-container {
+  .trailer-container-fullscreen {
     position: absolute;
     inset: 0;
-    z-index: 1;
-    opacity: 0;
-    transition: opacity 1s ease;
-  }
-
-  .trailer-container.visible {
-    opacity: 1;
-  }
-
-  #trailerPlayer {
     width: 100%;
     height: 100%;
   }
 
-  .trailer-fade-bottom {
+  #trailerPlayer {
     position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 40%;
-    background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, transparent 100%);
+    top: 50%;
+    left: 50%;
+    width: 100vw;
+    height: 100vh;
+    transform: translate(-50%, -50%);
     pointer-events: none;
   }
 
-  .mute-btn {
+  /* Ensure 16:9 aspect ratio fills screen */
+  @media (min-aspect-ratio: 16/9) {
+    #trailerPlayer {
+      width: 100vw;
+      height: 56.25vw;
+    }
+  }
+
+  @media (max-aspect-ratio: 16/9) {
+    #trailerPlayer {
+      width: 177.78vh;
+      height: 100vh;
+    }
+  }
+
+  .trailer-fade-overlay {
     position: absolute;
-    bottom: 32px;
-    right: 32px;
-    z-index: 20;
-    background: rgba(0, 0, 0, 0.7);
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      transparent 60%,
+      rgba(0,0,0,0.4) 85%,
+      rgba(0,0,0,0.9) 100%
+    );
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .mute-btn-premium {
+    position: fixed;
+    bottom: 40px;
+    right: 40px;
+    z-index: 30;
+    background: rgba(0, 0, 0, 0.8);
     backdrop-filter: blur(20px);
     border: 1px solid var(--glass-border);
     border-radius: 50%;
@@ -378,38 +309,209 @@
     color: white;
   }
 
-  .mute-btn:hover {
+  .mute-btn-premium:hover {
     background: rgba(255, 255, 255, 0.15);
+    transform: scale(1.1);
+    box-shadow: 0 8px 24px rgba(10, 132, 255, 0.4);
+  }
+
+  .scroll-indicator {
+    position: absolute;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: white;
+    font-size: 0.9rem;
+    animation: bounce 2s ease-in-out infinite;
+    opacity: 0.8;
+  }
+
+  @keyframes bounce {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(-10px); }
+  }
+
+  .hero-info-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.85) 70%, transparent 100%);
+    padding: 60px 4vw 40px;
+    transform: translateY(0);
+    transition: transform 0.5s ease;
+  }
+
+  .hero-content-wrapper {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 40px;
+    align-items: end;
+  }
+
+  .hero-poster-premium {
+    width: 100%;
+    border-radius: 16px;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.9);
+  }
+
+  .hero-poster-placeholder {
+    width: 100%;
+    aspect-ratio: 2/3;
+    background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 5rem;
+  }
+
+  .hero-title-premium {
+    font-size: 3.5rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+    line-height: 1.1;
+    text-shadow: 0 4px 12px rgba(0,0,0,0.8);
+  }
+
+  .hero-tagline-premium {
+    font-style: italic;
+    color: var(--text-secondary);
+    font-size: 1.3rem;
+    margin-bottom: 24px;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+  }
+
+  .hero-meta-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+
+  .badge-highlight {
+    background: rgba(10, 132, 255, 0.25);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .hero-genres-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+  }
+
+  .genre-tag-premium {
+    padding: 8px 16px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    border: 1px solid var(--glass-border);
+    transition: var(--transition);
+  }
+
+  .genre-tag-premium:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: translateY(-2px);
+  }
+
+  .hero-overview-premium {
+    color: var(--text-secondary);
+    line-height: 1.8;
+    font-size: 1.1rem;
+    margin-bottom: 32px;
+    max-width: 800px;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+  }
+
+  .hero-actions-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .btn-watchlist-premium svg {
+    transition: var(--transition);
+  }
+
+  .btn-watchlist-premium:hover svg {
     transform: scale(1.1);
   }
 
-  /* Content Sections */
+  /* Hero fallback for no trailer */
+  .hero-poster-fallback {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .hero-poster-fallback img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 20%;
+  }
+
+  .hero-gradient-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      rgba(0,0,0,0.3) 0%,
+      rgba(0,0,0,0.6) 60%,
+      rgba(0,0,0,0.95) 100%
+    );
+  }
+
+  /* Content Section */
+  .movie-detail-content {
+    padding: 60px 4vw;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
   .content-section {
     margin-bottom: 80px;
   }
 
   .content-section h2 {
     margin-bottom: 32px;
-    font-size: 1.8rem;
+    font-size: 2rem;
   }
 
   /* Cast Grid */
-  .cast-grid {
+  .cast-grid-premium {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 24px;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 28px;
   }
 
-  .cast-card {
+  .cast-card-premium {
     text-align: center;
   }
 
-  .cast-photo {
+  .cast-photo-premium {
     width: 100%;
     aspect-ratio: 2/3;
     object-fit: cover;
     border-radius: 12px;
     margin-bottom: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
   }
 
   .cast-photo-placeholder {
@@ -424,38 +526,40 @@
     margin-bottom: 12px;
   }
 
-  .cast-name {
+  .cast-name-premium {
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 1rem;
     margin-bottom: 4px;
   }
 
-  .cast-character {
-    font-size: 0.8rem;
+  .cast-character-premium {
+    font-size: 0.85rem;
     color: var(--text-muted);
   }
 
   /* Reviews */
-  .review-form-card, .auth-prompt-card {
+  .review-form-card-premium,
+  .auth-prompt-card-premium {
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
     border-radius: 16px;
-    padding: 32px;
+    padding: 36px;
     margin-bottom: 40px;
     backdrop-filter: blur(40px);
   }
 
-  .auth-prompt-card {
+  .auth-prompt-card-premium {
     text-align: center;
-    padding: 48px;
+    padding: 56px;
   }
 
-  .review-form-card h3 {
-    margin-bottom: 24px;
+  .review-form-card-premium h3 {
+    margin-bottom: 28px;
+    font-size: 1.5rem;
   }
 
   .form-group {
-    margin-bottom: 24px;
+    margin-bottom: 28px;
   }
 
   .form-group label {
@@ -465,25 +569,25 @@
     color: var(--text-secondary);
   }
 
-  .star-rating-input {
+  .star-rating-input-premium {
     display: flex;
-    gap: 8px;
+    gap: 10px;
   }
 
-  .star-rating-input input[type="radio"] {
+  .star-rating-input-premium input[type="radio"] {
     display: none;
   }
 
-  .star-label {
-    font-size: 2.5rem;
+  .star-label-premium {
+    font-size: 2.8rem;
     cursor: pointer;
     transition: var(--transition);
     opacity: 0.3;
   }
 
-  .star-label:hover,
-  .star-rating-input input[type="radio"]:checked + .star-label,
-  .star-rating-input input[type="radio"]:checked ~ .star-label {
+  .star-label-premium:hover,
+  .star-rating-input-premium input[type="radio"]:checked + .star-label-premium,
+  .star-rating-input-premium input[type="radio"]:checked ~ .star-label-premium {
     opacity: 1;
     transform: scale(1.15);
   }
@@ -493,7 +597,7 @@
     gap: 12px;
   }
 
-  .btn-danger {
+  .btn-danger-premium {
     background: rgba(255, 69, 58, 0.2);
     border: 1px solid var(--error);
     color: var(--error);
@@ -504,38 +608,45 @@
     transition: var(--transition);
   }
 
-  .btn-danger:hover {
+  .btn-danger-premium:hover {
     background: rgba(255, 69, 58, 0.3);
     transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(255, 69, 58, 0.4);
   }
 
-  .reviews-list {
+  .reviews-list-premium {
     display: flex;
     flex-direction: column;
     gap: 24px;
   }
 
-  .review-card {
+  .review-card-premium {
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
     border-radius: 16px;
-    padding: 24px;
+    padding: 28px;
     backdrop-filter: blur(40px);
+    transition: var(--transition);
   }
 
-  .review-header {
+  .review-card-premium:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateX(4px);
+  }
+
+  .review-header-premium {
     display: flex;
     justify-content: space-between;
     align-items: start;
     margin-bottom: 16px;
   }
 
-  .reviewer-name {
-    font-size: 1.1rem;
+  .reviewer-name-premium {
+    font-size: 1.15rem;
     font-weight: 600;
   }
 
-  .review-date {
+  .review-date-premium {
     font-size: 0.85rem;
     color: var(--text-muted);
     margin-top: 4px;
@@ -545,14 +656,14 @@
     font-style: italic;
   }
 
-  .review-stars {
+  .review-stars-premium {
     color: #fbbf24;
-    font-size: 1.2rem;
+    font-size: 1.3rem;
   }
 
-  .review-text {
+  .review-text-premium {
     color: var(--text-primary);
-    line-height: 1.7;
+    line-height: 1.8;
     font-size: 1.05rem;
   }
 
@@ -564,25 +675,30 @@
   }
 
   @media (max-width: 768px) {
-    .hero-content-grid {
+    .hero-content-wrapper {
       grid-template-columns: 1fr;
       gap: 32px;
     }
 
-    .hero-poster-wrapper {
-      max-width: 280px;
+    .hero-poster-column {
+      max-width: 240px;
       margin: 0 auto;
     }
 
-    .hero-title {
-      font-size: 2rem;
+    .hero-title-premium {
+      font-size: 2.2rem;
     }
 
-    .mute-btn {
+    .mute-btn-premium {
       width: 48px;
       height: 48px;
       bottom: 24px;
       right: 24px;
+    }
+
+    .cast-grid-premium {
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 20px;
     }
   }
 </style>
@@ -604,21 +720,31 @@
         showinfo: 0,
         mute: 1,
         loop: 1,
-        playlist: '{{ movie.trailer_key }}'
+        playlist: '{{ movie.trailer_key }}',
+        playsinline: 1,
+        iv_load_policy: 3,
+        disablekb: 1,
+        fs: 0,
+        quality: 'highres'  // Request highest quality
       },
       events: {
-        'onReady': onPlayerReady
+        'onReady': onPlayerReady,
+        'onStateChange': onPlayerStateChange
       }
     });
   }
   
   function onPlayerReady(event) {
-    // Wait 3 seconds, then fade out overlay and show trailer
-    setTimeout(() => {
-      document.getElementById('heroOverlay').classList.add('fade-out');
-      document.getElementById('trailerContainer').classList.add('visible');
-      event.target.playVideo();
-    }, 3000);
+    event.target.playVideo();
+    // Try to set highest quality
+    event.target.setPlaybackQuality('highres');
+  }
+
+  function onPlayerStateChange(event) {
+    // Ensure highest quality is maintained
+    if (event.data == YT.PlayerState.PLAYING) {
+      player.setPlaybackQuality('highres');
+    }
   }
   
   // Mute/Unmute toggle
@@ -641,20 +767,20 @@
       isMuted = !isMuted;
     }
   });
-  
-  // Show overlay on hover
-  document.getElementById('movieHero').addEventListener('mouseenter', () => {
-    const overlay = document.getElementById('heroOverlay');
-    if (overlay.classList.contains('fade-out')) {
-      overlay.style.opacity = '0.95';
+
+  // Show/hide overlay on scroll
+  let lastScroll = 0;
+  window.addEventListener('scroll', () => {
+    const currentScroll = window.pageYOffset;
+    const heroHeight = document.getElementById('movieHero').offsetHeight;
+    
+    if (currentScroll > heroHeight * 0.5) {
+      document.querySelector('.scroll-indicator')?.style.setProperty('opacity', '0');
+    } else {
+      document.querySelector('.scroll-indicator')?.style.setProperty('opacity', '0.8');
     }
-  });
-  
-  document.getElementById('movieHero').addEventListener('mouseleave', () => {
-    const overlay = document.getElementById('heroOverlay');
-    if (overlay.classList.contains('fade-out')) {
-      overlay.style.opacity = '0';
-    }
+    
+    lastScroll = currentScroll;
   });
 </script>
 {% endif %}

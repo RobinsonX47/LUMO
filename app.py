@@ -1,7 +1,9 @@
 from flask import Flask
 from config import Config
 from extensions import db, login_manager
+from tmdb_service import TMDBService
 import os
+import threading
 
 def create_app():
     app = Flask(__name__)
@@ -34,6 +36,16 @@ def create_app():
     # Create database tables
     with app.app_context():
         db.create_all()
+        
+        # Start cache warming in background thread
+        def warm_cache_async():
+            with app.app_context():
+                TMDBService.warm_cache()
+        
+        # Start cache warming after 2 seconds to not delay app startup
+        warming_thread = threading.Timer(2.0, warm_cache_async)
+        warming_thread.daemon = True
+        warming_thread.start()
 
     return app
 
@@ -45,6 +57,7 @@ if __name__ == "__main__":
     print("="*60)
     print(f"✅ Database: {Config.SQLALCHEMY_DATABASE_URI}")
     print(f"✅ TMDB API: {'Configured' if Config.TMDB_API_KEY != 'YOUR_TMDB_API_KEY_HERE' else '⚠️  NOT CONFIGURED'}")
+    print(f"🔥 Cache warming will start in 2 seconds...")
     print(f"🌐 Running on: http://localhost:5000")
     print("="*60 + "\n")
     app.run(debug=True, host='0.0.0.0', port=5000)

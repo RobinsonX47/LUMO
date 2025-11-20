@@ -86,25 +86,37 @@
         <p>Filter content by your favorite genres and categories</p>
       </div>
     </a>
+  </div>
+</section>
 
-    {% if current_user.is_authenticated %}
-    <!-- AI Recommendations Card - HIGHLIGHTED -->
-    <a href="{{ url_for('movies.recommendations') }}" style="text-decoration: none; grid-column: span 2;">
-      <div class="content-card premium-card" style="background: linear-gradient(135deg, rgba(123, 92, 255, 0.25), rgba(236, 95, 160, 0.25)); border: 2px solid rgba(123, 92, 255, 0.5); position: relative; overflow: hidden;">
+<!-- AI Recommendations Card - CENTERED -->
+{% if current_user.is_authenticated %}
+<section style="margin-bottom: 80px;">
+  <div style="max-width: 900px; margin: 0 auto;">
+    <a href="{{ url_for('movies.recommendations') }}" style="text-decoration: none;">
+      <div class="content-card premium-card ai-card-centered" style="background: linear-gradient(135deg, rgba(123, 92, 255, 0.25), rgba(236, 95, 160, 0.25)); border: 2px solid rgba(123, 92, 255, 0.5); position: relative; overflow: hidden; padding: 48px;">
         <div style="position: absolute; top: -50%; right: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%); animation: pulse 3s ease-in-out infinite;"></div>
-        <div style="position: relative; z-index: 1;">
-          <div class="card-icon" style="font-size: 3rem;">✨</div>
-          <h3 style="font-size: 1.5rem; background: linear-gradient(135deg, #7b5cff, #ec5fa0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">AI Recommendations</h3>
-          <p style="font-size: 1.05rem;">Get personalized suggestions powered by AI based on your unique taste</p>
-          <span class="badge-pill" style="margin-top: 12px; background: rgba(123, 92, 255, 0.3); border-color: rgba(123, 92, 255, 0.5); color: #fff; display: inline-flex; align-items: center; gap: 6px;">
-            <span>🤖</span> AI-Powered
-          </span>
+        <div style="position: relative; z-index: 1; text-align: center;">
+          <div class="card-icon" style="font-size: 4rem; margin-bottom: 20px;">✨</div>
+          <h3 style="font-size: 2rem; background: linear-gradient(135deg, #7b5cff, #ec5fa0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 16px;">AI Recommendations</h3>
+          <p style="font-size: 1.15rem; line-height: 1.6; max-width: 600px; margin: 0 auto 24px; color: var(--text-secondary);">Get personalized movie and series suggestions powered by advanced AI based on your unique taste and viewing history</p>
+          <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+            <span class="badge-pill" style="background: rgba(123, 92, 255, 0.3); border-color: rgba(123, 92, 255, 0.5); color: #fff; display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;">
+              <span>🤖</span> AI-Powered
+            </span>
+            <span class="badge-pill" style="background: rgba(236, 95, 160, 0.3); border-color: rgba(236, 95, 160, 0.5); color: #fff; display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;">
+              <span>🎯</span> Personalized
+            </span>
+            <span class="badge-pill" style="background: rgba(10, 132, 255, 0.3); border-color: rgba(10, 132, 255, 0.5); color: #fff; display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;">
+              <span>⚡</span> Smart
+            </span>
+          </div>
         </div>
       </div>
     </a>
-    {% endif %}
   </div>
 </section>
+{% endif %}
 
 <style>
   .content-card {
@@ -129,6 +141,15 @@
   .premium-card:hover {
     transform: translateY(-8px) scale(1.02);
     box-shadow: 0 24px 80px rgba(123, 92, 255, 0.6);
+  }
+
+  .ai-card-centered {
+    box-shadow: 0 12px 48px rgba(123, 92, 255, 0.5);
+  }
+
+  .ai-card-centered:hover {
+    transform: translateY(-12px) scale(1.03);
+    box-shadow: 0 32px 96px rgba(123, 92, 255, 0.7);
   }
 
   .card-icon {
@@ -159,9 +180,17 @@
     .content-card {
       padding: 24px;
     }
-    
-    a[href="{{ url_for('movies.recommendations') }}"] {
-      grid-column: span 1 !important;
+
+    .ai-card-centered {
+      padding: 36px 24px;
+    }
+
+    .ai-card-centered h3 {
+      font-size: 1.5rem;
+    }
+
+    .ai-card-centered p {
+      font-size: 1rem;
     }
   }
 </style>

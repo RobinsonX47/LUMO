@@ -201,15 +201,24 @@ def recommendations():
     
     # Get details for watchlist items
     watchlist_titles = []
-    for entry in watchlist_entries:
+    watchlist_genres = []
+    
+    for entry in watchlist_entries[:15]:  # Use top 15 for better context
         movie = TMDBService.get_movie_details(entry.tmdb_movie_id)
         if not movie:
             movie = TMDBService.get_tv_details(entry.tmdb_movie_id)
         if movie:
             watchlist_titles.append(movie.get('title', 'Unknown'))
+            if 'genres' in movie and movie['genres']:
+                watchlist_genres.extend([g['name'] for g in movie['genres']])
     
-    # Get AI recommendations
-    recommended_items = get_ai_recommendations(watchlist_titles[:10])
+    # Get AI recommendations with better error handling
+    try:
+        recommended_items = get_ai_recommendations(watchlist_titles, watchlist_genres)
+    except Exception as e:
+        print(f"AI Recommendation error: {e}")
+        # Fallback to genre-based recommendations
+        recommended_items = get_fallback_recommendations(watchlist_genres)
     
     return render_template(
         "movies/recommendations.html",
@@ -217,30 +226,34 @@ def recommendations():
         watchlist_count=len(watchlist_entries)
     )
 
-def get_ai_recommendations(watchlist_titles):
-    """Use Claude API to get personalized recommendations"""
+def get_ai_recommendations(watchlist_titles, watchlist_genres):
+    """Use Claude API to get personalized recommendations - OPTIMIZED"""
     
     if not watchlist_titles:
-        return []
+        return get_fallback_recommendations(watchlist_genres)
     
     try:
-        # Prepare prompt for Claude
-        watchlist_str = ", ".join(watchlist_titles)
+        # Create more specific prompt with genre context
+        titles_str = ", ".join(watchlist_titles[:10])
+        genres_str = ", ".join(set(watchlist_genres[:10]))
         
-        prompt = f"""Based on a user's watchlist containing: {watchlist_str}
+        prompt = f"""Based on a user who enjoys these movies: {titles_str}
 
-Please recommend 10 movies, TV shows, or anime that this user would enjoy. Consider their taste and suggest diverse options.
+Their favorite genres appear to be: {genres_str}
 
-Respond ONLY with a JSON array in this exact format:
+Recommend 10 movies or TV shows they would enjoy. Focus on:
+- Similar themes and styles
+- Mix of popular and hidden gems
+- Variety across their favorite genres
+- Recent releases (2015-2024)
+
+Return ONLY a valid JSON array with NO other text, markdown, or formatting:
 [
-  {{"title": "Movie Name", "year": 2020, "type": "movie"}},
-  {{"title": "Show Name", "year": 2019, "type": "tv"}},
-  ...
-]
+  {{"title": "Movie Name", "year": 2020}},
+  {{"title": "Show Name", "year": 2021}}
+]"""
 
-No other text, just the JSON array."""
-
-        # Call Claude API (using the Anthropic API endpoint)
+        # Call Claude API
         response = requests.post(
             "https://api.anthropic.com/v1/messages",
             headers={"Content-Type": "application/json"},
@@ -252,52 +265,137 @@ No other text, just the JSON array."""
             timeout=30
         )
         
-        if response.status_code == 200:
-            data = response.json()
-            content = data.get('content', [{}])[0].get('text', '')
+        if response.status_code != 200:
+            print(f"API returned status {response.status_code}: {response.text}")
+            return get_fallback_recommendations(watchlist_genres)
+        
+        data = response.json()
+        
+        if 'content' not in data or not data['content']:
+            print("No content in API response")
+            return get_fallback_recommendations(watchlist_genres)
+        
+        content = data['content'][0].get('text', '').strip()
+        
+        # Clean up the response
+        if '```json' in content:
+            content = content.split('```json')[1].split('```')[0].strip()
+        elif '```' in content:
+            content = content.split('```')[1].split('```')[0].strip()
+        
+        # Remove any leading/trailing whitespace
+        content = content.strip()
+        
+        # Parse JSON
+        try:
+            recommendations = json.loads(content)
+        except json.JSONDecodeError as je:
+            print(f"JSON parse error: {je}")
+            print(f"Content was: {content[:200]}")
+            return get_fallback_recommendations(watchlist_genres)
+        
+        # Search TMDB for each recommendation
+        results = []
+        for rec in recommendations[:12]:  # Get a few extra in case some fail
+            if not rec.get('title'):
+                continue
+                
+            title = rec['title']
             
-            # Parse JSON from response
-            try:
-                # Clean up response - remove markdown code blocks if present
-                content = content.strip()
-                if content.startswith('```'):
-                    content = content.split('```')[1]
-                    if content.startswith('json'):
-                        content = content[4:]
-                content = content.strip()
+            # Search TMDB
+            movies = TMDBService.search_all(title, 1)
+            
+            if movies:
+                # Find best match based on title similarity and year
+                best_match = None
+                rec_year = rec.get('year')
                 
-                recommendations = json.loads(content)
+                for movie in movies[:3]:
+                    movie_title = movie.get('title', '').lower()
+                    search_title = title.lower()
+                    
+                    # Check title match
+                    if search_title in movie_title or movie_title in search_title:
+                        # If year specified, prefer matching year
+                        if rec_year:
+                            movie_year = movie.get('release_date', '')[:4]
+                            if movie_year == str(rec_year):
+                                best_match = movie
+                                break
+                        
+                        if not best_match:
+                            best_match = movie
                 
-                # Search for each recommendation on TMDB
-                results = []
-                for rec in recommendations[:10]:
-                    title = rec.get('title')
-                    if title:
-                        # Search TMDB
-                        movies = TMDBService.search_all(title, 1)
-                        if movies:
-                            # Find best match
-                            for movie in movies[:3]:
-                                movie_title = movie.get('title', '')
-                                if title.lower() in movie_title.lower() or movie_title.lower() in title.lower():
-                                    results.append(movie)
-                                    break
-                            else:
-                                # If no exact match, add first result
-                                if movies:
-                                    results.append(movies[0])
-                
-                return results[:10]
-            except json.JSONDecodeError:
-                print(f"Failed to parse AI response: {content}")
-                return []
+                if best_match and best_match not in results:
+                    results.append(best_match)
+                    
+                if len(results) >= 10:
+                    break
+        
+        # If we got good results, return them
+        if len(results) >= 5:
+            return results[:10]
         else:
-            print(f"AI API error: {response.status_code}")
-            return []
+            # Not enough results, supplement with fallback
+            fallback = get_fallback_recommendations(watchlist_genres)
+            combined = results + fallback
+            # Remove duplicates
+            seen = set()
+            unique = []
+            for item in combined:
+                if item['id'] not in seen:
+                    seen.add(item['id'])
+                    unique.append(item)
+            return unique[:10]
             
     except Exception as e:
-        print(f"Error getting AI recommendations: {e}")
-        return []
-    
-    # Fallback: return popular movies if AI fails
-    return TMDBService.get_popular_movies(1)[:10]
+        print(f"Error in get_ai_recommendations: {e}")
+        import traceback
+        traceback.print_exc()
+        return get_fallback_recommendations(watchlist_genres)
+
+def get_fallback_recommendations(genres):
+    """Get genre-based recommendations as fallback"""
+    try:
+        # Get popular movies from favorite genres
+        all_genres = TMDBService.get_genres()
+        
+        if not genres or not all_genres:
+            # If no genre data, just return popular movies
+            return TMDBService.get_popular_movies(1)[:10]
+        
+        # Find genre IDs
+        genre_counts = {}
+        for g in genres:
+            genre_counts[g] = genre_counts.get(g, 0) + 1
+        
+        # Get top 2 genres
+        top_genres = sorted(genre_counts.items(), key=lambda x: x[1], reverse=True)[:2]
+        top_genre_names = [g[0] for g in top_genres]
+        
+        # Find matching genre IDs
+        genre_ids = []
+        for genre in all_genres:
+            if genre['name'] in top_genre_names:
+                genre_ids.append(genre['id'])
+        
+        # Get movies from these genres
+        results = []
+        for genre_id in genre_ids[:2]:
+            movies = TMDBService.get_movies_by_genre(genre_id, 1)
+            results.extend(movies[:5])
+        
+        # Remove duplicates and return
+        seen = set()
+        unique = []
+        for movie in results:
+            if movie['id'] not in seen:
+                seen.add(movie['id'])
+                unique.append(movie)
+        
+        return unique[:10]
+        
+    except Exception as e:
+        print(f"Fallback error: {e}")
+        # Last resort: return popular movies
+        return TMDBService.get_popular_movies(1)[:10]

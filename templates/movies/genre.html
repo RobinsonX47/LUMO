@@ -54,28 +54,22 @@
   {% endfor %}
 </div>
 
-<!-- Pagination -->
+<!-- Pagination (Fixed - No underline on buttons) -->
 {% if movies|length >= 20 %}
 <div style="display: flex; justify-content: center; gap: 12px; margin-top: 60px;">
   {% if page > 1 %}
   <a href="{{ url_for('main.movies_by_genre', genre_id=current_genre_id, page=page-1) }}" 
-     class="btn-secondary" 
-     style="padding: 12px 24px;">
+     class="btn-secondary pagination-btn">
     ← Previous
   </a>
   {% endif %}
   
-  <span style="padding: 12px 24px; border-radius: 10px; 
-               background: rgba(255, 255, 255, 0.08); 
-               border: 1px solid var(--glass-border);
-               backdrop-filter: blur(20px);
-               -webkit-backdrop-filter: blur(20px);">
+  <span class="page-indicator">
     Page {{ page }}
   </span>
   
   <a href="{{ url_for('main.movies_by_genre', genre_id=current_genre_id, page=page+1) }}" 
-     class="btn-secondary" 
-     style="padding: 12px 24px;">
+     class="btn-secondary pagination-btn">
     Next →
   </a>
 </div>
@@ -89,6 +83,32 @@
   
   .genre-pill:not(.active):hover {
     background: rgba(255, 255, 255, 0.12);
+  }
+
+  /* Fixed Pagination Buttons */
+  .pagination-btn {
+    padding: 12px 24px;
+    text-decoration: none !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .pagination-btn:hover {
+    text-decoration: none !important;
+  }
+
+  .page-indicator {
+    padding: 12px 24px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
   }
 </style>
 
