@@ -105,7 +105,7 @@ Track your reviews, watchlist, and viewing statistics
 ### Step 1: Clone or Download
 
 ```bash
-git clone https://github.com/yourusername/lumo.git
+git clone https://github.com/RobinsonX47/lumo.git
 cd lumo
 ```
 
