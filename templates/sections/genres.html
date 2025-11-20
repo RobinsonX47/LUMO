@@ -1,0 +1,47 @@
+<!-- templates/sections/genres.html -->
+{% extends "base.html" %}
+{% block title %}Browse Genres – LUMO{% endblock %}
+{% block content %}
+
+<section>
+  <h1 style="margin-bottom: 32px;">🎭 Browse by Genre</h1>
+  
+  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px;">
+    {% for genre in genres %}
+    <a href="{{ url_for('main.movies_by_genre', genre_id=genre.id) }}" style="text-decoration: none;">
+      <div class="card-glass genre-card">
+        <div class="genre-icon">🎬</div>
+        <div class="genre-name">{{ genre.name }}</div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+<style>
+  .genre-card {
+    padding: 32px;
+    text-align: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+  }
+
+  .genre-card:hover {
+    transform: translateY(-8px);
+    border-color: var(--accent);
+    box-shadow: 0 12px 40px rgba(10, 132, 255, 0.3);
+  }
+
+  .genre-icon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+  }
+
+  .genre-name {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+  }
+</style>
+
+{% endblock %}

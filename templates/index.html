@@ -1,25 +1,18 @@
 {% extends "base.html" %}
-{% block title %}LUMO – Discover Movies{% endblock %}
+{% block title %}LUMO – Discover Movies, Anime & Series{% endblock %}
 {% block content %}
 
 <!-- Hero Carousel -->
 {% if hero_movies %}
 <section class="hero-carousel">
-
   {% for movie in hero_movies %}
   <div class="hero-slide {% if loop.first %}active{% endif %}">
-
-    <!-- Background Image -->
     <img class="hero-bg" src="{{ movie.backdrop_url }}" alt="{{ movie.title }}">
-
-    <!-- Dark Overlays -->
     <div class="hero-overlay-left"></div>
     <div class="hero-overlay-bottom"></div>
 
-    <!-- Slide Content -->
     <div class="slide-content">
       <div class="slide-inner">
-
         <h1>{{ movie.title }}</h1>
 
         <div class="meta-row">
@@ -36,86 +29,141 @@
         <a href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}" class="btn-primary">
           View Details
         </a>
-
       </div>
     </div>
-
   </div>
   {% endfor %}
 
-  <!-- Navigation Buttons -->
   <button class="carousel-btn prev">‹</button>
   <button class="carousel-btn next">›</button>
 
-  <!-- Indicators -->
   <div class="carousel-indicators">
     {% for movie in hero_movies %}
     <button class="{% if loop.first %}active{% endif %}"></button>
     {% endfor %}
   </div>
-
 </section>
 {% endif %}
 
-<!-- Trending Movies -->
-<section style="margin-bottom: 60px;">
-  <h2>🔥 Trending This Week</h2>
-  <div class="movie-grid">
-    {% for movie in trending[:10] %}
-    <a href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}" class="card-link">
-      <div class="card-glass">
-        {% if movie.poster_url %}
-        <img src="{{ movie.poster_url }}" alt="{{ movie.title }}" class="movie-poster" />
-        {% else %}
-        <div class="movie-poster" style="background: linear-gradient(135deg, #1a1a1a, #2d2d2d); display: flex; align-items: center; justify-content: center; font-size: 3rem;">🎬</div>
-        {% endif %}
-        <div class="movie-title">{{ movie.title }}</div>
-        <div class="movie-meta">
-          {% if movie.release_date %}{{ movie.release_date[:4] }} • {% endif %}
-          ⭐ {{ movie.vote_average|round(1) }}/10
+<!-- Quick Access Section Cards -->
+<section style="margin-bottom: 80px;">
+  <h2 style="margin-bottom: 32px; text-align: center; font-size: 2rem;">Explore Content</h2>
+  
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; max-width: 1200px; margin: 0 auto;">
+    
+    <!-- Movies Card -->
+    <a href="{{ url_for('main.movies_section') }}" style="text-decoration: none;">
+      <div class="content-card" style="background: linear-gradient(135deg, rgba(10, 132, 255, 0.15), rgba(10, 132, 255, 0.05)); border: 1px solid rgba(10, 132, 255, 0.3);">
+        <div class="card-icon">🎬</div>
+        <h3>Movies</h3>
+        <p>Discover trending and top-rated movies from around the world</p>
+      </div>
+    </a>
+
+    <!-- Anime Card -->
+    <a href="{{ url_for('main.anime_section') }}" style="text-decoration: none;">
+      <div class="content-card" style="background: linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(236, 72, 153, 0.05)); border: 1px solid rgba(236, 72, 153, 0.3);">
+        <div class="card-icon">🎌</div>
+        <h3>Anime</h3>
+        <p>Browse popular anime series and discover new favorites</p>
+      </div>
+    </a>
+
+    <!-- Series Card -->
+    <a href="{{ url_for('main.series_section') }}" style="text-decoration: none;">
+      <div class="content-card" style="background: linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(168, 85, 247, 0.05)); border: 1px solid rgba(168, 85, 247, 0.3);">
+        <div class="card-icon">📺</div>
+        <h3>TV Series</h3>
+        <p>Explore trending and critically acclaimed TV shows</p>
+      </div>
+    </a>
+
+    <!-- Genres Card -->
+    <a href="{{ url_for('main.genres_page') }}" style="text-decoration: none;">
+      <div class="content-card" style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(34, 197, 94, 0.05)); border: 1px solid rgba(34, 197, 94, 0.3);">
+        <div class="card-icon">🎭</div>
+        <h3>Browse Genres</h3>
+        <p>Filter content by your favorite genres and categories</p>
+      </div>
+    </a>
+
+    {% if current_user.is_authenticated %}
+    <!-- AI Recommendations Card - HIGHLIGHTED -->
+    <a href="{{ url_for('movies.recommendations') }}" style="text-decoration: none; grid-column: span 2;">
+      <div class="content-card premium-card" style="background: linear-gradient(135deg, rgba(123, 92, 255, 0.25), rgba(236, 95, 160, 0.25)); border: 2px solid rgba(123, 92, 255, 0.5); position: relative; overflow: hidden;">
+        <div style="position: absolute; top: -50%; right: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%); animation: pulse 3s ease-in-out infinite;"></div>
+        <div style="position: relative; z-index: 1;">
+          <div class="card-icon" style="font-size: 3rem;">✨</div>
+          <h3 style="font-size: 1.5rem; background: linear-gradient(135deg, #7b5cff, #ec5fa0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">AI Recommendations</h3>
+          <p style="font-size: 1.05rem;">Get personalized suggestions powered by AI based on your unique taste</p>
+          <span class="badge-pill" style="margin-top: 12px; background: rgba(123, 92, 255, 0.3); border-color: rgba(123, 92, 255, 0.5); color: #fff; display: inline-flex; align-items: center; gap: 6px;">
+            <span>🤖</span> AI-Powered
+          </span>
         </div>
       </div>
     </a>
-    {% endfor %}
+    {% endif %}
   </div>
 </section>
 
-<!-- Top Rated Movies -->
-<section style="margin-bottom: 60px;">
-  <h2>🏆 Top Rated of All Time</h2>
-  <div class="movie-grid">
-    {% for movie in top_rated[:10] %}
-    <a href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}" class="card-link">
-      <div class="card-glass">
-        {% if movie.poster_url %}
-        <img src="{{ movie.poster_url }}" alt="{{ movie.title }}" class="movie-poster" />
-        {% else %}
-        <div class="movie-poster" style="background: linear-gradient(135deg, #1a1a1a, #2d2d2d); display: flex; align-items: center; justify-content: center; font-size: 3rem;">🎬</div>
-        {% endif %}
-        <div class="movie-title">{{ movie.title }}</div>
-        <div class="movie-meta">
-          {% if movie.release_date %}{{ movie.release_date[:4] }} • {% endif %}
-          ⭐ {{ movie.vote_average|round(1) }}/10
-        </div>
-      </div>
-    </a>
-    {% endfor %}
-  </div>
-</section>
+<style>
+  .content-card {
+    padding: 32px;
+    border-radius: 20px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    text-align: center;
+  }
 
-<!-- Browse by Genre -->
-<section>
-  <h2>🎭 Browse by Genre</h2>
-  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px;">
-    {% for genre in genres %}
-    <a href="{{ url_for('main.movies_by_genre', genre_id=genre.id) }}" style="text-decoration: none;">
-      <div class="card-glass" style="padding: 24px; text-align: center;">
-        <div style="font-size: 2rem; margin-bottom: 12px;">🎬</div>
-        <div style="font-weight: 600;">{{ genre.name }}</div>
-      </div>
-    </a>
-    {% endfor %}
-  </div>
-</section>
+  .content-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  }
+
+  .premium-card {
+    box-shadow: 0 8px 32px rgba(123, 92, 255, 0.4);
+  }
+
+  .premium-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 24px 80px rgba(123, 92, 255, 0.6);
+  }
+
+  .card-icon {
+    font-size: 3.5rem;
+    margin-bottom: 16px;
+    display: block;
+  }
+
+  .content-card h3 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--text-primary);
+  }
+
+  .content-card p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.05); opacity: 0.8; }
+  }
+
+  @media (max-width: 768px) {
+    .content-card {
+      padding: 24px;
+    }
+    
+    a[href="{{ url_for('movies.recommendations') }}"] {
+      grid-column: span 1 !important;
+    }
+  }
+</style>
 
 {% endblock %}
