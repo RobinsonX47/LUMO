@@ -1,266 +1,410 @@
-# 🎬 LUMO - Movie Rating Platform (Fixed & Enhanced)
+# 🎬 LUMO - AI-Powered Movie & Entertainment Tracker
 
-## 🔥 What's New
+<div align="center">
 
-### Bug Fixes
-✅ Fixed carousel not working when logged in
-✅ Fixed search results not showing movie details
-✅ Fixed top-rated movies detail page errors
-✅ Fixed genre page errors
-✅ Fixed carousel arrow buttons and drag functionality
-✅ Added 10-second carousel interval (was 5 seconds)
-✅ Fixed rounded carousel edges
+![LUMO](https://img.shields.io/badge/LUMO-Movie%20Tracker-7b5cff?style=for-the-badge)
+![Python](https://img.shields.io/badge/Python-3.8+-blue?style=for-the-badge&logo=python)
+![Flask](https://img.shields.io/badge/Flask-3.0-black?style=for-the-badge&logo=flask)
+![TMDB](https://img.shields.io/badge/TMDB-API-01d277?style=for-the-badge)
+![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
-### Visual Enhancements
-🎨 New black & grey minimalist color scheme
-✨ Apple-style glass morphism effects throughout
-🖼️ Added favicon support
-🎯 Improved typography and spacing
-📱 Better responsive design
-🌈 Smooth transitions and hover effects
+**A premium movie and entertainment tracking platform with AI-powered recommendations**
 
-## 📋 Prerequisites
+[Features](#features) • [Demo](#demo) • [Installation](#installation) • [Usage](#usage) • [Technologies](#technologies)
 
-- Python 3.8 or higher
-- TMDB API Key (free)
+</div>
 
-## 🚀 Quick Setup
+---
 
-### Step 1: Get TMDB API Key
+## 🌟 Overview
 
-1. Visit [TMDB](https://www.themoviedb.org/)
-2. Create free account
-3. Go to Settings → API
-4. Request API key (Developer option)
-5. Copy your API Key (v3 auth)
+**LUMO** is a modern, feature-rich entertainment tracking platform that helps you organize and discover movies, TV series, and anime. Built with a sleek black & grey minimalist design and powered by The Movie Database (TMDB) API, LUMO provides an intuitive way to:
 
-### Step 2: Install Dependencies
+- **Track** your watched movies, series, and anime
+- **Review** and rate content with a 5-star rating system
+- **Discover** trending and top-rated entertainment across all categories
+- **Get AI-powered recommendations** based on your unique viewing preferences
+- **Manage** your personal watchlist for content you want to watch
+- **Explore** content by genres, popularity, and ratings
+
+Whether you're a casual viewer or a cinephile, LUMO offers a premium experience for managing your entertainment journey.
+
+---
+
+## ✨ Features
+
+### 🎯 Core Features
+
+#### **Personal Entertainment Library**
+- Track all movies, TV series, and anime you've watched
+- Maintain a personal watchlist for future viewing
+- Write detailed reviews with 5-star ratings
+- View your complete viewing history and statistics
+
+#### **AI-Powered Recommendations** ⚡
+- Get personalized suggestions based on your watchlist
+- Advanced AI analyzes your preferences and viewing patterns
+- Discover hidden gems tailored to your taste
+- Continuously improving recommendations
+
+#### **Rich Content Discovery**
+- Browse trending content updated weekly
+- Explore top-rated movies and series of all time
+- Filter by genres (Action, Drama, Comedy, Sci-Fi, and more)
+- Dedicated sections for Movies, TV Series, and Anime
+
+#### **Detailed Content Pages**
+- Full-screen auto-playing trailers for immersive previews
+- Comprehensive movie information (cast, runtime, ratings)
+- User reviews and community ratings
+- Related content recommendations
+- High-quality poster and backdrop images
+
+### 🎨 Design & UX
+
+- **Premium Black & Grey Theme** - Modern minimalist aesthetic
+- **Apple-Style Glass Morphism** - Smooth, translucent UI elements
+- **Responsive Design** - Perfect experience on desktop, tablet, and mobile
+- **Smooth Animations** - Polished transitions and hover effects
+- **Intuitive Navigation** - Easy-to-use interface with quick access
+
+### 👤 User Features
+
+- Secure user authentication (registration & login)
+- Customizable user profiles with avatars
+- Personal statistics dashboard
+- Review management (edit/delete your reviews)
+- Privacy-focused user data handling
+
+---
+
+## 🖼️ Demo
+
+### Home Page with Hero Carousel
+Beautiful full-width carousel showcasing popular movies with auto-rotation
+
+### Movie Detail Page
+Immersive full-screen trailer experience with detailed information
+
+### AI Recommendations
+Personalized suggestions powered by advanced AI
+
+### User Profile
+Track your reviews, watchlist, and viewing statistics
+
+---
+
+## 🚀 Installation
+
+### Prerequisites
+
+- **Python 3.8+** installed on your system
+- **TMDB API Key** (free - get yours at [themoviedb.org](https://www.themoviedb.org/))
+- **Git** (optional, for cloning)
+
+### Step 1: Clone or Download
+
+```bash
+git clone https://github.com/yourusername/lumo.git
+cd lumo
+```
+
+Or download and extract the ZIP file.
+
+### Step 2: Set Up Virtual Environment
 
 ```bash
 # Create virtual environment
 python -m venv venv
 
-# Activate (Windows)
+# Activate it
+# Windows:
 venv\Scripts\activate
 
-# Activate (Mac/Linux)
+# Mac/Linux:
 source venv/bin/activate
+```
 
-# Install requirements
+### Step 3: Install Dependencies
+
+```bash
 pip install -r requirements.txt
 ```
 
-### Step 3: Configure API Key
+### Step 4: Get TMDB API Key
 
-**Option 1: Environment Variable (Recommended)**
+1. Visit [TMDB](https://www.themoviedb.org/)
+2. Create a free account
+3. Go to **Settings → API**
+4. Request an API key (choose "Developer" option)
+5. Copy your **API Key (v3 auth)**
 
-Windows:
+### Step 5: Configure API Key
+
+**Option A: Environment Variable (Recommended)**
+
 ```bash
-set TMDB_API_KEY=your_api_key_here
+# Windows (PowerShell):
+$env:TMDB_API_KEY="your_api_key_here"
+
+# Mac/Linux:
+export TMDB_API_KEY="your_api_key_here"
 ```
 
-Mac/Linux:
-```bash
-export TMDB_API_KEY=your_api_key_here
-```
+**Option B: Direct Configuration**
 
-**Option 2: Direct in config.py**
-
-Open `config.py` and update:
+Edit `config.py`:
 ```python
 TMDB_API_KEY = "your_actual_api_key_here"
 ```
 
-### Step 4: Run Migration Script
+### Step 6: Initialize Database
 
 ```bash
 python scripts/migrate_to_tmdb.py
 ```
 
-This will:
-- Backup your existing database
-- Add required columns for TMDB integration
-- Update table structure
+This creates the database with all required tables.
 
-### Step 5: Replace Files
-
-Replace these files with the fixed versions:
-
-1. **models.py** - Updated with tmdb_movie_id fields
-2. **static/css/style.css** - New black/grey theme with glass effects
-3. **static/js/carousel.js** - Fixed carousel with 10s interval and drag support
-4. **templates/base.html** - Added favicon support
-5. **templates/index.html** - Fixed home page with working carousel
-6. **templates/movies/genre.html** - Create this file for genre pages
-
-### Step 6: Run the Application
+### Step 7: Run the Application
 
 ```bash
 python app.py
 ```
 
-Visit: **http://localhost:5000**
+Visit **http://localhost:5000** in your browser.
 
-## 🎯 Key Features
+---
 
-### Home Page
-- **Hero Carousel**: 5 popular movies with:
-  - 10-second auto-rotation
-  - Click/drag navigation
-  - Keyboard arrow support
-  - Smooth transitions
-  - Rounded corners
-- **Trending This Week**: Top 10 trending movies
-- **Top Rated**: Top 10 rated movies
-- **Genre Browser**: Filter by genre
+## 📖 Usage
 
-### Movie Details
-- Full movie information from TMDB
-- High-quality posters and backdrops
-- Cast information
-- Similar movie recommendations
-- User reviews and ratings
-- Watchlist management
-- Trailer links
+### Getting Started
 
-### User Features
-- User registration and login
-- Personal profile with stats
-- Review management
-- Watchlist tracking
-- Profile editing
+1. **Register an Account**
+   - Click "Sign up" in the navigation
+   - Enter your details
+   - You're ready to start!
 
-## 🎨 Design Features
+2. **Explore Content**
+   - Browse Movies, Anime, or TV Series from the navigation
+   - Use the search bar to find specific content
+   - Filter by genres from the Genres page
 
-### Modern Black & Grey Theme
-- Primary: Pure black (#000000)
-- Secondary: Dark grey (#0a0a0a)
-- Tertiary: Medium grey (#141414)
-- Accent: Apple blue (#0a84ff)
+3. **Add to Watchlist**
+   - Click on any movie/show to view details
+   - Click "Add to Watchlist" button
+   - Access your watchlist from your profile
 
-### Glass Morphism Effects
-- Backdrop blur (40px)
-- Transparency layers
-- Smooth borders
-- Hover animations
-- Depth shadows
+4. **Write Reviews**
+   - On any movie detail page, scroll to the review section
+   - Rate the content (1-5 stars)
+   - Write your thoughts
+   - Submit your review
 
-### Typography
-- SF Pro Display font family
-- Antialiased text rendering
-- Proper letter spacing
-- Responsive sizing
+5. **Get AI Recommendations**
+   - Add at least 3-5 items to your watchlist
+   - Click "AI Picks" in the navigation
+   - Discover personalized recommendations!
 
-## 🐛 Troubleshooting
+### Admin Features (Optional)
 
-### Database Errors
+To create an admin user for adding local content:
+
 ```bash
-# Run migration script
-python scripts/migrate_to_tmdb.py
+python scripts/make_admin.py --create --email admin@example.com --name "Admin" --password "your_password"
 ```
 
-### Carousel Not Working
-1. Check browser console for errors
-2. Ensure `static/js/carousel.js` is updated
-3. Clear browser cache
+---
 
-### Movies Not Loading
-1. Verify TMDB_API_KEY is set correctly
-2. Check internet connection
-3. Look at terminal for error messages
+## 🛠️ Technologies
 
-### Genre Page Errors
-1. Ensure `templates/movies/genre.html` exists
-2. Check routes_main.py is correct
+### Backend
+- **Flask 3.0** - Modern Python web framework
+- **SQLAlchemy** - Database ORM
+- **Flask-Login** - User session management
+- **SQLite** - Lightweight database (easily upgradable to PostgreSQL)
 
-### Search Not Working
-1. Verify tmdb_service.py is working
-2. Check API key is valid
-3. Look for TMDB API errors in console
+### Frontend
+- **HTML5 & CSS3** - Modern web standards
+- **Vanilla JavaScript** - No heavy frameworks needed
+- **Glass Morphism** - Contemporary UI design
+- **Responsive Design** - Mobile-first approach
 
-## 📁 Updated Project Structure
+### APIs & Services
+- **TMDB API** - Comprehensive movie database
+- **Claude AI API** - Advanced recommendation engine
+- **YouTube API** - Embedded trailer playback
+
+### Key Libraries
+- **Requests** - HTTP library for API calls
+- **Werkzeug** - WSGI utilities and security
+
+---
+
+## 📁 Project Structure
 
 ```
 LUMO/
-├── app.py
-├── config.py
-├── extensions.py
-├── models.py ⭐ (UPDATED)
-├── tmdb_service.py
-├── routes_auth.py
-├── routes_main.py
-├── routes_movies.py
-├── routes_users.py
-├── routes_admin.py
-├── requirements.txt
+├── app.py                 # Main application entry point
+├── config.py              # Configuration settings
+├── models.py              # Database models
+├── tmdb_service.py        # TMDB API integration with caching
+├── routes_auth.py         # Authentication routes
+├── routes_main.py         # Home and section routes
+├── routes_movies.py       # Movie/TV detail and review routes
+├── routes_users.py        # User profile routes
+├── requirements.txt       # Python dependencies
 ├── static/
 │   ├── css/
-│   │   └── style.css ⭐ (UPDATED)
+│   │   └── style.css     # Premium styling
 │   ├── js/
-│   │   ├── carousel.js ⭐ (UPDATED)
-│   │   └── main.js
+│   │   ├── carousel.js   # Hero carousel functionality
+│   │   └── main.js       # General JavaScript
 │   └── images/
-│       └── logo.svg
+│       └── logo.svg      # LUMO logo
 ├── templates/
-│   ├── base.html ⭐ (UPDATED)
-│   ├── index.html ⭐ (UPDATED)
-│   ├── auth/
-│   ├── movies/
-│   │   ├── list.html
-│   │   ├── detail.html
-│   │   └── genre.html ⭐ (NEW)
-│   └── users/
+│   ├── base.html         # Base template with navigation
+│   ├── index.html        # Home page
+│   ├── auth/             # Login/register pages
+│   ├── movies/           # Movie detail and list pages
+│   ├── sections/         # Movies/Anime/Series sections
+│   └── users/            # User profile pages
 └── scripts/
-    └── migrate_to_tmdb.py ⭐ (NEW)
+    ├── migrate_to_tmdb.py    # Database migration
+    └── make_admin.py         # Admin user creation
 ```
 
-## 🔧 Configuration
+---
 
-### API Rate Limits
-- TMDB Free: 40 requests per 10 seconds
-- Sufficient for personal use
-- Consider caching for production
+## ⚙️ Configuration
 
-### Security Notes
-Before production:
-1. Change SECRET_KEY
-2. Use environment variables
-3. Set debug=False
-4. Use production database (PostgreSQL)
-5. Add .env to .gitignore
+### Cache Settings
 
-## 📊 Feature Checklist
+LUMO uses intelligent caching to minimize API calls:
+- Cache duration: **6 hours**
+- Cache warmup on startup for faster initial loads
+- Automatic cache invalidation
 
-- ✅ Hero carousel with 10s interval
-- ✅ Rounded carousel edges
-- ✅ Drag to navigate carousel
-- ✅ Arrow button navigation
-- ✅ Keyboard navigation
-- ✅ Fixed logged-in carousel display
-- ✅ Search results working
-- ✅ Top-rated movies working
-- ✅ Genre filtering working
-- ✅ Glass morphism design
-- ✅ Black & grey color scheme
-- ✅ Favicon in tab
-- ✅ Minimalist interface
-- ✅ Movie detail cards
-- ✅ Responsive design
-- ✅ Smooth animations
+### API Rate Limiting
 
-## 🎉 You're All Set!
+- TMDB Free Tier: 40 requests per 10 seconds
+- Built-in rate limiting: ~4 requests/second
+- More than sufficient for personal use
 
-Your enhanced LUMO platform is ready with:
-- Modern minimalist design
-- Apple-style glass effects
-- All bugs fixed
-- Smooth user experience
+### Database
 
-Enjoy discovering and rating movies! 🍿
+Default: SQLite (`instance/cine_sphere.db`)
 
-## 🆘 Support
+For production, upgrade to PostgreSQL:
+```python
+# config.py
+SQLALCHEMY_DATABASE_URI = "postgresql://user:pass@localhost/lumo"
+```
 
-- TMDB API Docs: https://developers.themoviedb.org/3
-- Check console for errors
-- Verify API key is valid
-- Run migration script if database errors occur
+---
+
+## 🔐 Security Notes
+
+### Before Production Deployment:
+
+1. **Change Secret Key**
+   ```python
+   SECRET_KEY = "your-strong-random-secret-key-here"
+   ```
+
+2. **Use Environment Variables**
+   - Store API keys in environment variables
+   - Never commit `.env` files
+
+3. **Disable Debug Mode**
+   ```python
+   app.run(debug=False)
+   ```
+
+4. **Use Production Database**
+   - Switch from SQLite to PostgreSQL
+   - Enable database backups
+
+5. **Add HTTPS**
+   - Use SSL certificates
+   - Enable secure cookies
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Here's how you can help:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Development Guidelines
+
+- Follow PEP 8 style guide for Python
+- Write clear commit messages
+- Test your changes thoroughly
+- Update documentation as needed
+
+---
+
+## 🐛 Troubleshooting
+
+### Database Issues
+```bash
+# Reset database
+rm instance/cine_sphere.db
+python scripts/migrate_to_tmdb.py
+```
+
+### API Key Issues
+- Verify your TMDB API key is correct
+- Check if you've hit rate limits (wait 10 seconds)
+- Ensure your TMDB account is verified
+
+### Cache Issues
+```bash
+# Clear cache
+rm -rf instance/cache/*
+```
+
+### Port Already in Use
+```bash
+# Use a different port
+python app.py --port 5001
+```
+
+---
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+- **TMDB** - For their comprehensive movie database API
+- **Anthropic** - For Claude AI powering recommendations
+- **Flask Community** - For the excellent web framework
+- **Contributors** - For making LUMO better
+
+---
+
+## 📧 Contact & Support
+
+- **Issues**: [GitHub Issues](https://github.com/yourusername/lumo/issues)
+- **Email**: your.email@example.com
+- **Documentation**: [Wiki](https://github.com/yourusername/lumo/wiki)
+
+---
+
+<div align="center">
+
+**Made with ❤️ by [Your Name]**
+
+⭐ Star this repo if you find it helpful!
+
+</div>
