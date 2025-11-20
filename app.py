@@ -61,3 +61,10 @@ if __name__ == "__main__":
     print(f"🌐 Running on: http://localhost:5000")
     print("="*60 + "\n")
     app.run(debug=True, host='0.0.0.0', port=5000)
+    
+    
+    
+@app.before_first_request
+def create_tables():
+    from models import db
+    db.create_all()
