@@ -1,5 +1,5 @@
 """
-TMDB API Service - Enhanced with Caching and Rate Limiting
+TMDB API Service - Enhanced with Working Caching and Rate Limiting
 Handles all interactions with The Movie Database API with intelligent caching
 """
 
@@ -11,6 +11,7 @@ import os
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
+import hashlib
 
 class TMDBCache:
     """Handles caching of TMDB API responses"""
@@ -19,11 +20,13 @@ class TMDBCache:
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.cache_duration = timedelta(hours=6)  # Cache for 6 hours
+        print(f"✅ Cache directory: {self.cache_dir.absolute()}")
     
     def get_cache_path(self, key):
-        """Get the file path for a cache key"""
-        safe_key = key.replace('/', '_').replace('?', '_')
-        return self.cache_dir / f"{safe_key}.json"
+        """Get the file path for a cache key using hash for safe filenames"""
+        # Use hash to create safe, consistent filenames
+        key_hash = hashlib.md5(key.encode('utf-8')).hexdigest()
+        return self.cache_dir / f"{key_hash}.json"
     
     def get(self, key):
         """Get cached data if it exists and is not expired"""
@@ -39,11 +42,22 @@ class TMDBCache:
             # Check if cache is expired
             cache_time = datetime.fromisoformat(cache_data['timestamp'])
             if datetime.now() - cache_time > self.cache_duration:
+                # Cache expired, delete it
+                try:
+                    cache_path.unlink()
+                except:
+                    pass
                 return None
             
+            print(f"✅ Cache HIT: {key[:50]}...")
             return cache_data['data']
         except Exception as e:
-            print(f"Cache read error: {e}")
+            print(f"⚠️ Cache read error: {e}")
+            # Delete corrupted cache file
+            try:
+                cache_path.unlink()
+            except:
+                pass
             return None
     
     def set(self, key, data):
@@ -53,17 +67,34 @@ class TMDBCache:
         try:
             cache_data = {
                 'timestamp': datetime.now().isoformat(),
+                'key': key,  # Store original key for debugging
                 'data': data
             }
             with open(cache_path, 'w', encoding='utf-8') as f:
                 json.dump(cache_data, f, ensure_ascii=False, indent=2)
+            print(f"✅ Cache SET: {key[:50]}...")
         except Exception as e:
-            print(f"Cache write error: {e}")
+            print(f"⚠️ Cache write error: {e}")
+    
+    def clear(self):
+        """Clear all cache files"""
+        try:
+            for cache_file in self.cache_dir.glob('*.json'):
+                cache_file.unlink()
+            print("✅ Cache cleared")
+        except Exception as e:
+            print(f"⚠️ Cache clear error: {e}")
 
 class TMDBService:
-    cache = TMDBCache()
+    cache = None
     last_request_time = 0
     min_request_interval = 0.26  # ~4 requests per second (well under 40/10s limit)
+    
+    @staticmethod
+    def init_cache():
+        """Initialize cache (called from app startup)"""
+        if TMDBService.cache is None:
+            TMDBService.cache = TMDBCache()
     
     @staticmethod
     def _rate_limit():
@@ -79,6 +110,10 @@ class TMDBService:
     @staticmethod
     def _make_request(endpoint, params=None, use_cache=True):
         """Make a request to TMDB API with caching"""
+        # Initialize cache if not done yet
+        if TMDBService.cache is None:
+            TMDBService.init_cache()
+        
         base_url = current_app.config['TMDB_BASE_URL']
         api_key = current_app.config['TMDB_API_KEY']
         
@@ -86,19 +121,21 @@ class TMDBService:
             params = {}
         params['api_key'] = api_key
         
-        # Create cache key
-        cache_key = f"{endpoint}_{json.dumps(params, sort_keys=True)}"
+        # Create cache key from endpoint and params (excluding api_key)
+        cache_params = {k: v for k, v in params.items() if k != 'api_key'}
+        cache_key = f"{endpoint}_{json.dumps(cache_params, sort_keys=True)}"
         
         # Check cache first
         if use_cache:
             cached_data = TMDBService.cache.get(cache_key)
-            if cached_data:
+            if cached_data is not None:
                 return cached_data
         
         # Rate limit before making request
         TMDBService._rate_limit()
         
         try:
+            print(f"🌐 API Request: {endpoint}")
             response = requests.get(f"{base_url}/{endpoint}", params=params, timeout=10)
             response.raise_for_status()
             data = response.json()
@@ -109,7 +146,7 @@ class TMDBService:
             
             return data
         except requests.exceptions.RequestException as e:
-            print(f"TMDB API Error: {e}")
+            print(f"❌ TMDB API Error: {e}")
             return None
     
     @staticmethod
@@ -389,28 +426,42 @@ class TMDBService:
     @staticmethod
     def warm_cache():
         """Pre-populate cache with common requests"""
-        print("🔥 Warming up cache...")
+        print("\n" + "="*60)
+        print("🔥 Warming up TMDB cache...")
+        print("="*60)
         
         try:
+            # Initialize cache
+            TMDBService.init_cache()
+            
             # Movies
+            print("📽️  Caching movies...")
             TMDBService.get_trending_movies('week')
             TMDBService.get_top_rated_movies()
             TMDBService.get_popular_movies()
             
             # TV Series
+            print("📺 Caching TV series...")
             TMDBService.get_trending_tv('week')
             TMDBService.get_top_rated_tv()
             TMDBService.get_popular_tv()
             
             # Anime
+            print("🎌 Caching anime...")
             TMDBService.get_trending_anime()
             TMDBService.get_top_rated_anime()
             
             # Genres
+            print("🎭 Caching genres...")
             genres = TMDBService.get_genres()
-            for genre in genres[:5]:  # Cache first 5 genres
+            for i, genre in enumerate(genres[:5]):  # Cache first 5 genres
+                print(f"   Genre {i+1}/5: {genre['name']}")
                 TMDBService.get_movies_by_genre(genre['id'])
             
+            print("\n" + "="*60)
             print("✅ Cache warming complete!")
+            print("="*60 + "\n")
         except Exception as e:
-            print(f"⚠️ Cache warming error: {e}")
+            print(f"\n❌ Cache warming error: {e}")
+            import traceback
+            traceback.print_exc()

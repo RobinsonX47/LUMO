@@ -226,7 +226,7 @@ body {
   inset: 0;
 }
 
-/* Enhanced bottom fade with blur */
+/* Enhanced bottom fade WITHOUT BLUR - Only gradient fade */
 .hero-overlay-bottom {
   position: absolute;
   left: 0;
@@ -240,8 +240,7 @@ body {
     transparent 100%
   );
   z-index: 2;
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
+  /* REMOVED backdrop-filter and -webkit-backdrop-filter */
 }
 
 .hero-overlay-left {
@@ -680,3 +679,4 @@ html {
     right: 16px;
   }
 }
+

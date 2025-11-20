@@ -37,18 +37,10 @@
   </div>
   {% endif %}
 
-  <!-- Movie Info Overlay (appears on scroll or hover) -->
-  <div id="heroOverlay" class="hero-info-overlay">
-    <div class="hero-content-wrapper">
-      <div class="hero-poster-column">
-        {% if movie.poster_url %}
-        <img src="{{ movie.poster_url }}" alt="{{ movie.title }}" class="hero-poster-premium" />
-        {% else %}
-        <div class="hero-poster-placeholder">🎬</div>
-        {% endif %}
-      </div>
-
-      <div class="hero-details-column">
+  <!-- Movie Info Overlay (Netflix-style - LEFT SIDE) -->
+  <div id="heroOverlay" class="hero-info-overlay-netflix">
+    <div class="hero-content-wrapper-netflix">
+      <div class="hero-details-netflix">
         <h1 class="hero-title-premium">{{ movie.title }}</h1>
         
         {% if movie.tagline %}
@@ -276,15 +268,16 @@
     }
   }
 
+  /* REDUCED BOTTOM FADE - Much more subtle */
   .trailer-fade-overlay {
     position: absolute;
     inset: 0;
     background: linear-gradient(
       to bottom,
       transparent 0%,
-      transparent 60%,
-      rgba(0,0,0,0.4) 85%,
-      rgba(0,0,0,0.9) 100%
+      transparent 80%,
+      rgba(0,0,0,0.2) 92%,
+      rgba(0,0,0,0.6) 100%
     );
     pointer-events: none;
     z-index: 2;
@@ -327,51 +320,35 @@
     gap: 8px;
     color: white;
     font-size: 0.9rem;
-    animation: bounce 2s ease-in-out infinite;
+    animation: smoothFloat 3s ease-in-out infinite;
     opacity: 0.8;
   }
 
-  @keyframes bounce {
+  /* REMOVED BOUNCE - Smooth float instead */
+  @keyframes smoothFloat {
     0%, 100% { transform: translateX(-50%) translateY(0); }
-    50% { transform: translateX(-50%) translateY(-10px); }
+    50% { transform: translateX(-50%) translateY(-8px); }
   }
 
-  .hero-info-overlay {
+  /* NETFLIX-STYLE LEFT ALIGNMENT */
+  .hero-info-overlay-netflix {
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
     z-index: 10;
-    background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.85) 70%, transparent 100%);
-    padding: 60px 4vw 40px;
+    background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 50%, transparent 100%);
+    padding: 60px 0 60px 80px;
     transform: translateY(0);
     transition: transform 0.5s ease;
   }
 
-  .hero-content-wrapper {
-    max-width: 1400px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: 280px 1fr;
-    gap: 40px;
-    align-items: end;
+  .hero-content-wrapper-netflix {
+    max-width: 800px;
   }
 
-  .hero-poster-premium {
+  .hero-details-netflix {
     width: 100%;
-    border-radius: 16px;
-    box-shadow: 0 24px 80px rgba(0,0,0,0.9);
-  }
-
-  .hero-poster-placeholder {
-    width: 100%;
-    aspect-ratio: 2/3;
-    background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 5rem;
   }
 
   .hero-title-premium {
@@ -434,7 +411,7 @@
     line-height: 1.8;
     font-size: 1.1rem;
     margin-bottom: 32px;
-    max-width: 800px;
+    max-width: 700px;
     text-shadow: 0 2px 8px rgba(0,0,0,0.8);
   }
 
@@ -675,14 +652,8 @@
   }
 
   @media (max-width: 768px) {
-    .hero-content-wrapper {
-      grid-template-columns: 1fr;
-      gap: 32px;
-    }
-
-    .hero-poster-column {
-      max-width: 240px;
-      margin: 0 auto;
+    .hero-info-overlay-netflix {
+      padding: 40px 20px;
     }
 
     .hero-title-premium {
@@ -725,7 +696,7 @@
         iv_load_policy: 3,
         disablekb: 1,
         fs: 0,
-        quality: 'highres'  // Request highest quality
+        quality: 'highres'
       },
       events: {
         'onReady': onPlayerReady,
@@ -736,12 +707,10 @@
   
   function onPlayerReady(event) {
     event.target.playVideo();
-    // Try to set highest quality
     event.target.setPlaybackQuality('highres');
   }
 
   function onPlayerStateChange(event) {
-    // Ensure highest quality is maintained
     if (event.data == YT.PlayerState.PLAYING) {
       player.setPlaybackQuality('highres');
     }
@@ -769,7 +738,6 @@
   });
 
   // Show/hide overlay on scroll
-  let lastScroll = 0;
   window.addEventListener('scroll', () => {
     const currentScroll = window.pageYOffset;
     const heroHeight = document.getElementById('movieHero').offsetHeight;
@@ -779,8 +747,6 @@
     } else {
       document.querySelector('.scroll-indicator')?.style.setProperty('opacity', '0.8');
     }
-    
-    lastScroll = currentScroll;
   });
 </script>
 {% endif %}
