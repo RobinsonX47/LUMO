@@ -2,98 +2,64 @@
 {% block title %}LUMO – Discover Movies{% endblock %}
 {% block content %}
 
-<!-- Hero Carousel Section -->
+<!-- Hero Carousel -->
 {% if hero_movies %}
-<section class="hero-carousel" style="margin: -100px -4vw 60px; padding-top: 100px; position: relative; overflow: hidden; cursor: grab;">
-  <div style="position: relative; height: 75vh; min-height: 500px; border-radius: 0 0 32px 32px; overflow: hidden;">
-    {% for movie in hero_movies %}
-    <div class="hero-slide {% if loop.first %}active{% endif %}" 
-         style="position: absolute; inset: 0; opacity: 0; transition: opacity 0.8s ease-in-out; pointer-events: none;"
-         data-slide="{{ loop.index0 }}">
-      
-      <!-- Background -->
-      <div style="position: absolute; inset: 0;">
-        {% if movie.backdrop_url %}
-        <img src="{{ movie.backdrop_url }}" 
-             alt="{{ movie.title }}"
-             style="width: 100%; height: 100%; object-fit: cover;" />
-        {% endif %}
-        <!-- Gradient Overlays -->
-        <div style="position: absolute; inset: 0; background: linear-gradient(to right, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 40%, rgba(0,0,0,0.3) 70%, transparent 100%);"></div>
-        <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 40%; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%);"></div>
-      </div>
-      
-      <!-- Content -->
-      <div style="position: relative; z-index: 10; height: 100%; display: flex; align-items: center; max-width: 1400px; margin: 0 auto; padding: 0 4vw;">
-        <div style="max-width: 600px;">
-          <h1 style="font-size: 3.5rem; font-weight: 800; margin-bottom: 16px; line-height: 1.1; letter-spacing: -0.02em;">
-            {{ movie.title }}
-          </h1>
-          
-          <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
-            {% if movie.release_date %}
-            <span class="badge-pill">📅 {{ movie.release_date[:4] }}</span>
-            {% endif %}
-            <span class="badge-pill">⭐ {{ movie.vote_average|round(1) }}/10</span>
-          </div>
-          
-          <p style="font-size: 1.05rem; line-height: 1.7; color: var(--text-secondary); margin-bottom: 28px;">
-            {{ movie.overview[:200] }}{% if movie.overview|length > 200 %}...{% endif %}
-          </p>
-          
-          <div style="display: flex; gap: 12px;">
-            <a href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}" 
-               class="btn-primary"
-               style="display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px;">
-              <span>ℹ️ See More</span>
-            </a>
-          </div>
+<section class="hero-carousel">
+
+  {% for movie in hero_movies %}
+  <div class="hero-slide {% if loop.first %}active{% endif %}">
+
+    <!-- Background Image -->
+    <img class="hero-bg" src="{{ movie.backdrop_url }}" alt="{{ movie.title }}">
+
+    <!-- Dark Overlays -->
+    <div class="hero-overlay-left"></div>
+    <div class="hero-overlay-bottom"></div>
+
+    <!-- Slide Content -->
+    <div class="slide-content">
+      <div class="slide-inner">
+
+        <h1>{{ movie.title }}</h1>
+
+        <div class="meta-row">
+          {% if movie.release_date %}
+          <span class="badge-pill">📅 {{ movie.release_date[:4] }}</span>
+          {% endif %}
+          <span class="badge-pill">⭐ {{ movie.vote_average|round(1) }}/10</span>
         </div>
+
+        <p class="slide-description">
+          {{ movie.overview[:180] }}{% if movie.overview|length > 180 %}...{% endif %}
+        </p>
+
+        <a href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}" class="btn-primary">
+          View Details
+        </a>
+
       </div>
     </div>
-    {% endfor %}
-    
-    <!-- Controls -->
-    <button class="carousel-btn prev" 
-            style="position: absolute; left: 24px; top: 50%; transform: translateY(-50%); z-index: 20; 
-                   background: var(--glass-bg); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px);
-                   border: 1px solid var(--glass-border); color: white; width: 48px; height: 48px; 
-                   border-radius: 50%; cursor: pointer; font-size: 1.5rem; display: flex; align-items: center; 
-                   justify-content: center; transition: all 0.2s ease;">
-      ‹
-    </button>
-    <button class="carousel-btn next" 
-            style="position: absolute; right: 24px; top: 50%; transform: translateY(-50%); z-index: 20; 
-                   background: var(--glass-bg); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px);
-                   border: 1px solid var(--glass-border); color: white; width: 48px; height: 48px; 
-                   border-radius: 50%; cursor: pointer; font-size: 1.5rem; display: flex; align-items: center; 
-                   justify-content: center; transition: all 0.2s ease;">
-      ›
-    </button>
-    
-    <!-- Indicators -->
-    <div class="carousel-indicators" 
-         style="position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%); z-index: 20; 
-                display: flex; gap: 8px;">
-      {% for movie in hero_movies %}
-      <button data-slide="{{ loop.index0 }}"
-              class="{% if loop.first %}active{% endif %}"
-              style="width: 8px; height: 8px; border-radius: 50%; border: none; 
-                     background: rgba(255,255,255,0.4); cursor: pointer; transition: all 0.3s ease;
-                     padding: 0;">
-      </button>
-      {% endfor %}
-    </div>
+
   </div>
+  {% endfor %}
+
+  <!-- Navigation Buttons -->
+  <button class="carousel-btn prev">‹</button>
+  <button class="carousel-btn next">›</button>
+
+  <!-- Indicators -->
+  <div class="carousel-indicators">
+    {% for movie in hero_movies %}
+    <button class="{% if loop.first %}active{% endif %}"></button>
+    {% endfor %}
+  </div>
+
 </section>
 {% endif %}
 
-<!-- Trending Movies Section -->
+<!-- Trending Movies -->
 <section style="margin-bottom: 60px;">
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-    <h2 style="margin: 0;">🔥 Trending This Week</h2>
-  </div>
-  
+  <h2>🔥 Trending This Week</h2>
   <div class="movie-grid">
     {% for movie in trending[:10] %}
     <a href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}" class="card-link">
@@ -101,8 +67,7 @@
         {% if movie.poster_url %}
         <img src="{{ movie.poster_url }}" alt="{{ movie.title }}" class="movie-poster" />
         {% else %}
-        <div class="movie-poster" style="background: linear-gradient(135deg, var(--accent), #0066cc); 
-                                        display: flex; align-items: center; justify-content: center; font-size: 3rem;">🎬</div>
+        <div class="movie-poster" style="background: linear-gradient(135deg, #1a1a1a, #2d2d2d); display: flex; align-items: center; justify-content: center; font-size: 3rem;">🎬</div>
         {% endif %}
         <div class="movie-title">{{ movie.title }}</div>
         <div class="movie-meta">
@@ -115,12 +80,9 @@
   </div>
 </section>
 
-<!-- Top Rated Movies Section -->
+<!-- Top Rated Movies -->
 <section style="margin-bottom: 60px;">
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-    <h2 style="margin: 0;">🏆 Top Rated of All Time</h2>
-  </div>
-  
+  <h2>🏆 Top Rated of All Time</h2>
   <div class="movie-grid">
     {% for movie in top_rated[:10] %}
     <a href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}" class="card-link">
@@ -128,8 +90,7 @@
         {% if movie.poster_url %}
         <img src="{{ movie.poster_url }}" alt="{{ movie.title }}" class="movie-poster" />
         {% else %}
-        <div class="movie-poster" style="background: linear-gradient(135deg, var(--accent), #0066cc); 
-                                        display: flex; align-items: center; justify-content: center; font-size: 3rem;">🎬</div>
+        <div class="movie-poster" style="background: linear-gradient(135deg, #1a1a1a, #2d2d2d); display: flex; align-items: center; justify-content: center; font-size: 3rem;">🎬</div>
         {% endif %}
         <div class="movie-title">{{ movie.title }}</div>
         <div class="movie-meta">
@@ -142,15 +103,13 @@
   </div>
 </section>
 
-<!-- Browse by Genre Section -->
-<section style="margin-bottom: 60px;">
-  <h2 style="margin-bottom: 24px;">🎭 Browse by Genre</h2>
-  
+<!-- Browse by Genre -->
+<section>
+  <h2>🎭 Browse by Genre</h2>
   <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px;">
     {% for genre in genres %}
     <a href="{{ url_for('main.movies_by_genre', genre_id=genre.id) }}" style="text-decoration: none;">
-      <div class="card-glass" 
-           style="padding: 24px; text-align: center; transition: all 0.3s ease;">
+      <div class="card-glass" style="padding: 24px; text-align: center;">
         <div style="font-size: 2rem; margin-bottom: 12px;">🎬</div>
         <div style="font-weight: 600;">{{ genre.name }}</div>
       </div>
@@ -158,33 +117,5 @@
     {% endfor %}
   </div>
 </section>
-
-<style>
-  .hero-slide.active {
-    opacity: 1 !important;
-    pointer-events: auto !important;
-  }
-  
-  .carousel-btn:hover {
-    background: rgba(255, 255, 255, 0.2) !important;
-    transform: translateY(-50%) scale(1.1) !important;
-  }
-  
-  .carousel-indicators button.active {
-    background: white !important;
-    width: 24px !important;
-  }
-  
-  @media (max-width: 768px) {
-    .hero-slide h1 {
-      font-size: 2.2rem !important;
-    }
-    
-    .hero-carousel > div {
-      height: 60vh !important;
-      min-height: 400px !important;
-    }
-  }
-</style>
 
 {% endblock %}

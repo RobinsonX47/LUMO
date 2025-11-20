@@ -1,3 +1,4 @@
+// Complete Working Carousel Script
 document.addEventListener('DOMContentLoaded', function () {
   const carousel = document.querySelector('.hero-carousel');
   if (!carousel) return;
@@ -6,6 +7,8 @@ document.addEventListener('DOMContentLoaded', function () {
   const indicators = Array.from(carousel.querySelectorAll('.carousel-indicators button'));
   const prevBtn = carousel.querySelector('.carousel-btn.prev');
   const nextBtn = carousel.querySelector('.carousel-btn.next');
+  
+  if (slides.length === 0) return;
   
   let current = 0;
   let autoTimer = null;
@@ -22,17 +25,19 @@ document.addEventListener('DOMContentLoaded', function () {
     
     // Update slides
     slides.forEach((slide, i) => {
-      slide.classList.remove('active');
       if (i === index) {
         slide.classList.add('active');
+      } else {
+        slide.classList.remove('active');
       }
     });
     
     // Update indicators
     indicators.forEach((indicator, i) => {
-      indicator.classList.remove('active');
       if (i === index) {
         indicator.classList.add('active');
+      } else {
+        indicator.classList.remove('active');
       }
     });
   }
@@ -65,6 +70,7 @@ document.addEventListener('DOMContentLoaded', function () {
   if (prevBtn) {
     prevBtn.addEventListener('click', function(e) {
       e.preventDefault();
+      e.stopPropagation();
       prevSlide();
       startAutoplay();
     });
@@ -73,6 +79,7 @@ document.addEventListener('DOMContentLoaded', function () {
   if (nextBtn) {
     nextBtn.addEventListener('click', function(e) {
       e.preventDefault();
+      e.stopPropagation();
       nextSlide();
       startAutoplay();
     });
@@ -82,6 +89,7 @@ document.addEventListener('DOMContentLoaded', function () {
   indicators.forEach((indicator, index) => {
     indicator.addEventListener('click', function(e) {
       e.preventDefault();
+      e.stopPropagation();
       showSlide(index);
       startAutoplay();
     });
@@ -99,15 +107,20 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   // Touch/Mouse drag support
-  carousel.addEventListener('mousedown', handleDragStart);
-  carousel.addEventListener('touchstart', handleDragStart);
-  carousel.addEventListener('mousemove', handleDragMove);
-  carousel.addEventListener('touchmove', handleDragMove);
+  carousel.addEventListener('mousedown', handleDragStart, { passive: false });
+  carousel.addEventListener('touchstart', handleDragStart, { passive: false });
+  carousel.addEventListener('mousemove', handleDragMove, { passive: false });
+  carousel.addEventListener('touchmove', handleDragMove, { passive: false });
   carousel.addEventListener('mouseup', handleDragEnd);
   carousel.addEventListener('touchend', handleDragEnd);
   carousel.addEventListener('mouseleave', handleDragEnd);
 
   function handleDragStart(e) {
+    // Don't start drag if clicking on buttons or links
+    if (e.target.closest('button, a')) {
+      return;
+    }
+    
     isDragging = true;
     startX = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
     currentX = startX;
@@ -127,7 +140,7 @@ document.addEventListener('DOMContentLoaded', function () {
     carousel.style.cursor = 'grab';
     
     const diff = currentX - startX;
-    const threshold = 50; // Minimum drag distance to trigger slide change
+    const threshold = 50; // Minimum drag distance
     
     if (diff > threshold) {
       prevSlide();
@@ -138,7 +151,16 @@ document.addEventListener('DOMContentLoaded', function () {
     startAutoplay();
   }
 
-  // Pause autoplay on hover
+  // Pause on hover
   carousel.addEventListener('mouseenter', stopAutoplay);
   carousel.addEventListener('mouseleave', startAutoplay);
+  
+  // Pause when tab not visible
+  document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+      stopAutoplay();
+    } else {
+      startAutoplay();
+    }
+  });
 });

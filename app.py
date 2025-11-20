@@ -20,13 +20,16 @@ def create_app():
     from routes_auth import auth_bp
     from routes_movies import movies_bp
     from routes_users import users_bp
-    from routes_admin import admin_bp
+    try:
+        from routes_admin import admin_bp
+        app.register_blueprint(admin_bp, url_prefix="/admin")
+    except:
+        pass
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(movies_bp, url_prefix="/movies")
     app.register_blueprint(users_bp, url_prefix="/users")
-    app.register_blueprint(admin_bp, url_prefix="/admin")
 
     # Create database tables
     with app.app_context():
@@ -37,4 +40,11 @@ def create_app():
 
 if __name__ == "__main__":
     app = create_app()
-    app.run(debug=True)
+    print("\n" + "="*60)
+    print("🎬 LUMO Movie Platform Starting...")
+    print("="*60)
+    print(f"✅ Database: {Config.SQLALCHEMY_DATABASE_URI}")
+    print(f"✅ TMDB API: {'Configured' if Config.TMDB_API_KEY != 'YOUR_TMDB_API_KEY_HERE' else '⚠️  NOT CONFIGURED'}")
+    print(f"🌐 Running on: http://localhost:5000")
+    print("="*60 + "\n")
+    app.run(debug=True, host='0.0.0.0', port=5000)
