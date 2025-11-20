@@ -5,11 +5,12 @@ from tmdb_service import TMDBService
 import os
 import threading
 
+
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    # Create instance folder for SQLite DB
+    # Ensure instance folder exists
     os.makedirs(os.path.join(app.root_path, "instance"), exist_ok=True)
 
     # Initialize extensions
@@ -22,49 +23,50 @@ def create_app():
     from routes_auth import auth_bp
     from routes_movies import movies_bp
     from routes_users import users_bp
-    try:
-        from routes_admin import admin_bp
-        app.register_blueprint(admin_bp, url_prefix="/admin")
-    except:
-        pass
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(movies_bp, url_prefix="/movies")
     app.register_blueprint(users_bp, url_prefix="/users")
 
-    # Create database tables
+    # Optional admin
+    try:
+        from routes_admin import admin_bp
+        app.register_blueprint(admin_bp, url_prefix="/admin")
+    except:
+        pass
+
+    # Create DB + Warm cache
     with app.app_context():
         db.create_all()
-        
-        # Start cache warming in background thread
+
         def warm_cache_async():
             with app.app_context():
                 TMDBService.warm_cache()
-        
-        # Start cache warming after 2 seconds to not delay app startup
-        warming_thread = threading.Timer(2.0, warm_cache_async)
-        warming_thread.daemon = True
-        warming_thread.start()
+
+        thread = threading.Timer(2.0, warm_cache_async)
+        thread.daemon = True
+        thread.start()
+
+    # ---- BEFORE FIRST REQUEST ----
+    @app.before_first_request
+    def setup_before_first_request():
+        db.create_all()
 
     return app
 
 
+# Make app visible to gunicorn (Render)
+app = create_app()
+
+
 if __name__ == "__main__":
-    app = create_app()
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("🎬 LUMO Movie Platform Starting...")
-    print("="*60)
+    print("=" * 60)
     print(f"✅ Database: {Config.SQLALCHEMY_DATABASE_URI}")
-    print(f"✅ TMDB API: {'Configured' if Config.TMDB_API_KEY != 'YOUR_TMDB_API_KEY_HERE' else '⚠️  NOT CONFIGURED'}")
     print(f"🔥 Cache warming will start in 2 seconds...")
     print(f"🌐 Running on: http://localhost:5000")
-    print("="*60 + "\n")
-    app.run(debug=True, host='0.0.0.0', port=5000)
-    
-    
-    
-@app.before_first_request
-def create_tables():
-    from models import db
-    db.create_all()
+    print("=" * 60 + "\n")
+
+    app.run(debug=True, host="0.0.0.0", port=5000)
