@@ -9,28 +9,52 @@ auth_bp = Blueprint("auth", __name__)
 
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
+    """Email/password login with basic validation and next support."""
     if request.method == "POST":
-        email = request.form["email"]
-        password = request.form["password"]
+        email = (request.form.get("email", "") or "").strip().lower()
+        password = request.form.get("password", "") or ""
+
+        if not email or not password:
+            flash("Please provide both email and password.", "error")
+            return render_template("auth/login.html")
 
         user = User.query.filter_by(email=email).first()
+
+        # Disallow password login for OAuth-only accounts
+        if user and not user.password_hash and user.oauth_provider:
+            flash("This account is linked with Google. Please use Google Sign-In.", "error")
+            return render_template("auth/login.html")
+
         if user and user.password_hash and check_password_hash(user.password_hash, password):
-            login_user(user)
-            return redirect(url_for("main.home"))
-        flash("Invalid credentials")
+            login_user(user, remember=True)
+            next_url = request.args.get("next")
+            return redirect(next_url or url_for("main.home"))
+
+        flash("Invalid email or password.", "error")
+        return render_template("auth/login.html")
+
     return render_template("auth/login.html")
 
 
 @auth_bp.route("/register", methods=["GET", "POST"])
 def register():
+    """Simple registration with validation and duplicate check."""
     if request.method == "POST":
-        name = request.form["name"]
-        email = request.form["email"]
-        password = request.form["password"]
+        name = (request.form.get("name", "") or "").strip()
+        email = (request.form.get("email", "") or "").strip().lower()
+        password = request.form.get("password", "") or ""
+
+        if not name or not email or not password:
+            flash("Please fill in all fields.", "error")
+            return render_template("auth/register.html")
+
+        if len(password) < 6:
+            flash("Password must be at least 6 characters.", "error")
+            return render_template("auth/register.html")
 
         if User.query.filter_by(email=email).first():
-            flash("Email already registered")
-            return redirect(url_for("auth.register"))
+            flash("Email already registered.", "error")
+            return render_template("auth/register.html")
 
         user = User(
             name=name,
@@ -39,7 +63,8 @@ def register():
         )
         db.session.add(user)
         db.session.commit()
-        login_user(user)
+        login_user(user, remember=True)
+        flash("Account created! Welcome to LUMO.", "success")
         return redirect(url_for("main.home"))
 
     return render_template("auth/register.html")

@@ -41,14 +41,14 @@ content %}
       messages %} {% for category, message in messages %}
       <div
         style="
-          background: rgba(239, 68, 68, 0.15);
-          border: 1px solid rgba(239, 68, 68, 0.4);
-          border-radius: 12px;
-          padding: 14px 16px;
-          margin-bottom: 24px;
-          color: #fca5a5;
-          font-size: 0.9rem;
-        "
+            background: {{ 'rgba(34,197,94,0.15)' if category=='success' else 'rgba(239,68,68,0.15)' }};
+            border: 1px solid {{ '#34d399' if category=='success' else 'rgba(239,68,68,0.4)' }};
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 24px;
+            color: {{ '#86efac' if category=='success' else '#fca5a5' }};
+            font-size: 0.9rem;
+          "
       >
         {{ message }}
       </div>

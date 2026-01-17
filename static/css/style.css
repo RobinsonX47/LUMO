@@ -380,6 +380,10 @@ body {
   -webkit-backdrop-filter: blur(40px) saturate(180%);
   padding: 16px;
   transition: var(--transition);
+}
+
+/* Movie grid cards - constrained height */
+.movie-grid .card-glass {
   display: flex;
   flex-direction: column;
   height: 100%;

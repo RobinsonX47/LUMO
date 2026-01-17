@@ -148,6 +148,32 @@ class TMDBService:
         except requests.exceptions.RequestException as e:
             print(f"❌ TMDB API Error: {e}")
             return None
+
+    @staticmethod
+    def _get_results_multi_pages(endpoint, base_params=None, min_count=24, max_pages=2):
+        """Fetch multiple pages from TMDB and combine results up to min_count.
+        Ensures unique items by `id` and respects caching per page.
+        """
+        combined = []
+        seen_ids = set()
+        if base_params is None:
+            base_params = {}
+        for p in range(1, max_pages + 1):
+            params = dict(base_params)
+            params['page'] = p
+            data = TMDBService._make_request(endpoint, params)
+            if not data or 'results' not in data:
+                break
+            for item in data['results']:
+                item_id = item.get('id')
+                if item_id is not None and item_id in seen_ids:
+                    continue
+                combined.append(item)
+                if item_id is not None:
+                    seen_ids.add(item_id)
+                if len(combined) >= min_count:
+                    return combined[:min_count]
+        return combined[:min_count]
     
     @staticmethod
     def get_image_url(path, size='original', is_backdrop=False):
@@ -163,28 +189,22 @@ class TMDBService:
     @staticmethod
     def get_trending_movies(time_window='week', page=1):
         """Get trending movies"""
-        data = TMDBService._make_request(f'trending/movie/{time_window}', {'page': page})
-        if data and 'results' in data:
-            movies = data['results'][:10]
-            for movie in movies:
-                movie['poster_url'] = TMDBService.get_image_url(movie.get('poster_path'))
-                movie['backdrop_url'] = TMDBService.get_image_url(movie.get('backdrop_path'), is_backdrop=True)
-                movie['media_type'] = 'movie'
-            return movies
-        return []
+        results = TMDBService._get_results_multi_pages(f'trending/movie/{time_window}', {}, min_count=24, max_pages=2)
+        for movie in results:
+            movie['poster_url'] = TMDBService.get_image_url(movie.get('poster_path'))
+            movie['backdrop_url'] = TMDBService.get_image_url(movie.get('backdrop_path'), is_backdrop=True)
+            movie['media_type'] = 'movie'
+        return results
     
     @staticmethod
     def get_top_rated_movies(page=1):
         """Get top rated movies of all time"""
-        data = TMDBService._make_request('movie/top_rated', {'page': page})
-        if data and 'results' in data:
-            movies = data['results'][:10]
-            for movie in movies:
-                movie['poster_url'] = TMDBService.get_image_url(movie.get('poster_path'))
-                movie['backdrop_url'] = TMDBService.get_image_url(movie.get('backdrop_path'), is_backdrop=True)
-                movie['media_type'] = 'movie'
-            return movies
-        return []
+        results = TMDBService._get_results_multi_pages('movie/top_rated', {}, min_count=24, max_pages=2)
+        for movie in results:
+            movie['poster_url'] = TMDBService.get_image_url(movie.get('poster_path'))
+            movie['backdrop_url'] = TMDBService.get_image_url(movie.get('backdrop_path'), is_backdrop=True)
+            movie['media_type'] = 'movie'
+        return results
     
     @staticmethod
     def get_popular_movies(page=1):
@@ -220,32 +240,26 @@ class TMDBService:
     @staticmethod
     def get_trending_tv(time_window='week', page=1):
         """Get trending TV series"""
-        data = TMDBService._make_request(f'trending/tv/{time_window}', {'page': page})
-        if data and 'results' in data:
-            series = data['results'][:10]
-            for show in series:
-                show['title'] = show.get('name')
-                show['poster_url'] = TMDBService.get_image_url(show.get('poster_path'))
-                show['backdrop_url'] = TMDBService.get_image_url(show.get('backdrop_path'), is_backdrop=True)
-                show['release_date'] = show.get('first_air_date')
-                show['media_type'] = 'tv'
-            return series
-        return []
+        results = TMDBService._get_results_multi_pages(f'trending/tv/{time_window}', {}, min_count=24, max_pages=2)
+        for show in results:
+            show['title'] = show.get('name')
+            show['poster_url'] = TMDBService.get_image_url(show.get('poster_path'))
+            show['backdrop_url'] = TMDBService.get_image_url(show.get('backdrop_path'), is_backdrop=True)
+            show['release_date'] = show.get('first_air_date')
+            show['media_type'] = 'tv'
+        return results
     
     @staticmethod
     def get_top_rated_tv(page=1):
         """Get top rated TV series"""
-        data = TMDBService._make_request('tv/top_rated', {'page': page})
-        if data and 'results' in data:
-            series = data['results'][:10]
-            for show in series:
-                show['title'] = show.get('name')
-                show['poster_url'] = TMDBService.get_image_url(show.get('poster_path'))
-                show['backdrop_url'] = TMDBService.get_image_url(show.get('backdrop_path'), is_backdrop=True)
-                show['release_date'] = show.get('first_air_date')
-                show['media_type'] = 'tv'
-            return series
-        return []
+        results = TMDBService._get_results_multi_pages('tv/top_rated', {}, min_count=24, max_pages=2)
+        for show in results:
+            show['title'] = show.get('name')
+            show['poster_url'] = TMDBService.get_image_url(show.get('poster_path'))
+            show['backdrop_url'] = TMDBService.get_image_url(show.get('backdrop_path'), is_backdrop=True)
+            show['release_date'] = show.get('first_air_date')
+            show['media_type'] = 'tv'
+        return results
     
     @staticmethod
     def get_popular_tv(page=1):
@@ -267,45 +281,37 @@ class TMDBService:
     @staticmethod
     def get_trending_anime(page=1):
         """Get trending anime"""
-        params = {
+        base_params = {
             'with_genres': '16',
             'with_origin_country': 'JP',
-            'sort_by': 'popularity.desc',
-            'page': page
+            'sort_by': 'popularity.desc'
         }
-        data = TMDBService._make_request('discover/tv', params)
-        if data and 'results' in data:
-            anime = data['results'][:10]
-            for show in anime:
-                show['title'] = show.get('name')
-                show['poster_url'] = TMDBService.get_image_url(show.get('poster_path'))
-                show['backdrop_url'] = TMDBService.get_image_url(show.get('backdrop_path'), is_backdrop=True)
-                show['release_date'] = show.get('first_air_date')
-                show['media_type'] = 'anime'
-            return anime
-        return []
+        results = TMDBService._get_results_multi_pages('discover/tv', base_params, min_count=24, max_pages=2)
+        for show in results:
+            show['title'] = show.get('name')
+            show['poster_url'] = TMDBService.get_image_url(show.get('poster_path'))
+            show['backdrop_url'] = TMDBService.get_image_url(show.get('backdrop_path'), is_backdrop=True)
+            show['release_date'] = show.get('first_air_date')
+            show['media_type'] = 'anime'
+        return results
     
     @staticmethod
     def get_top_rated_anime(page=1):
         """Get top rated anime"""
-        params = {
+        base_params = {
             'with_genres': '16',
             'with_origin_country': 'JP',
             'sort_by': 'vote_average.desc',
-            'vote_count.gte': 100,
-            'page': page
+            'vote_count.gte': 100
         }
-        data = TMDBService._make_request('discover/tv', params)
-        if data and 'results' in data:
-            anime = data['results'][:10]
-            for show in anime:
-                show['title'] = show.get('name')
-                show['poster_url'] = TMDBService.get_image_url(show.get('poster_path'))
-                show['backdrop_url'] = TMDBService.get_image_url(show.get('backdrop_path'), is_backdrop=True)
-                show['release_date'] = show.get('first_air_date')
-                show['media_type'] = 'anime'
-            return anime
-        return []
+        results = TMDBService._get_results_multi_pages('discover/tv', base_params, min_count=24, max_pages=2)
+        for show in results:
+            show['title'] = show.get('name')
+            show['poster_url'] = TMDBService.get_image_url(show.get('poster_path'))
+            show['backdrop_url'] = TMDBService.get_image_url(show.get('backdrop_path'), is_backdrop=True)
+            show['release_date'] = show.get('first_air_date')
+            show['media_type'] = 'anime'
+        return results
     
     # ===== GENRES =====
     
