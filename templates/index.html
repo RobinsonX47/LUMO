@@ -1,13 +1,16 @@
-{% extends "base.html" %}
-{% block title %}LUMO – Discover Movies, Anime & Series{% endblock %}
-{% block content %}
+{% extends "base.html" %} {% block title %}LUMO – Discover Movies, Anime &
+Series{% endblock %} {% block content %}
 
 <!-- Hero Carousel -->
 {% if hero_movies %}
 <section class="hero-carousel">
   {% for movie in hero_movies %}
   <div class="hero-slide {% if loop.first %}active{% endif %}">
-    <img class="hero-bg" src="{{ movie.backdrop_url }}" alt="{{ movie.title }}">
+    <img
+      class="hero-bg"
+      src="{{ movie.backdrop_url }}"
+      alt="{{ movie.title }}"
+    />
     <div class="hero-overlay-left"></div>
     <div class="hero-overlay-bottom"></div>
 
@@ -19,14 +22,20 @@
           {% if movie.release_date %}
           <span class="badge-pill">📅 {{ movie.release_date[:4] }}</span>
           {% endif %}
-          <span class="badge-pill">⭐ {{ movie.vote_average|round(1) }}/10</span>
+          <span class="badge-pill"
+            >⭐ {{ movie.vote_average|round(1) }}/10</span
+          >
         </div>
 
         <p class="slide-description">
-          {{ movie.overview[:180] }}{% if movie.overview|length > 180 %}...{% endif %}
+          {{ movie.overview[:180] }}{% if movie.overview|length > 180 %}...{%
+          endif %}
         </p>
 
-        <a href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}" class="btn-primary">
+        <a
+          href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}"
+          class="btn-primary"
+        >
           View Details
         </a>
       </div>
@@ -46,14 +55,37 @@
 {% endif %}
 
 <!-- Quick Access Section Cards -->
-<section style="margin-bottom: 80px;">
-  <h2 style="margin-bottom: 32px; text-align: center; font-size: 2rem;">Explore Content</h2>
-  
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; max-width: 1200px; margin: 0 auto;">
-    
+<section style="margin-bottom: 80px">
+  <h2 style="margin-bottom: 32px; text-align: center; font-size: 2rem">
+    Explore Content
+  </h2>
+
+  <div
+    style="
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 24px;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 20px;
+    "
+  >
     <!-- Movies Card -->
-    <a href="{{ url_for('main.movies_section') }}" style="text-decoration: none;">
-      <div class="content-card" style="background: linear-gradient(135deg, rgba(10, 132, 255, 0.15), rgba(10, 132, 255, 0.05)); border: 1px solid rgba(10, 132, 255, 0.3);">
+    <a
+      href="{{ url_for('main.movies_section') }}"
+      style="text-decoration: none"
+    >
+      <div
+        class="content-card"
+        style="
+          background: linear-gradient(
+            135deg,
+            rgba(10, 132, 255, 0.15),
+            rgba(10, 132, 255, 0.05)
+          );
+          border: 1px solid rgba(10, 132, 255, 0.3);
+        "
+      >
         <div class="card-icon">🎬</div>
         <h3>Movies</h3>
         <p>Discover trending and top-rated movies from around the world</p>
@@ -61,8 +93,18 @@
     </a>
 
     <!-- Anime Card -->
-    <a href="{{ url_for('main.anime_section') }}" style="text-decoration: none;">
-      <div class="content-card" style="background: linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(236, 72, 153, 0.05)); border: 1px solid rgba(236, 72, 153, 0.3);">
+    <a href="{{ url_for('main.anime_section') }}" style="text-decoration: none">
+      <div
+        class="content-card"
+        style="
+          background: linear-gradient(
+            135deg,
+            rgba(236, 72, 153, 0.15),
+            rgba(236, 72, 153, 0.05)
+          );
+          border: 1px solid rgba(236, 72, 153, 0.3);
+        "
+      >
         <div class="card-icon">🎌</div>
         <h3>Anime</h3>
         <p>Browse popular anime series and discover new favorites</p>
@@ -70,8 +112,21 @@
     </a>
 
     <!-- Series Card -->
-    <a href="{{ url_for('main.series_section') }}" style="text-decoration: none;">
-      <div class="content-card" style="background: linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(168, 85, 247, 0.05)); border: 1px solid rgba(168, 85, 247, 0.3);">
+    <a
+      href="{{ url_for('main.series_section') }}"
+      style="text-decoration: none"
+    >
+      <div
+        class="content-card"
+        style="
+          background: linear-gradient(
+            135deg,
+            rgba(168, 85, 247, 0.15),
+            rgba(168, 85, 247, 0.05)
+          );
+          border: 1px solid rgba(168, 85, 247, 0.3);
+        "
+      >
         <div class="card-icon">📺</div>
         <h3>TV Series</h3>
         <p>Explore trending and critically acclaimed TV shows</p>
@@ -79,8 +134,18 @@
     </a>
 
     <!-- Genres Card -->
-    <a href="{{ url_for('main.genres_page') }}" style="text-decoration: none;">
-      <div class="content-card" style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(34, 197, 94, 0.05)); border: 1px solid rgba(34, 197, 94, 0.3);">
+    <a href="{{ url_for('main.genres_page') }}" style="text-decoration: none">
+      <div
+        class="content-card"
+        style="
+          background: linear-gradient(
+            135deg,
+            rgba(34, 197, 94, 0.15),
+            rgba(34, 197, 94, 0.05)
+          );
+          border: 1px solid rgba(34, 197, 94, 0.3);
+        "
+      >
         <div class="card-icon">🎭</div>
         <h3>Browse Genres</h3>
         <p>Filter content by your favorite genres and categories</p>
@@ -91,23 +156,117 @@
 
 <!-- AI Recommendations Card - CENTERED -->
 {% if current_user.is_authenticated %}
-<section style="margin-bottom: 80px;">
-  <div style="max-width: 900px; margin: 0 auto;">
-    <a href="{{ url_for('movies.recommendations') }}" style="text-decoration: none;">
-      <div class="content-card premium-card ai-card-centered" style="background: linear-gradient(135deg, rgba(123, 92, 255, 0.25), rgba(236, 95, 160, 0.25)); border: 2px solid rgba(123, 92, 255, 0.5); position: relative; overflow: hidden; padding: 48px;">
-        <div style="position: absolute; top: -50%; right: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%); animation: pulse 3s ease-in-out infinite;"></div>
-        <div style="position: relative; z-index: 1; text-align: center;">
-          <div class="card-icon" style="font-size: 4rem; margin-bottom: 20px;">✨</div>
-          <h3 style="font-size: 2rem; background: linear-gradient(135deg, #7b5cff, #ec5fa0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 16px;">AI Recommendations</h3>
-          <p style="font-size: 1.15rem; line-height: 1.6; max-width: 600px; margin: 0 auto 24px; color: var(--text-secondary);">Get personalized movie and series suggestions powered by advanced AI based on your unique taste and viewing history</p>
-          <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-            <span class="badge-pill" style="background: rgba(123, 92, 255, 0.3); border-color: rgba(123, 92, 255, 0.5); color: #fff; display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;">
+<section style="margin-bottom: 80px">
+  <div style="max-width: 900px; margin: 0 auto">
+    <a
+      href="{{ url_for('movies.recommendations') }}"
+      style="text-decoration: none"
+    >
+      <div
+        class="content-card premium-card ai-card-centered"
+        style="
+          background: linear-gradient(
+            135deg,
+            rgba(123, 92, 255, 0.25),
+            rgba(236, 95, 160, 0.25)
+          );
+          border: 2px solid rgba(123, 92, 255, 0.5);
+          position: relative;
+          overflow: hidden;
+          padding: 48px;
+        "
+      >
+        <div
+          style="
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(
+              circle,
+              rgba(255, 255, 255, 0.1) 0%,
+              transparent 70%
+            );
+            animation: pulse 3s ease-in-out infinite;
+          "
+        ></div>
+        <div style="position: relative; z-index: 1; text-align: center">
+          <div class="card-icon" style="font-size: 4rem; margin-bottom: 20px">
+            ✨
+          </div>
+          <h3
+            style="
+              font-size: 2rem;
+              background: linear-gradient(135deg, #7b5cff, #ec5fa0);
+              -webkit-background-clip: text;
+              -webkit-text-fill-color: transparent;
+              background-clip: text;
+              margin-bottom: 16px;
+            "
+          >
+            AI Recommendations
+          </h3>
+          <p
+            style="
+              font-size: 1.15rem;
+              line-height: 1.6;
+              max-width: 600px;
+              margin: 0 auto 24px;
+              color: var(--text-secondary);
+            "
+          >
+            Get personalized movie and series suggestions powered by advanced AI
+            based on your unique taste and viewing history
+          </p>
+          <div
+            style="
+              display: flex;
+              gap: 12px;
+              justify-content: center;
+              flex-wrap: wrap;
+            "
+          >
+            <span
+              class="badge-pill"
+              style="
+                background: rgba(123, 92, 255, 0.3);
+                border-color: rgba(123, 92, 255, 0.5);
+                color: #fff;
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                padding: 8px 16px;
+              "
+            >
               <span>🤖</span> AI-Powered
             </span>
-            <span class="badge-pill" style="background: rgba(236, 95, 160, 0.3); border-color: rgba(236, 95, 160, 0.5); color: #fff; display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;">
+            <span
+              class="badge-pill"
+              style="
+                background: rgba(236, 95, 160, 0.3);
+                border-color: rgba(236, 95, 160, 0.5);
+                color: #fff;
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                padding: 8px 16px;
+              "
+            >
               <span>🎯</span> Personalized
             </span>
-            <span class="badge-pill" style="background: rgba(10, 132, 255, 0.3); border-color: rgba(10, 132, 255, 0.5); color: #fff; display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;">
+            <span
+              class="badge-pill"
+              style="
+                background: rgba(10, 132, 255, 0.3);
+                border-color: rgba(10, 132, 255, 0.5);
+                color: #fff;
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                padding: 8px 16px;
+              "
+            >
               <span>⚡</span> Smart
             </span>
           </div>
@@ -120,13 +279,18 @@
 
 <style>
   .content-card {
-    padding: 32px;
+    padding: 16px 12px;
     border-radius: 20px;
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 280px;
   }
 
   .content-card:hover {
@@ -172,8 +336,15 @@
   }
 
   @keyframes pulse {
-    0%, 100% { transform: scale(1); opacity: 0.5; }
-    50% { transform: scale(1.05); opacity: 0.8; }
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.5;
+    }
+    50% {
+      transform: scale(1.05);
+      opacity: 0.8;
+    }
   }
 
   @media (max-width: 768px) {

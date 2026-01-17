@@ -52,11 +52,15 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(255), nullable=False)
+    password_hash = db.Column(db.String(255), nullable=True)  # Nullable for OAuth users
     bio = db.Column(db.Text)
     avatar = db.Column(db.String(255))
     role = db.Column(db.String(10), default="user")
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Google OAuth fields
+    google_id = db.Column(db.String(255), unique=True, nullable=True, index=True)
+    oauth_provider = db.Column(db.String(50), nullable=True)  # 'google', etc.
 
     reviews = db.relationship("Review", backref="user", lazy=True, cascade="all, delete-orphan")
     watchlist = db.relationship("Watchlist", backref="user", lazy=True, cascade="all, delete-orphan")

@@ -13,3 +13,8 @@ class Config:
     TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p"
     TMDB_POSTER_SIZE = "w500"  # Options: w92, w154, w185, w342, w500, w780, original
     TMDB_BACKDROP_SIZE = "w1280"  # Options: w300, w780, w1280, original
+    
+    # Google OAuth Configuration
+    GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID") or "YOUR_GOOGLE_CLIENT_ID"
+    GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET") or "YOUR_GOOGLE_CLIENT_SECRET"
+    GOOGLE_DISCOVERY_URL = "https://accounts.google.com/.well-known/openid-configuration"

@@ -1,4 +1,4 @@
-# 🎬 LUMO - AI-Powered Movie & Entertainment Tracker
+# 🎬 LUMO - Movie & Entertainment Tracker
 
 <div align="center">
 
@@ -8,7 +8,7 @@
 ![TMDB](https://img.shields.io/badge/TMDB-API-01d277?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
-**A premium movie and entertainment tracking platform with AI-powered recommendations**
+**A premium movie and entertainment tracking platform with personalized recommendations**
 
 [Features](#features) • [Demo](#demo) • [Installation](#installation) • [Usage](#usage) • [Technologies](#technologies)
 
@@ -23,7 +23,7 @@
 - **Track** your watched movies, series, and anime
 - **Review** and rate content with a 5-star rating system
 - **Discover** trending and top-rated entertainment across all categories
-- **Get AI-powered recommendations** based on your unique viewing preferences
+- **Get personalized recommendations** tailored to your viewing preferences
 - **Manage** your personal watchlist for content you want to watch
 - **Explore** content by genres, popularity, and ratings
 
@@ -36,24 +36,28 @@ Whether you're a casual viewer or a cinephile, LUMO offers a premium experience 
 ### 🎯 Core Features
 
 #### **Personal Entertainment Library**
+
 - Track all movies, TV series, and anime you've watched
 - Maintain a personal watchlist for future viewing
 - Write detailed reviews with 5-star ratings
 - View your complete viewing history and statistics
 
-#### **AI-Powered Recommendations** ⚡
-- Get personalized suggestions based on your watchlist
-- Advanced AI analyzes your preferences and viewing patterns
-- Discover hidden gems tailored to your taste
+#### **Personalized Recommendations** ⚡
+
+- Get suggestions tailored to your watchlist
+- Intelligent algorithm analyzes your preferences and viewing patterns
+- Discover hidden gems suited to your taste
 - Continuously improving recommendations
 
 #### **Rich Content Discovery**
+
 - Browse trending content updated weekly
 - Explore top-rated movies and series of all time
 - Filter by genres (Action, Drama, Comedy, Sci-Fi, and more)
 - Dedicated sections for Movies, TV Series, and Anime
 
 #### **Detailed Content Pages**
+
 - Full-screen auto-playing trailers for immersive previews
 - Comprehensive movie information (cast, runtime, ratings)
 - User reviews and community ratings
@@ -70,7 +74,7 @@ Whether you're a casual viewer or a cinephile, LUMO offers a premium experience 
 
 ### 👤 User Features
 
-- Secure user authentication (registration & login)
+- Secure user authentication (registration & login with Google OAuth)
 - Customizable user profiles with avatars
 - Personal statistics dashboard
 - Review management (edit/delete your reviews)
@@ -81,15 +85,19 @@ Whether you're a casual viewer or a cinephile, LUMO offers a premium experience 
 ## 🖼️ Demo
 
 ### Home Page with Hero Carousel
+
 Beautiful full-width carousel showcasing popular movies with auto-rotation
 
 ### Movie Detail Page
+
 Immersive full-screen trailer experience with detailed information
 
-### AI Recommendations
-Personalized suggestions powered by advanced AI
+### Personalized Recommendations
+
+Suggestions tailored to your viewing preferences
 
 ### User Profile
+
 Track your reviews, watchlist, and viewing statistics
 
 ---
@@ -154,6 +162,7 @@ export TMDB_API_KEY="your_api_key_here"
 **Option B: Direct Configuration**
 
 Edit `config.py`:
+
 ```python
 TMDB_API_KEY = "your_actual_api_key_here"
 ```
@@ -201,10 +210,10 @@ Visit **http://localhost:5000** in your browser.
    - Write your thoughts
    - Submit your review
 
-5. **Get AI Recommendations**
+5. **Get Personalized Recommendations**
    - Add at least 3-5 items to your watchlist
-   - Click "AI Picks" in the navigation
-   - Discover personalized recommendations!
+   - Click "Recommendations" in the navigation
+   - Discover personalized suggestions!
 
 ### Admin Features (Optional)
 
@@ -219,23 +228,26 @@ python scripts/make_admin.py --create --email admin@example.com --name "Admin" -
 ## 🛠️ Technologies
 
 ### Backend
+
 - **Flask 3.0** - Modern Python web framework
 - **SQLAlchemy** - Database ORM
 - **Flask-Login** - User session management
 - **SQLite** - Lightweight database (easily upgradable to PostgreSQL)
 
 ### Frontend
+
 - **HTML5 & CSS3** - Modern web standards
 - **Vanilla JavaScript** - No heavy frameworks needed
 - **Glass Morphism** - Contemporary UI design
 - **Responsive Design** - Mobile-first approach
 
 ### APIs & Services
+
 - **TMDB API** - Comprehensive movie database
-- **Claude AI API** - Advanced recommendation engine
 - **YouTube API** - Embedded trailer playback
 
 ### Key Libraries
+
 - **Requests** - HTTP library for API calls
 - **Werkzeug** - WSGI utilities and security
 
@@ -281,6 +293,7 @@ LUMO/
 ### Cache Settings
 
 LUMO uses intelligent caching to minimize API calls:
+
 - Cache duration: **6 hours**
 - Cache warmup on startup for faster initial loads
 - Automatic cache invalidation
@@ -296,6 +309,7 @@ LUMO uses intelligent caching to minimize API calls:
 Default: SQLite (`instance/cine_sphere.db`)
 
 For production, upgrade to PostgreSQL:
+
 ```python
 # config.py
 SQLALCHEMY_DATABASE_URI = "postgresql://user:pass@localhost/lumo"
@@ -308,6 +322,7 @@ SQLALCHEMY_DATABASE_URI = "postgresql://user:pass@localhost/lumo"
 ### Before Production Deployment:
 
 1. **Change Secret Key**
+
    ```python
    SECRET_KEY = "your-strong-random-secret-key-here"
    ```
@@ -317,6 +332,7 @@ SQLALCHEMY_DATABASE_URI = "postgresql://user:pass@localhost/lumo"
    - Never commit `.env` files
 
 3. **Disable Debug Mode**
+
    ```python
    app.run(debug=False)
    ```
@@ -353,6 +369,7 @@ Contributions are welcome! Here's how you can help:
 ## 🐛 Troubleshooting
 
 ### Database Issues
+
 ```bash
 # Reset database
 rm instance/cine_sphere.db
@@ -360,17 +377,20 @@ python scripts/migrate_to_tmdb.py
 ```
 
 ### API Key Issues
+
 - Verify your TMDB API key is correct
 - Check if you've hit rate limits (wait 10 seconds)
 - Ensure your TMDB account is verified
 
 ### Cache Issues
+
 ```bash
 # Clear cache
 rm -rf instance/cache/*
 ```
 
 ### Port Already in Use
+
 ```bash
 # Use a different port
 python app.py --port 5001
@@ -387,7 +407,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - **TMDB** - For their comprehensive movie database API
-- **Anthropic** - For Claude AI powering recommendations
 - **Flask Community** - For the excellent web framework
 - **Contributors** - For making LUMO better
 

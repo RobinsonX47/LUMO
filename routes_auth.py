@@ -1,8 +1,9 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from flask_login import login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 from extensions import db
 from models import User
+from oauth_handler import GoogleOAuth
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -13,7 +14,7 @@ def login():
         password = request.form["password"]
 
         user = User.query.filter_by(email=email).first()
-        if user and check_password_hash(user.password_hash, password):
+        if user and user.password_hash and check_password_hash(user.password_hash, password):
             login_user(user)
             return redirect(url_for("main.home"))
         flash("Invalid credentials")
@@ -49,3 +50,70 @@ def register():
 def logout():
     logout_user()
     return redirect(url_for("main.home"))
+
+
+# Google OAuth Routes
+@auth_bp.route("/login/google")
+def google_login():
+    """Redirect to Google for authentication"""
+    authorization_url = GoogleOAuth.get_authorization_url()
+    return redirect(authorization_url)
+
+
+@auth_bp.route("/callback/google")
+def google_callback():
+    """Handle Google OAuth callback"""
+    code = request.args.get("code")
+    
+    if not code:
+        flash("Failed to get authorization code from Google")
+        return redirect(url_for("auth.login"))
+    
+    try:
+        # Exchange code for token
+        tokens = GoogleOAuth.exchange_code_for_token(code)
+        
+        # Get user info
+        user_info = GoogleOAuth.get_user_info(tokens.get("access_token"))
+        
+        # Extract user information
+        google_id = user_info.get("sub")
+        email = user_info.get("email")
+        name = user_info.get("name", email.split("@")[0])
+        picture = user_info.get("picture")
+        
+        # Check if user exists
+        user = User.query.filter_by(google_id=google_id).first()
+        
+        if not user:
+            # Check if email already exists
+            existing_user = User.query.filter_by(email=email).first()
+            
+            if existing_user:
+                # Link Google account to existing user
+                existing_user.google_id = google_id
+                existing_user.oauth_provider = "google"
+                if picture:
+                    existing_user.avatar = picture
+                db.session.commit()
+                user = existing_user
+            else:
+                # Create new user
+                user = User(
+                    name=name,
+                    email=email,
+                    google_id=google_id,
+                    oauth_provider="google",
+                    avatar=picture
+                )
+                db.session.add(user)
+                db.session.commit()
+        
+        # Log in user
+        login_user(user)
+        flash(f"Welcome, {user.name}!", "success")
+        return redirect(url_for("main.home"))
+    
+    except Exception as e:
+        flash(f"An error occurred during Google login: {str(e)}")
+        return redirect(url_for("auth.login"))

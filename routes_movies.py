@@ -222,9 +222,9 @@ def recommendations():
                 watchlist_genres.extend([g['name'] for g in movie['genres']])
     
     try:
-        recommended_items = get_ai_recommendations(watchlist_titles, watchlist_genres)
+        recommended_items = get_personalized_recommendations(watchlist_titles, watchlist_genres)
     except Exception as e:
-        print(f"AI Recommendation error: {e}")
+        print(f"Recommendation generation error: {e}")
         recommended_items = get_fallback_recommendations(watchlist_genres)
     
     return render_template(
@@ -233,7 +233,7 @@ def recommendations():
         watchlist_count=len(watchlist_entries)
     )
 
-def get_ai_recommendations(watchlist_titles, watchlist_genres):
+def get_personalized_recommendations(watchlist_titles, watchlist_genres):
     if not watchlist_titles:
         return get_fallback_recommendations(watchlist_genres)
     

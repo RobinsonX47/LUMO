@@ -4,6 +4,10 @@ from extensions import db, login_manager
 from tmdb_service import TMDBService
 import os
 import threading
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # === ONE-TIME DATABASE INITIALIZATION FLAG ===
 _first_request_done = False

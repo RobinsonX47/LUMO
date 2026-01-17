@@ -1,4 +1,6 @@
 /* LUMO - Premium Black & Grey Theme with Enhanced Styling */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 :root {
   --bg-primary: #000000;
   --bg-secondary: #0d0d0d;
@@ -24,7 +26,7 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+  font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Roboto', 'Helvetica Neue', sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
   min-height: 100vh;
@@ -34,8 +36,8 @@ body {
 }
 
 .app-wrapper {
-  padding: 100px 4vw 60px;
-  max-width: 1400px;
+  padding: 100px 3vw 60px;
+  max-width: 100%;
   margin: 0 auto;
 }
 
@@ -352,19 +354,9 @@ body {
 }
 
 /* ===== GLASS CARDS ===== */
-.card-glass {
-  background: var(--glass-bg);
-  border-radius: var(--radius);
-  border: 1px solid var(--glass-border);
-  backdrop-filter: blur(40px) saturate(180%);
-  -webkit-backdrop-filter: blur(40px) saturate(180%);
-  padding: 16px;
-  transition: var(--transition);
-}
-
 .card-glass:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(123, 92, 255, 0.3);
   border-color: rgba(255, 255, 255, 0.15);
 }
 
@@ -376,34 +368,56 @@ body {
   margin-bottom: 40px;
 }
 
+.card-glass {
+  background: var(--glass-bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  padding: 16px;
+  transition: var(--transition);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 420px;
+  overflow: hidden;
+}
+
 .movie-poster {
   border-radius: 10px;
   width: 100%;
-  aspect-ratio: 2 / 3;
+  height: 260px;
   object-fit: cover;
   margin-bottom: 12px;
   transition: var(--transition);
+  flex-shrink: 0;
 }
 
 .card-glass:hover .movie-poster {
-  transform: scale(1.02);
+  filter: brightness(1.05);
 }
 
 .movie-title {
   font-size: 0.95rem;
   font-weight: 600;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   color: var(--text-primary);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  line-height: 1.3;
+  height: 2.6em;
 }
 
 .movie-meta {
   font-size: 0.8rem;
   color: var(--text-secondary);
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  min-height: 1.2em;
 }
 
 /* ===== BUTTONS ===== */
