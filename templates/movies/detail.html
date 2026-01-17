@@ -210,25 +210,12 @@
         <div class="form-group">
           <label>Your Rating</label>
           <div class="star-rating-input-premium">
-            {% for i in range(1, 6) %}
-            <input
-              type="radio"
-              name="rating"
-              value="{{ i }}"
-              id="rating{{ i }}"
-              {%
-              if
-              user_review
-              and
-              user_review.rating=""
-              ="i"
-              %}checked{%
-              endif
-              %}
-              required
-            />
-            <label for="rating{{ i }}" class="star-label-premium">⭐</label>
-            {% endfor %}
+            {% set rating_value = user_review.rating if user_review else 0 %}
+            <input type="radio" name="rating" value="1" id="rating1" {{'checked' if rating_value == 1 else ''}} required /><label for="rating1" class="star-label-premium">⭐</label>
+            <input type="radio" name="rating" value="2" id="rating2" {{'checked' if rating_value == 2 else ''}} required /><label for="rating2" class="star-label-premium">⭐</label>
+            <input type="radio" name="rating" value="3" id="rating3" {{'checked' if rating_value == 3 else ''}} required /><label for="rating3" class="star-label-premium">⭐</label>
+            <input type="radio" name="rating" value="4" id="rating4" {{'checked' if rating_value == 4 else ''}} required /><label for="rating4" class="star-label-premium">⭐</label>
+            <input type="radio" name="rating" value="5" id="rating5" {{'checked' if rating_value == 5 else ''}} required /><label for="rating5" class="star-label-premium">⭐</label>
           </div>
         </div>
 
