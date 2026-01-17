@@ -1,19 +1,27 @@
-{% extends "base.html" %}
-{% block title %}{{ movie.title }} – LUMO{% endblock %}
-{% block content %}
+{% extends "base.html" %} {% block title %}{{ movie.title }} – LUMO{% endblock
+%} {% block content %}
 
 <!-- Fullscreen Premium Movie Hero with Auto-Playing Trailer -->
 <div id="movieHero" class="premium-hero-fullscreen">
-  
   <!-- YouTube Trailer Background (fullscreen, highest quality) -->
   {% if movie.trailer_key %}
   <div id="trailerContainer" class="trailer-container-fullscreen">
     <div id="trailerPlayer"></div>
     <div class="trailer-fade-overlay"></div>
-    
+
     <!-- Mute/Unmute Button -->
     <button id="muteBtn" class="mute-btn-premium">
-      <svg id="muteIcon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg
+        id="muteIcon"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
         <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
         <line x1="23" y1="9" x2="17" y2="15"></line>
         <line x1="17" y1="9" x2="23" y2="15"></line>
@@ -23,7 +31,14 @@
     <!-- Scroll indicator -->
     <div class="scroll-indicator">
       <span>Scroll for details</span>
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
         <polyline points="7 13 12 18 17 13"></polyline>
         <polyline points="7 6 12 11 17 6"></polyline>
       </svg>
@@ -38,62 +53,112 @@
   {% endif %}
 
   <!-- Movie Info Overlay (Netflix-style - LEFT SIDE) -->
-  <div id="heroOverlay" class="hero-info-overlay-netflix">
+  <div
+    id="heroOverlay"
+    class="hero-info-overlay-netflix"
+  >
     <div class="hero-content-wrapper-netflix">
-      <div class="hero-details-netflix">
+      <div id="heroDetails" class="hero-details-netflix">
         <h1 class="hero-title-premium">{{ movie.title }}</h1>
-        
+
         {% if movie.tagline %}
         <p class="hero-tagline-premium">"{{ movie.tagline }}"</p>
         {% endif %}
-        
+
         <div class="hero-meta-row">
           {% if movie.release_date %}
           <span class="badge-pill">📅 {{ movie.release_date[:4] }}</span>
-          {% endif %}
-          {% if movie.runtime %}
+          {% endif %} {% if movie.runtime %}
           <span class="badge-pill">⏱️ {{ movie.runtime }} min</span>
           {% endif %}
-          <span class="badge-pill">⭐ {{ movie.vote_average|round(1) }}/10</span>
+          <span class="badge-pill"
+            >⭐ {{ movie.vote_average|round(1) }}/10</span
+          >
           {% if movie.local_avg_rating %}
-          <span class="badge-pill badge-highlight">⭐ {{ movie.local_avg_rating }}/5 ({{ movie.local_review_count }})</span>
+          <span class="badge-pill badge-highlight"
+            >⭐ {{ movie.local_avg_rating }}/5 ({{ movie.local_review_count
+            }})</span
+          >
           {% endif %}
         </div>
 
         {% if movie.genres %}
         <div class="hero-genres-row">
           {% for genre in movie.genres %}
-          <a href="{{ url_for('main.movies_by_genre', genre_id=genre.id) }}" class="genre-tag-premium">{{ genre.name }}</a>
+          <a
+            href="{{ url_for('main.movies_by_genre', genre_id=genre.id) }}"
+            class="genre-tag-premium"
+            >{{ genre.name }}</a
+          >
           {% endfor %}
         </div>
-        {% endif %}
-
-        {% if movie.overview %}
+        {% endif %} {% if movie.overview %}
         <p class="hero-overview-premium">{{ movie.overview }}</p>
         {% endif %}
 
         <div class="hero-actions-row">
           {% if current_user.is_authenticated %}
-          <form method="POST" action="{{ url_for('movies.toggle_watchlist', movie_id=movie.id) }}" style="display: inline;">
+          <form
+            method="POST"
+            action="{{ url_for('movies.toggle_watchlist', movie_id=movie.id) }}"
+            style="display: inline"
+          >
             <button type="submit" class="btn-primary btn-watchlist-premium">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="{% if in_watchlist %}currentColor{% else %}none{% endif %}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="{% if in_watchlist %}currentColor{% else %}none{% endif %}"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"
+                ></path>
               </svg>
-              {% if in_watchlist %}In Watchlist{% else %}Add to Watchlist{% endif %}
+              {% if in_watchlist %}In Watchlist{% else %}Add to Watchlist{%
+              endif %}
             </button>
           </form>
           {% else %}
           <a href="{{ url_for('auth.login') }}" class="btn-primary">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"
+              ></path>
             </svg>
             Sign in to Add
           </a>
           {% endif %}
-          
-          <button class="btn-secondary" onclick="document.getElementById('reviewSection').scrollIntoView({behavior: 'smooth'})">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+
+          <button
+            class="btn-secondary"
+            onclick="
+              document
+                .getElementById('reviewSection')
+                .scrollIntoView({ behavior: 'smooth' })
+            "
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+              ></path>
             </svg>
             Write Review
           </button>
@@ -105,7 +170,6 @@
 
 <!-- Content Section (scrollable) -->
 <div class="movie-detail-content">
-  
   <!-- Cast Section -->
   {% if movie.credits and movie.credits.cast %}
   <section class="content-section">
@@ -114,7 +178,11 @@
       {% for actor in movie.credits.cast[:10] %}
       <div class="cast-card-premium">
         {% if actor.profile_path %}
-        <img src="https://image.tmdb.org/t/p/original{{ actor.profile_path }}" alt="{{ actor.name }}" class="cast-photo-premium" />
+        <img
+          src="https://image.tmdb.org/t/p/original{{ actor.profile_path }}"
+          alt="{{ actor.name }}"
+          class="cast-photo-premium"
+        />
         {% else %}
         <div class="cast-photo-placeholder">👤</div>
         {% endif %}
@@ -131,69 +199,103 @@
     <h2>💬 User Reviews</h2>
 
     {% if current_user.is_authenticated %}
-      <div class="review-form-card-premium">
-        <h3>{% if user_review %}Edit Your Review{% else %}Write a Review{% endif %}</h3>
-        
-        <form method="POST" action="{{ url_for('movies.add_review', movie_id=movie.id) }}">
-          <div class="form-group">
-            <label>Your Rating</label>
-            <div class="star-rating-input-premium">
-              {% for i in range(1, 6) %}
-                <input type="radio" name="rating" value="{{ i }}" id="rating{{ i }}" 
-                       {% if user_review and user_review.rating == i %}checked{% endif %}
-                       required />
-                <label for="rating{{ i }}" class="star-label-premium">⭐</label>
-              {% endfor %}
-            </div>
-          </div>
+    <div class="review-form-card-premium">
+      <h3>
+        {% if user_review %}Edit Your Review{% else %}Write a Review{% endif %}
+      </h3>
 
-          <div class="form-group">
-            <label>Your Review</label>
-            <textarea name="review_text" rows="4" required placeholder="Share your thoughts...">{% if user_review %}{{ user_review.review_text }}{% endif %}</textarea>
+      <form
+        method="POST"
+        action="{{ url_for('movies.add_review', movie_id=movie.id) }}"
+      >
+        <div class="form-group">
+          <label>Your Rating</label>
+          <div class="star-rating-input-premium">
+            {% for i in range(1, 6) %}
+            <input
+              type="radio"
+              name="rating"
+              value="{{ i }}"
+              id="rating{{ i }}"
+              {% if user_review and user_review.rating == i %}checked{% endif %}
+              required
+            />
+            <label for="rating{{ i }}" class="star-label-premium">⭐</label>
+            {% endfor %}
           </div>
+        </div>
 
-          <div class="form-actions">
-            <button type="submit" class="btn-primary">
-              {% if user_review %}Update Review{% else %}Submit Review{% endif %}
-            </button>
-            
-            {% if user_review %}
-            <button type="button" onclick="if(confirm('Delete this review?')) document.getElementById('deleteForm').submit();" 
-                    class="btn-danger-premium">Delete Review</button>
-            {% endif %}
-          </div>
-        </form>
-        
-        {% if user_review %}
-        <form id="deleteForm" method="POST" action="{{ url_for('movies.delete_review', movie_id=movie.id) }}" style="display: none;"></form>
-        {% endif %}
-      </div>
+        <div class="form-group">
+          <label>Your Review</label>
+          <textarea
+            name="review_text"
+            rows="4"
+            required
+            placeholder="Share your thoughts..."
+          >{% if user_review %}{{ user_review.review_text }}{% endif %}</textarea>
+        </div>
+          >
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-primary">
+            {% if user_review %}Update Review{% else %}Submit Review{% endif %}
+          </button>
+
+          {% if user_review %}
+          <button
+            type="button"
+            onclick="
+              if (confirm('Delete this review?'))
+                document.getElementById('deleteForm').submit();
+            "
+            class="btn-danger-premium"
+          >
+            Delete Review
+          </button>
+          {% endif %}
+        </div>
+      </form>
+
+      {% if user_review %}
+      <form
+        id="deleteForm"
+        method="POST"
+        action="{{ url_for('movies.delete_review', movie_id=movie.id) }}"
+        style="display: none"
+      ></form>
+      {% endif %}
+    </div>
     {% else %}
-      <div class="auth-prompt-card-premium">
-        <p>Sign in to write a review</p>
-        <a href="{{ url_for('auth.login') }}" class="btn-primary">Sign In</a>
-      </div>
+    <div class="auth-prompt-card-premium">
+      <p>Sign in to write a review</p>
+      <a href="{{ url_for('auth.login') }}" class="btn-primary">Sign In</a>
+    </div>
     {% endif %}
 
     <div class="reviews-list-premium">
       {% for review in reviews %}
-        <div class="review-card-premium">
-          <div class="review-header-premium">
-            <div>
-              <strong class="reviewer-name-premium">{{ review.user.name }}</strong>
-              <div class="review-date-premium">
-                {{ review.created_at.strftime('%B %d, %Y') }}
-                {% if review.updated_at != review.created_at %}<span class="edited-tag">(edited)</span>{% endif %}
-              </div>
-            </div>
-            <div class="review-stars-premium">
-              {% for i in range(review.rating) %}⭐{% endfor %}
+      <div class="review-card-premium">
+        <div class="review-header-premium">
+          <div>
+            <strong class="reviewer-name-premium"
+              >{{ review.user.name }}</strong
+            >
+            <div class="review-date-premium">
+              {{ review.created_at.strftime('%B %d, %Y') }} {% if
+              review.updated_at != review.created_at %}<span class="edited-tag"
+                >(edited)</span
+              >{% endif %}
             </div>
           </div>
-          <p class="review-text-premium">{{ review.review_text }}</p>
+          <div class="review-stars-premium">
+            {% for i in range(review.rating) %}⭐{% endfor %}
+          </div>
         </div>
+        <p class="review-text-premium">{{ review.review_text }}</p>
+      </div>
       {% else %}
-        <p class="no-reviews-msg">No reviews yet. Be the first to review!</p>
+      <p class="no-reviews-msg">No reviews yet. Be the first to review!</p>
       {% endfor %}
     </div>
   </section>
@@ -204,15 +306,24 @@
     <h2>🎬 You Might Also Like</h2>
     <div class="movie-grid">
       {% for similar in movie.similar.results[:6] %}
-      <a href="{% if movie.media_type == 'tv' %}{{ url_for('movies.tv_detail', tv_id=similar.id) }}{% else %}{{ url_for('movies.movie_detail', movie_id=similar.id) }}{% endif %}" class="card-link">
+      <a
+        href="{% if movie.media_type == 'tv' %}{{ url_for('movies.tv_detail', tv_id=similar.id) }}{% else %}{{ url_for('movies.movie_detail', movie_id=similar.id) }}{% endif %}"
+        class="card-link"
+      >
         <div class="card-glass">
           {% if similar.poster_path %}
-          <img src="https://image.tmdb.org/t/p/original{{ similar.poster_path }}" alt="{{ similar.title or similar.name }}" class="movie-poster" />
+          <img
+            src="https://image.tmdb.org/t/p/original{{ similar.poster_path }}"
+            alt="{{ similar.title or similar.name }}"
+            class="movie-poster"
+          />
           {% else %}
           <div class="movie-poster movie-poster-placeholder">🎬</div>
           {% endif %}
           <div class="movie-title">{{ similar.title or similar.name }}</div>
-          <div class="movie-meta">⭐ {{ similar.vote_average|round(1) }}/10</div>
+          <div class="movie-meta">
+            ⭐ {{ similar.vote_average|round(1) }}/10
+          </div>
         </div>
       </a>
       {% endfor %}
@@ -277,8 +388,8 @@
       to bottom,
       transparent 0%,
       transparent 80%,
-      rgba(0,0,0,0.2) 92%,
-      rgba(0,0,0,0.6) 100%
+      rgba(0, 0, 0, 0.2) 92%,
+      rgba(0, 0, 0, 0.6) 100%
     );
     pointer-events: none;
     z-index: 2;
@@ -327,8 +438,13 @@
 
   /* REMOVED BOUNCE - Smooth float instead */
   @keyframes smoothFloat {
-    0%, 100% { transform: translateX(-50%) translateY(0); }
-    50% { transform: translateX(-50%) translateY(-8px); }
+    0%,
+    100% {
+      transform: translateX(-50%) translateY(0);
+    }
+    50% {
+      transform: translateX(-50%) translateY(-8px);
+    }
   }
 
   /* NETFLIX-STYLE LEFT ALIGNMENT */
@@ -338,7 +454,12 @@
     left: 0;
     right: 0;
     z-index: 10;
-    background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 50%, transparent 100%);
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.9) 0%,
+      rgba(0, 0, 0, 0.7) 50%,
+      transparent 100%
+    );
     padding: 60px 0 60px 80px;
     transform: translateY(0);
     transition: transform 0.5s ease;
@@ -357,7 +478,7 @@
     font-weight: 700;
     margin-bottom: 12px;
     line-height: 1.1;
-    text-shadow: 0 4px 12px rgba(0,0,0,0.8);
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
   }
 
   .hero-tagline-premium {
@@ -365,7 +486,7 @@
     color: var(--text-secondary);
     font-size: 1.3rem;
     margin-bottom: 24px;
-    text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
   }
 
   .hero-meta-row {
@@ -413,7 +534,7 @@
     font-size: 1.1rem;
     margin-bottom: 32px;
     max-width: 700px;
-    text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
   }
 
   .hero-actions-row {
@@ -450,9 +571,9 @@
     inset: 0;
     background: linear-gradient(
       to bottom,
-      rgba(0,0,0,0.3) 0%,
-      rgba(0,0,0,0.6) 60%,
-      rgba(0,0,0,0.95) 100%
+      rgba(0, 0, 0, 0.3) 0%,
+      rgba(0, 0, 0, 0.6) 60%,
+      rgba(0, 0, 0, 0.95) 100%
     );
   }
 
@@ -489,7 +610,7 @@
     object-fit: cover;
     border-radius: 12px;
     margin-bottom: 12px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   }
 
   .cast-photo-placeholder {
@@ -652,6 +773,45 @@
     font-size: 1.1rem;
   }
 
+  /* Fade animations for metadata */
+  @keyframes fadeOut {
+    from {
+      opacity: 1;
+      visibility: visible;
+    }
+    to {
+      opacity: 0;
+      visibility: hidden;
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      visibility: hidden;
+    }
+    to {
+      opacity: 1;
+      visibility: visible;
+    }
+  }
+
+  #heroDetails.fade-out {
+    animation: fadeOut 0.5s ease-out forwards;
+  }
+
+  #heroDetails.fade-in {
+    animation: fadeIn 0.5s ease-in forwards;
+  }
+
+  .scroll-indicator.fade-out {
+    animation: fadeOut 0.5s ease-out forwards;
+  }
+
+  .scroll-indicator.fade-in {
+    animation: fadeIn 0.5s ease-in forwards;
+  }
+
   @media (max-width: 768px) {
     .hero-info-overlay-netflix {
       padding: 40px 20px;
@@ -680,10 +840,16 @@
 <script>
   let player;
   let isMuted = true;
+  let fadeOutTimer;
+  let mouseActivityTimer;
+  let windowFocused = true;
+  let hasScrolled = false;
   
+  const FADE_DELAY = 5000; // 5 seconds
+
   function onYouTubeIframeAPIReady() {
-    player = new YT.Player('trailerPlayer', {
-      videoId: '{{ movie.trailer_key }}',
+    player = new YT.Player("trailerPlayer", {
+      videoId: "{{ movie.trailer_key }}",
       playerVars: {
         autoplay: 1,
         controls: 0,
@@ -692,43 +858,122 @@
         showinfo: 0,
         mute: 1,
         loop: 1,
-        playlist: '{{ movie.trailer_key }}',
+        playlist: "{{ movie.trailer_key }}",
         playsinline: 1,
         iv_load_policy: 3,
         disablekb: 1,
         fs: 0,
-        quality: 'highres'
+        quality: "highres",
       },
       events: {
-        'onReady': onPlayerReady,
-        'onStateChange': onPlayerStateChange
-      }
+        onReady: onPlayerReady,
+        onStateChange: onPlayerStateChange,
+      },
     });
   }
-  
+
   function onPlayerReady(event) {
     event.target.playVideo();
-    event.target.setPlaybackQuality('highres');
+    event.target.setPlaybackQuality("highres");
+    // Show metadata and scroll indicator for 5 seconds on page load
+    showMetadata();
+    scheduleMetadataFadeOut();
   }
 
   function onPlayerStateChange(event) {
     if (event.data == YT.PlayerState.PLAYING) {
-      player.setPlaybackQuality('highres');
+      player.setPlaybackQuality("highres");
     }
   }
-  
-  // Mute/Unmute toggle
-  document.getElementById('muteBtn')?.addEventListener('click', () => {
+
+  // Show both metadata and scroll indicator
+  function showMetadata() {
+    const heroDetails = document.getElementById("heroDetails");
+    const scrollIndicator = document.querySelector(".scroll-indicator");
+    
+    if (heroDetails) {
+      heroDetails.classList.remove("fade-out");
+      heroDetails.classList.add("fade-in");
+    }
+    // Only show scroll indicator if user hasn't scrolled yet
+    if (scrollIndicator && !hasScrolled) {
+      scrollIndicator.classList.remove("fade-out");
+      scrollIndicator.classList.add("fade-in");
+    }
+  }
+
+  // Fade out both metadata and scroll indicator
+  function fadeOutUI() {
+    const heroDetails = document.getElementById("heroDetails");
+    const scrollIndicator = document.querySelector(".scroll-indicator");
+    
+    if (heroDetails) {
+      heroDetails.classList.remove("fade-in");
+      heroDetails.classList.add("fade-out");
+    }
+    if (scrollIndicator) {
+      scrollIndicator.classList.remove("fade-in");
+      scrollIndicator.classList.add("fade-out");
+    }
+  }
+
+  // Schedule fade out after 5 seconds
+  function scheduleMetadataFadeOut() {
+    if (fadeOutTimer) {
+      clearTimeout(fadeOutTimer);
+    }
+    
+    fadeOutTimer = setTimeout(() => {
+      // Only fade out if window is focused
+      if (windowFocused) {
+        fadeOutUI();
+      }
+    }, FADE_DELAY);
+  }
+
+  // Track mouse movement
+  document.addEventListener("mousemove", () => {
+    showMetadata();
+    
+    // Clear existing timers
+    if (mouseActivityTimer) {
+      clearTimeout(mouseActivityTimer);
+    }
+    if (fadeOutTimer) {
+      clearTimeout(fadeOutTimer);
+    }
+    
+    // Schedule new fade out after 5 seconds of no movement
+    scheduleMetadataFadeOut();
+  });
+
+  // Track window focus
+  window.addEventListener("focus", () => {
+    windowFocused = true;
+    showMetadata();
+    scheduleMetadataFadeOut();
+  });
+
+  window.addEventListener("blur", () => {
+    windowFocused = false;
+    fadeOutUI();
+    if (fadeOutTimer) {
+      clearTimeout(fadeOutTimer);
+    }
+  });
+
+  // Mute/Unmute toggle function
+  function toggleMute() {
     if (player) {
       if (isMuted) {
         player.unMute();
-        document.getElementById('muteIcon').innerHTML = `
+        document.getElementById("muteIcon").innerHTML = `
           <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
           <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
         `;
       } else {
         player.mute();
-        document.getElementById('muteIcon').innerHTML = `
+        document.getElementById("muteIcon").innerHTML = `
           <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
           <line x1="23" y1="9" x2="17" y2="15"></line>
           <line x1="17" y1="9" x2="23" y2="15"></line>
@@ -736,20 +981,30 @@
       }
       isMuted = !isMuted;
     }
+  }
+
+  // Mute/Unmute toggle on button click
+  document.getElementById("muteBtn")?.addEventListener("click", toggleMute);
+
+  // Mute/Unmute toggle on 'M' key press
+  document.addEventListener("keydown", (event) => {
+    if (event.key.toLowerCase() === "m") {
+      toggleMute();
+    }
   });
 
-  // Show/hide overlay on scroll
-  window.addEventListener('scroll', () => {
-    const currentScroll = window.pageYOffset;
-    const heroHeight = document.getElementById('movieHero').offsetHeight;
-    
-    if (currentScroll > heroHeight * 0.5) {
-      document.querySelector('.scroll-indicator')?.style.setProperty('opacity', '0');
-    } else {
-      document.querySelector('.scroll-indicator')?.style.setProperty('opacity', '0.8');
+  // Track scroll and permanently fade out scroll indicator when user scrolls down
+  window.addEventListener("scroll", () => {
+    if (window.pageYOffset > 100) {
+      if (!hasScrolled) {
+        hasScrolled = true;
+        const scrollIndicator = document.querySelector(".scroll-indicator");
+        if (scrollIndicator) {
+          scrollIndicator.classList.remove("fade-in");
+          scrollIndicator.classList.add("fade-out");
+        }
+      }
     }
   });
 </script>
-{% endif %}
-
-{% endblock %}
+{% endif %} {% endblock %}
