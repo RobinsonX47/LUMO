@@ -53,10 +53,7 @@
   {% endif %}
 
   <!-- Movie Info Overlay (Netflix-style - LEFT SIDE) -->
-  <div
-    id="heroOverlay"
-    class="hero-info-overlay-netflix"
-  >
+  <div id="heroOverlay" class="hero-info-overlay-netflix">
     <div class="hero-content-wrapper-netflix">
       <div id="heroDetails" class="hero-details-netflix">
         <h1 class="hero-title-premium">{{ movie.title }}</h1>
@@ -98,9 +95,9 @@
 
         <div class="hero-actions-row">
           {% if current_user.is_authenticated %}
-          <button 
-            type="button" 
-            class="btn-primary btn-watchlist-premium" 
+          <button
+            type="button"
+            class="btn-primary btn-watchlist-premium"
             id="watchlistBtn"
             onclick="toggleWatchlist({{ movie.id }})"
           >
@@ -119,7 +116,10 @@
                 d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"
               ></path>
             </svg>
-            <span id="watchlistText">{% if in_watchlist %}In Watchlist{% else %}Add to Watchlist{% endif %}</span>
+            <span id="watchlistText"
+              >{% if in_watchlist %}In Watchlist{% else %}Add to Watchlist{%
+              endif %}</span
+            >
           </button>
           {% else %}
           <a href="{{ url_for('auth.login') }}" class="btn-primary">
@@ -216,7 +216,15 @@
               name="rating"
               value="{{ i }}"
               id="rating{{ i }}"
-              {% if user_review and user_review.rating == i %}checked{% endif %}
+              {%
+              if
+              user_review
+              and
+              user_review.rating=""
+              ="i"
+              %}checked{%
+              endif
+              %}
               required
             />
             <label for="rating{{ i }}" class="star-label-premium">⭐</label>
@@ -231,8 +239,8 @@
             rows="4"
             required
             placeholder="Share your thoughts..."
-          >{% if user_review %}{{ user_review.review_text }}{% endif %}</textarea>
-        </div>
+          >
+{% if user_review %}{{ user_review.review_text }}{% endif %}</textarea
           >
         </div>
 
@@ -843,7 +851,7 @@
   let mouseActivityTimer;
   let windowFocused = true;
   let hasScrolled = false;
-  
+
   const FADE_DELAY = 5000; // 5 seconds
 
   function onYouTubeIframeAPIReady() {
@@ -889,7 +897,7 @@
   function showMetadata() {
     const heroDetails = document.getElementById("heroDetails");
     const scrollIndicator = document.querySelector(".scroll-indicator");
-    
+
     if (heroDetails) {
       heroDetails.classList.remove("fade-out");
       heroDetails.classList.add("fade-in");
@@ -905,7 +913,7 @@
   function fadeOutUI() {
     const heroDetails = document.getElementById("heroDetails");
     const scrollIndicator = document.querySelector(".scroll-indicator");
-    
+
     if (heroDetails) {
       heroDetails.classList.remove("fade-in");
       heroDetails.classList.add("fade-out");
@@ -921,7 +929,7 @@
     if (fadeOutTimer) {
       clearTimeout(fadeOutTimer);
     }
-    
+
     fadeOutTimer = setTimeout(() => {
       // Only fade out if window is focused
       if (windowFocused) {
@@ -933,7 +941,7 @@
   // Track mouse movement
   document.addEventListener("mousemove", () => {
     showMetadata();
-    
+
     // Clear existing timers
     if (mouseActivityTimer) {
       clearTimeout(mouseActivityTimer);
@@ -941,7 +949,7 @@
     if (fadeOutTimer) {
       clearTimeout(fadeOutTimer);
     }
-    
+
     // Schedule new fade out after 5 seconds of no movement
     scheduleMetadataFadeOut();
   });
@@ -997,34 +1005,34 @@
     const btn = document.getElementById("watchlistBtn");
     const icon = document.getElementById("watchlistIcon");
     const text = document.getElementById("watchlistText");
-    
+
     // Disable button during request
     btn.disabled = true;
-    
+
     fetch(`/movies/${movieId}/watchlist`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-      }
+      },
     })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        const inWatchlist = data.in_watchlist;
-        // Update button state
-        if (inWatchlist) {
-          icon.setAttribute("fill", "currentColor");
-          text.textContent = "In Watchlist";
-        } else {
-          icon.setAttribute("fill", "none");
-          text.textContent = "Add to Watchlist";
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          const inWatchlist = data.in_watchlist;
+          // Update button state
+          if (inWatchlist) {
+            icon.setAttribute("fill", "currentColor");
+            text.textContent = "In Watchlist";
+          } else {
+            icon.setAttribute("fill", "none");
+            text.textContent = "Add to Watchlist";
+          }
         }
-      }
-    })
-    .catch(error => console.error("Error:", error))
-    .finally(() => {
-      btn.disabled = false;
-    });
+      })
+      .catch((error) => console.error("Error:", error))
+      .finally(() => {
+        btn.disabled = false;
+      });
   }
 
   // Track scroll and permanently fade out scroll indicator when user scrolls down
