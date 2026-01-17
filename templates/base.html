@@ -167,6 +167,7 @@
           action="{{ url_for('movies.movie_list') }}"
           method="get"
           class="nav-search"
+          onsubmit="return validateSearch(event);"
         >
           <svg
             width="18"
@@ -191,6 +192,8 @@
             type="search"
             placeholder="Search..."
             style="padding-left: 38px"
+            minlength="2"
+            autocomplete="off"
           />
         </form>
 

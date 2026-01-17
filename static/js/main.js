@@ -36,3 +36,16 @@ document.addEventListener('DOMContentLoaded', function () {
 		});
 	});
 });
+
+// Search validation function
+function validateSearch(event) {
+	const searchInput = event.target.querySelector('input[name="q"]');
+	const query = searchInput.value.trim();
+	
+	if (query.length < 2) {
+		event.preventDefault();
+		searchInput.focus();
+		return false;
+	}
+	return true;
+}

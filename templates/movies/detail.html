@@ -98,30 +98,29 @@
 
         <div class="hero-actions-row">
           {% if current_user.is_authenticated %}
-          <form
-            method="POST"
-            action="{{ url_for('movies.toggle_watchlist', movie_id=movie.id) }}"
-            style="display: inline"
+          <button 
+            type="button" 
+            class="btn-primary btn-watchlist-premium" 
+            id="watchlistBtn"
+            onclick="toggleWatchlist({{ movie.id }})"
           >
-            <button type="submit" class="btn-primary btn-watchlist-premium">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="{% if in_watchlist %}currentColor{% else %}none{% endif %}"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path
-                  d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"
-                ></path>
-              </svg>
-              {% if in_watchlist %}In Watchlist{% else %}Add to Watchlist{%
-              endif %}
-            </button>
-          </form>
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="{% if in_watchlist %}currentColor{% else %}none{% endif %}"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              id="watchlistIcon"
+            >
+              <path
+                d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"
+              ></path>
+            </svg>
+            <span id="watchlistText">{% if in_watchlist %}In Watchlist{% else %}Add to Watchlist{% endif %}</span>
+          </button>
           {% else %}
           <a href="{{ url_for('auth.login') }}" class="btn-primary">
             <svg
@@ -992,6 +991,41 @@
       toggleMute();
     }
   });
+
+  // Toggle watchlist without page reload
+  function toggleWatchlist(movieId) {
+    const btn = document.getElementById("watchlistBtn");
+    const icon = document.getElementById("watchlistIcon");
+    const text = document.getElementById("watchlistText");
+    
+    // Disable button during request
+    btn.disabled = true;
+    
+    fetch(`/movies/${movieId}/watchlist`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        const inWatchlist = data.in_watchlist;
+        // Update button state
+        if (inWatchlist) {
+          icon.setAttribute("fill", "currentColor");
+          text.textContent = "In Watchlist";
+        } else {
+          icon.setAttribute("fill", "none");
+          text.textContent = "Add to Watchlist";
+        }
+      }
+    })
+    .catch(error => console.error("Error:", error))
+    .finally(() => {
+      btn.disabled = false;
+    });
+  }
 
   // Track scroll and permanently fade out scroll indicator when user scrolls down
   window.addEventListener("scroll", () => {

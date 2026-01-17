@@ -154,6 +154,8 @@ def delete_review(movie_id):
 @movies_bp.route("/<int:movie_id>/watchlist", methods=["POST"])
 @login_required
 def toggle_watchlist(movie_id):
+    from flask import jsonify
+    
     # Detect movie vs TV by checking referer
     is_tv = '/tv/' in request.referrer if request.referrer else False
     
@@ -167,11 +169,8 @@ def toggle_watchlist(movie_id):
         db.session.delete(entry)
         db.session.commit()
         
-        # JSON for AJAX
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'status': 'removed', 'in_watchlist': False})
-        
-        flash("Removed from watchlist", "success")
+        # JSON response (default now)
+        return jsonify({'success': True, 'in_watchlist': False})
     
     else:
         # Fetch title from TMDB
@@ -190,14 +189,10 @@ def toggle_watchlist(movie_id):
             db.session.add(new_entry)
             db.session.commit()
             
-            # JSON for AJAX
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return jsonify({'status': 'added', 'in_watchlist': True})
-            
-            flash("Added to watchlist", "success")
-
-    # Non-AJAX fallback
-    return redirect(request.referrer or url_for("movies.movie_detail", movie_id=movie_id))
+            # JSON response (default now)
+            return jsonify({'success': True, 'in_watchlist': True})
+        
+        return jsonify({'success': False, 'message': 'Could not fetch movie details'})
 
 
 @movies_bp.route("/recommendations")
