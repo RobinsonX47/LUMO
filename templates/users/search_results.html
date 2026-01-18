@@ -37,9 +37,9 @@ block content %}
 
     {% if query %}
     <p style="color: var(--muted); font-size: 14px">
-      {% if results and results.total > 0 %} Found {{ results.total }} user{{
-      results.total|pluralize }} {% else %} No users found matching "{{ query
-      }}" {% endif %}
+      {% if results and results.total > 0 %} Found {{ results.total }} {{ 'user'
+      if results.total == 1 else 'users' }} {% else %} No users found matching
+      "{{ query }}" {% endif %}
     </p>
     {% else %}
     <p style="color: var(--muted); font-size: 14px">
@@ -54,18 +54,19 @@ block content %}
     style="
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-      gap: 20px;
+      gap: 24px;
     "
   >
     {% for user in results.items %}
     <div
-      class="card-glass"
+      class="card-glass user-card"
       style="
-        padding: 24px;
+        padding: 28px;
         display: flex;
         flex-direction: column;
         align-items: center;
         text-align: center;
+        gap: 14px;
         transition: transform 0.3s ease;
       "
     >
@@ -80,7 +81,6 @@ block content %}
             height: 80px;
             border-radius: 50%;
             overflow: hidden;
-            margin-bottom: 16px;
             border: 2px solid rgba(255, 255, 255, 0.1);
           "
         >
@@ -114,20 +114,13 @@ block content %}
         href="{{ url_for('users.public_profile', username=user.username) }}"
         style="text-decoration: none; color: inherit"
       >
-        <h3 style="margin-bottom: 4px">{{ user.name }}</h3>
+        <h3 style="margin: 0">{{ user.name }}</h3>
         <p style="color: var(--muted); font-size: 14px">@{{ user.username }}</p>
       </a>
 
       <!-- Bio -->
       {% if user.bio %}
-      <p
-        style="
-          color: var(--muted);
-          font-size: 13px;
-          margin-bottom: 16px;
-          line-height: 1.4;
-        "
-      >
+      <p style="color: var(--muted); font-size: 13px; line-height: 1.4">
         {{ user.bio[:100] }}{% if user.bio|length > 100 %}...{% endif %}
       </p>
       {% endif %}
@@ -138,7 +131,7 @@ block content %}
       <button
         class="btn-secondary"
         onclick="unfollowUser(this, {{ user.id }})"
-        style="width: 100%; padding: 10px"
+        style="width: 100%; padding: 12px 14px; border-radius: 12px"
       >
         ✓ Following
       </button>
@@ -146,7 +139,7 @@ block content %}
       <button
         class="btn-primary"
         onclick="followUser(this, {{ user.id }})"
-        style="width: 100%; padding: 10px"
+        style="width: 100%; padding: 12px 14px; border-radius: 12px"
       >
         + Follow
       </button>
@@ -156,7 +149,8 @@ block content %}
         class="btn-primary"
         style="
           width: 100%;
-          padding: 10px;
+          padding: 12px 14px;
+          border-radius: 12px;
           text-align: center;
           text-decoration: none;
           display: block;

@@ -248,32 +248,7 @@ content %}
             onblur="this.style.borderColor = 'rgba(148, 163, 184, 0.3)'"
           />
 
-        <button
-          type="submit"
-          style="
-            width: 100%;
-            padding: 13px 16px;
-            border-radius: 10px;
-            border: none;
-            background: linear-gradient(135deg, #7b5cff, #a78bfa);
-            color: white;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 0.95rem;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 15px rgba(123, 92, 255, 0.3);
-          "
-          onmouseover="
-            this.style.boxShadow = '0 6px 25px rgba(123, 92, 255, 0.5)';
-            this.style.transform = 'translateY(-2px)';
-          "
-          onmouseout="
-            this.style.boxShadow = '0 4px 15px rgba(123, 92, 255, 0.3)';
-            this.style.transform = 'translateY(0)';
-          "
-        >
-          Create Account
-        </button>
+        <button type="submit" class="btn-primary auth-submit-btn">Create Account</button>
       </form>
 
       <!-- Divider -->
@@ -392,6 +367,22 @@ content %}
 
   input::placeholder {
     color: rgba(148, 163, 184, 0.5);
+  }
+
+  /* Signup page button refinements (no hover bounce or heavy shadow) */
+  .auth-submit-btn {
+    width: 100%;
+    padding: 16px 20px; /* more comfortable touch target */
+    margin-top: 12px;  /* clear separation from input above */
+    border-radius: 12px;
+    background: linear-gradient(135deg, #7b5cff 0%, #a78bfa 100%);
+    box-shadow: none;
+  }
+
+  .auth-submit-btn:hover {
+    background: linear-gradient(135deg, #815fff 0%, #b19bfa 100%);
+    transform: none;
+    box-shadow: none;
   }
 </style>
 

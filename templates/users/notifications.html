@@ -70,6 +70,7 @@ block content %}
         <!-- Avatar -->
         <a
           href="{{ url_for('users.public_profile', username=notification.actor.username) }}"
+          onclick="event.stopPropagation()"
           style="
             text-decoration: none;
             color: inherit;
@@ -112,6 +113,7 @@ block content %}
           <p style="margin: 0">
             <a
               href="{{ url_for('users.public_profile', username=notification.actor.username) }}"
+              onclick="event.stopPropagation()"
               style="
                 color: var(--primary);
                 text-decoration: none;
@@ -146,6 +148,7 @@ block content %}
       {% if notification.notification_type == 'follow' %}
       <a
         href="{{ url_for('users.public_profile', username=notification.actor.username) }}"
+        onclick="event.stopPropagation()"
         class="btn-tertiary"
         style="padding: 8px 16px; font-size: 12px; white-space: nowrap"
       >
