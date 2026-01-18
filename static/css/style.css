@@ -38,7 +38,7 @@ body {
 }
 
 .app-wrapper {
-  padding: 100px 3vw 60px;
+  padding: 70px 3vw 60px;
   max-width: 100%;
   margin: 0 auto;
 }
@@ -49,7 +49,8 @@ body {
   top: 0;
   left: 0;
   right: 0;
-  padding: 8px 2vw;
+  padding: 6px 2vw;
+  height: 52px;
   display: flex;
   justify-content: space-between;
   align-items: center;
