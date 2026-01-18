@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from werkzeug.security import generate_password_hash
 from werkzeug.utils import secure_filename
 from extensions import db
-from models import User, Review, Watchlist, Notification
+from models import User, Review, Watchlist, Notification, user_followers
 from tmdb_service import TMDBService
 from sqlalchemy import or_, and_, func
 import os
@@ -363,10 +363,17 @@ def directory():
     elif sort_by == 'alphabetical':
         query = query.order_by(User.name.asc())
     else:  # followers (default)
-        # Order by number of followers (complex query)
-        query = query.outerjoin(User.followers).group_by(User.id).order_by(
-            func.count(User.followers).desc()
-        )
+        # Order by number of followers using a subquery
+        follower_count = db.func.count(user_followers.c.follower_id).label('follower_count')
+        subquery = db.session.query(
+            user_followers.c.user_id,
+            follower_count
+        ).group_by(user_followers.c.user_id).subquery()
+        
+        query = query.outerjoin(
+            subquery,
+            User.id == subquery.c.user_id
+        ).order_by(db.func.coalesce(subquery.c.follower_count, 0).desc())
     
     users = query.paginate(page=page, per_page=12)
     
