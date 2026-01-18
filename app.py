@@ -6,12 +6,39 @@ from flask_login import current_user
 import os
 import threading
 from dotenv import load_dotenv
+from datetime import datetime
 
 # Load environment variables from .env file
 load_dotenv()
 
 # === ONE-TIME DATABASE INITIALIZATION FLAG ===
 _first_request_done = False
+
+
+def datetime_difference(dt):
+    """Calculate time difference between now and given datetime."""
+    if not dt:
+        return 'Just now'
+    
+    now = datetime.utcnow()
+    diff = now - dt
+    
+    seconds = diff.total_seconds()
+    
+    if seconds < 60:
+        return 'Just now'
+    elif seconds < 3600:
+        minutes = int(seconds // 60)
+        return f'{minutes}m ago'
+    elif seconds < 86400:
+        hours = int(seconds // 3600)
+        return f'{hours}h ago'
+    elif seconds < 2592000:  # 30 days
+        days = int(seconds // 86400)
+        return f'{days}d ago'
+    else:
+        months = int(seconds // 2592000)
+        return f'{months}mo ago'
 
 
 def create_app():
@@ -43,6 +70,9 @@ def create_app():
         app.register_blueprint(admin_bp, url_prefix="/admin")
     except Exception as e:
         print("⚠️ Admin blueprint not loaded:", e)
+
+    # Register Jinja2 filters
+    app.jinja_env.filters['datetime_difference'] = datetime_difference
 
     # Context processor for notifications
     @app.context_processor

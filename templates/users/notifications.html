@@ -249,15 +249,9 @@ block content %}
   };
 
   function markAsRead(notificationId) {
-    fetch(
-      `{{ url_for('users.mark_notification_as_read', notification_id='__ID__') }}`.replace(
-        "__ID__",
-        notificationId,
-      ),
-      {
-        method: "POST",
-      },
-    )
+    fetch(`/users/notifications/${notificationId}/read`, {
+      method: "POST",
+    })
       .then((response) => response.json())
       .then((data) => {
         if (data.success) {
