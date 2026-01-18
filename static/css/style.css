@@ -49,7 +49,7 @@ body {
   top: 0;
   left: 0;
   right: 0;
-  padding: 12px 4vw;
+  padding: 8px 2vw;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -111,7 +111,7 @@ body {
 .nav-center {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
   flex: 1;
   margin-left: 16px;
   overflow-x: auto;
@@ -141,7 +141,6 @@ body {
 .nav-link:hover {
   color: var(--text-primary);
   background: rgba(255, 255, 255, 0.08);
-  transform: translateY(-2px);
 }
 
 .nav-link span {
@@ -191,7 +190,7 @@ body {
 .nav-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .nav-search {
@@ -278,14 +277,38 @@ body {
   background: rgba(255, 255, 255, 0.08);
 }
 
+.nav-logout-btn {
+  padding: 8px 14px;
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  background: linear-gradient(135deg, rgba(255, 71, 87, 0.15), rgba(255, 87, 34, 0.15));
+  border: 1px solid rgba(255, 71, 87, 0.2);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.nav-logout-btn:hover {
+  background: linear-gradient(135deg, rgba(255, 71, 87, 0.25), rgba(255, 87, 34, 0.25));
+  border-color: rgba(255, 71, 87, 0.4);
+  color: #ff4757;
+  box-shadow: 0 4px 12px rgba(255, 71, 87, 0.2);
+}
+
 .profile-btn {
   color: var(--text-secondary);
   text-decoration: none;
-  padding: 6px;
+  padding: 4px;
   border-radius: 8px;
   transition: var(--transition);
   display: inline-flex;
   align-items: center;
+  gap: 6px;
 }
 
 .profile-btn:hover {
@@ -293,8 +316,8 @@ body {
 }
 
 .profile-avatar {
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid var(--glass-border);
@@ -303,19 +326,19 @@ body {
 
 .profile-btn:hover .profile-avatar {
   border-color: var(--accent);
-  transform: scale(1.05);
+  transform: scale(1.1);
 }
 
 .profile-avatar-placeholder {
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--accent), #0066cc);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   border: 2px solid var(--glass-border);
   color: white;
   transition: var(--transition);
@@ -323,29 +346,7 @@ body {
 
 .profile-btn:hover .profile-avatar-placeholder {
   border-color: var(--accent);
-  transform: scale(1.05);
-}
-
-/* ===== PROFILE AVATAR FIX ===== */
-.profile-avatar {
-  width: 96px;
-  height: 96px;
-  border-radius: 20px;
-  background: linear-gradient(135deg, var(--accent), #0066cc);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2.5rem;
-  font-weight: 700;
-  flex-shrink: 0;
-  box-shadow: 0 8px 24px rgba(10, 132, 255, 0.3);
-  overflow: hidden;
-}
-
-.profile-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  transform: scale(1.1);
 }
 
 /* ===== ENHANCED HERO CAROUSEL ===== */

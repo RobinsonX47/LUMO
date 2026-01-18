@@ -22,10 +22,7 @@
     <!-- Navigation -->
     <nav class="nav-glass">
       <div class="nav-left">
-        <a
-          href="{{ url_for('main.home') }}"
-          class="nav-logo-link"
-        >
+        <a href="{{ url_for('main.home') }}" class="nav-logo-link">
           <img
             src="{{ url_for('static', filename='images/logo.svg') }}"
             alt="LUMO"
@@ -120,7 +117,10 @@
           </a>
 
           {% if current_user.is_authenticated %}
-          <a href="{{ url_for('movies.recommendations') }}" class="nav-link nav-ai-btn">
+          <a
+            href="{{ url_for('movies.recommendations') }}"
+            class="nav-link nav-ai-btn"
+          >
             <svg
               class="nav-icon"
               width="16"
@@ -136,10 +136,13 @@
             </svg>
             <span>Recommendation</span>
           </a>
-          
+
           <div class="nav-divider"></div>
 
-          <a href="{{ url_for('users.directory') }}" class="nav-link nav-social">
+          <a
+            href="{{ url_for('users.directory') }}"
+            class="nav-link nav-social"
+          >
             <svg
               class="nav-icon"
               width="16"
@@ -156,7 +159,10 @@
             </svg>
             <span>Community</span>
           </a>
-          <a href="{{ url_for('users.search_users') }}" class="nav-link nav-social">
+          <a
+            href="{{ url_for('users.search_users') }}"
+            class="nav-link nav-social"
+          >
             <svg
               class="nav-icon"
               width="16"
@@ -171,9 +177,8 @@
             </svg>
             <span>Find Users</span>
           </a>
-          {% endif %} 
-          
-          {% if current_user.is_authenticated and current_user.role == 'admin' %}
+          {% endif %} {% if current_user.is_authenticated and current_user.role
+          == 'admin' %}
           <div class="nav-divider"></div>
           <a href="{{ url_for('admin.movies') }}" class="nav-link nav-admin">
             <svg
@@ -254,7 +259,11 @@
           </span>
           {% endif %}
         </a>
-        <a href="{{ url_for('users.profile') }}" class="profile-btn" title="Profile">
+        <a
+          href="{{ url_for('users.profile') }}"
+          class="profile-btn"
+          title="Profile"
+        >
           {% if current_user.avatar %}
           <img
             src="{{ current_user.avatar }}"
@@ -262,15 +271,13 @@
             class="profile-avatar"
           />
           {% else %}
-          <div
-            class="profile-avatar-placeholder"
-          >
+          <div class="profile-avatar-placeholder">
             {{ current_user.name[0]|upper }}
           </div>
           {% endif %}
           <span style="margin-left: 8px">Profile</span>
         </a>
-        <a href="{{ url_for('auth.logout') }}" style="color: var(--error)">
+        <a href="{{ url_for('auth.logout') }}" class="nav-logout-btn">
           <svg
             width="16"
             height="16"
@@ -278,7 +285,7 @@
             fill="none"
             stroke="currentColor"
             stroke-width="2"
-            style="vertical-align: middle; margin-right: 6px"
+            style="vertical-align: middle"
           >
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
             <polyline points="16 17 21 12 16 7"></polyline>
