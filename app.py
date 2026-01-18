@@ -2,6 +2,7 @@ from flask import Flask
 from config import Config
 from extensions import db, login_manager
 from tmdb_service import TMDBService
+from flask_login import current_user
 import os
 import threading
 from dotenv import load_dotenv
@@ -42,6 +43,15 @@ def create_app():
         app.register_blueprint(admin_bp, url_prefix="/admin")
     except Exception as e:
         print("⚠️ Admin blueprint not loaded:", e)
+
+    # Context processor for notifications
+    @app.context_processor
+    def get_unread_notifications_count():
+        if current_user.is_authenticated:
+            from models import Notification
+            count = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
+            return {'unread_notifications_count': count}
+        return {'unread_notifications_count': 0}
 
     # Background cache warming (non-blocking)
     def warm_cache_async():

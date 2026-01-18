@@ -1,0 +1,282 @@
+{% extends "base.html" %} {% block title %}Notifications – LUMO{% endblock %} {%
+block content %}
+
+<div style="max-width: 700px; margin: 40px auto; padding: 0 20px">
+  <!-- Header -->
+  <div
+    style="
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
+    "
+  >
+    <h1>🔔 Notifications</h1>
+    {% if notifications.total > 0 and filter_type != 'unread' %}
+    <button
+      onclick="markAllAsRead()"
+      class="btn-secondary"
+      style="padding: 10px 16px; font-size: 13px"
+    >
+      Mark all as read
+    </button>
+    {% endif %}
+  </div>
+
+  <!-- Filter Buttons -->
+  <div style="display: flex; gap: 12px; margin-bottom: 32px; flex-wrap: wrap">
+    <a
+      href="{{ url_for('users.notifications', filter='all') }}"
+      class="btn-tertiary"
+      style="{% if filter_type == 'all' %}background: var(--primary); color: white;{% endif %}"
+    >
+      All
+    </a>
+    <a
+      href="{{ url_for('users.notifications', filter='unread') }}"
+      class="btn-tertiary"
+      style="{% if filter_type == 'unread' %}background: var(--primary); color: white;{% endif %}"
+    >
+      Unread
+    </a>
+    <a
+      href="{{ url_for('users.notifications', filter='follows') }}"
+      class="btn-tertiary"
+      style="{% if filter_type == 'follows' %}background: var(--primary); color: white;{% endif %}"
+    >
+      New Follows
+    </a>
+  </div>
+
+  <!-- Notifications List -->
+  {% if notifications.items %}
+  <div style="display: flex; flex-direction: column; gap: 16px">
+    {% for notification in notifications.items %}
+    <div
+      class="card-glass"
+      style="padding: 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; {% if not notification.is_read %}background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.2);{% endif %}"
+      onclick="markAsRead({{ notification.id }})"
+    >
+      <!-- Notification Content -->
+      <div
+        style="
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          flex: 1;
+          cursor: pointer;
+        "
+      >
+        <!-- Avatar -->
+        <a
+          href="{{ url_for('users.public_profile', username=notification.actor.username) }}"
+          style="
+            text-decoration: none;
+            color: inherit;
+            width: 50px;
+            height: 50px;
+            flex-shrink: 0;
+            border-radius: 50%;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          "
+        >
+          {% if notification.actor.avatar %}
+          <img
+            src="{{ notification.actor.avatar }}"
+            alt="{{ notification.actor.name }}"
+            style="width: 100%; height: 100%; object-fit: cover"
+          />
+          {% else %}
+          <div
+            style="
+              width: 100%;
+              height: 100%;
+              background: var(--gradient);
+              font-size: 18px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            "
+          >
+            {{ notification.actor.name[0]|upper }}
+          </div>
+          {% endif %}
+        </a>
+
+        <!-- Notification Text -->
+        <div>
+          {% if notification.notification_type == 'follow' %}
+          <p style="margin: 0">
+            <a
+              href="{{ url_for('users.public_profile', username=notification.actor.username) }}"
+              style="
+                color: var(--primary);
+                text-decoration: none;
+                font-weight: 600;
+              "
+            >
+              {{ notification.actor.name }}
+            </a>
+            <span style="color: var(--muted)">started following you</span>
+          </p>
+          {% endif %}
+          <p style="color: var(--muted); font-size: 12px; margin: 4px 0 0 0">
+            {{ (notification.created_at | datetime_difference) or 'Just now' }}
+          </p>
+        </div>
+
+        <!-- Unread Indicator -->
+        {% if not notification.is_read %}
+        <div
+          style="
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--primary);
+            margin-left: auto;
+          "
+        ></div>
+        {% endif %}
+      </div>
+
+      <!-- Action Button -->
+      {% if notification.notification_type == 'follow' %}
+      <a
+        href="{{ url_for('users.public_profile', username=notification.actor.username) }}"
+        class="btn-tertiary"
+        style="padding: 8px 16px; font-size: 12px; white-space: nowrap"
+      >
+        View Profile
+      </a>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Pagination -->
+  {% if notifications.pages > 1 %}
+  <div
+    style="display: flex; justify-content: center; gap: 12px; margin-top: 40px"
+  >
+    {% if notifications.has_prev %}
+    <a
+      href="{{ url_for('users.notifications', page=notifications.prev_num, filter=filter_type) }}"
+      class="btn-tertiary"
+      >← Previous</a
+    >
+    {% endif %} {% for page_num in notifications.iter_pages() %} {% if page_num
+    %} {% if page_num == notifications.page %}
+    <span class="btn-tertiary" style="background: var(--primary); color: white"
+      >{{ page_num }}</span
+    >
+    {% else %}
+    <a
+      href="{{ url_for('users.notifications', page=page_num, filter=filter_type) }}"
+      class="btn-tertiary"
+      >{{ page_num }}</a
+    >
+    {% endif %} {% endif %} {% endfor %} {% if notifications.has_next %}
+    <a
+      href="{{ url_for('users.notifications', page=notifications.next_num, filter=filter_type) }}"
+      class="btn-tertiary"
+      >Next →</a
+    >
+    {% endif %}
+  </div>
+  {% endif %} {% else %}
+  <div style="text-align: center; padding: 60px 20px">
+    <p style="font-size: 48px; margin-bottom: 12px">🔔</p>
+    <h3 style="margin-bottom: 8px">No Notifications</h3>
+    <p style="color: var(--muted)">
+      {% if filter_type == 'unread' %}All caught up!{% else %}You're all set!{%
+      endif %}
+    </p>
+    <a
+      href="{{ url_for('users.directory') }}"
+      class="btn-primary"
+      style="margin-top: 24px; display: inline-block; text-decoration: none"
+    >
+      Discover Users
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<style>
+  .btn-tertiary {
+    display: inline-block;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+
+  .btn-tertiary:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.25);
+  }
+
+  .card-glass {
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .card-glass:hover {
+    transform: translateX(4px);
+  }
+</style>
+
+<script>
+  // Custom datetime filter for templates
+  Jinja2.filters.datetime_difference = function (date) {
+    const now = new Date();
+    const diff = Math.floor((now - new Date(date)) / 1000);
+
+    if (diff < 60) return "just now";
+    if (diff < 3600) return Math.floor(diff / 60) + "m ago";
+    if (diff < 86400) return Math.floor(diff / 3600) + "h ago";
+    if (diff < 604800) return Math.floor(diff / 86400) + "d ago";
+    return new Date(date).toLocaleDateString();
+  };
+
+  function markAsRead(notificationId) {
+    fetch(
+      `{{ url_for('users.mark_notification_as_read', notification_id='__ID__') }}`.replace(
+        "__ID__",
+        notificationId,
+      ),
+      {
+        method: "POST",
+      },
+    )
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          location.reload();
+        }
+      });
+  }
+
+  function markAllAsRead() {
+    fetch(`{{ url_for('users.mark_notifications_as_read') }}`, {
+      method: "POST",
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          location.reload();
+        }
+      });
+  }
+</script>
+
+{% endblock %}

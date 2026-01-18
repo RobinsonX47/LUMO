@@ -2,6 +2,14 @@ from datetime import datetime
 from flask_login import UserMixin
 from extensions import db, login_manager
 
+# Association table for User followers/following relationship
+user_followers = db.Table(
+    'user_followers',
+    db.Column('follower_id', db.Integer, db.ForeignKey('users.id'), primary_key=True),
+    db.Column('user_id', db.Integer, db.ForeignKey('users.id'), primary_key=True),
+    db.Column('followed_at', db.DateTime, default=datetime.utcnow)
+)
+
 class Movie(db.Model):
     __tablename__ = "movies"
 
@@ -51,12 +59,14 @@ class User(UserMixin, db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
+    username = db.Column(db.String(50), unique=True, nullable=True, index=True)  # Unique username
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=True)  # Nullable for OAuth users
     bio = db.Column(db.Text)
     avatar = db.Column(db.String(255))
     role = db.Column(db.String(10), default="user")
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Google OAuth fields
     google_id = db.Column(db.String(255), unique=True, nullable=True, index=True)
@@ -64,6 +74,16 @@ class User(UserMixin, db.Model):
 
     reviews = db.relationship("Review", backref="user", lazy=True, cascade="all, delete-orphan")
     watchlist = db.relationship("Watchlist", backref="user", lazy=True, cascade="all, delete-orphan")
+    
+    # Follow relationships
+    followers = db.relationship(
+        'User',
+        secondary='user_followers',
+        primaryjoin='User.id==user_followers.c.follower_id',
+        secondaryjoin='User.id==user_followers.c.user_id',
+        backref=db.backref('following', lazy='dynamic'),
+        lazy='dynamic'
+    )
 
 
 class Review(db.Model):
@@ -98,6 +118,21 @@ class Watchlist(db.Model):
     __table_args__ = (
         db.UniqueConstraint('user_id', 'tmdb_movie_id', name='unique_user_tmdb_watchlist'),
     )
+
+
+class Notification(db.Model):
+    __tablename__ = "notifications"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    actor_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)  # User who caused the notification
+    notification_type = db.Column(db.String(50), nullable=False)  # 'follow', 'review', etc.
+    related_data = db.Column(db.String(500))  # JSON for additional context
+    is_read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    user = db.relationship("User", foreign_keys=[user_id])
+    actor = db.relationship("User", foreign_keys=[actor_id])
 
 
 @login_manager.user_loader

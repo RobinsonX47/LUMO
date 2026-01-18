@@ -4,8 +4,33 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from extensions import db
 from models import User
 from oauth_handler import GoogleOAuth
+import re
 
 auth_bp = Blueprint("auth", __name__)
+
+def is_valid_username(username):
+    """Validate username format (alphanumeric, underscores, hyphens, 3-30 chars)"""
+    pattern = r'^[a-zA-Z0-9_-]{3,30}$'
+    return re.match(pattern, username) is not None
+
+def generate_unique_username(name):
+    """Generate a unique username from name"""
+    # Remove non-alphanumeric characters except spaces
+    base_username = re.sub(r'[^a-zA-Z0-9]', '', name).lower()
+    if not base_username:
+        base_username = "user"
+    
+    # Check if base username is available
+    if not User.query.filter_by(username=base_username).first():
+        return base_username
+    
+    # Add numbers until we find an available username
+    counter = 1
+    while True:
+        username = f"{base_username}{counter}"
+        if not User.query.filter_by(username=username).first():
+            return username
+        counter += 1
 
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
@@ -38,26 +63,48 @@ def login():
 
 @auth_bp.route("/register", methods=["GET", "POST"])
 def register():
-    """Simple registration with validation and duplicate check."""
+    """Registration with username validation and duplicate checks."""
     if request.method == "POST":
         name = (request.form.get("name", "") or "").strip()
         email = (request.form.get("email", "") or "").strip().lower()
+        username = (request.form.get("username", "") or "").strip().lower()
         password = request.form.get("password", "") or ""
+        confirm_password = request.form.get("confirm_password", "") or ""
 
-        if not name or not email or not password:
+        # Validation
+        if not name or not email or not username or not password:
             flash("Please fill in all fields.", "error")
+            return render_template("auth/register.html")
+
+        if len(name) < 2:
+            flash("Name must be at least 2 characters.", "error")
             return render_template("auth/register.html")
 
         if len(password) < 6:
             flash("Password must be at least 6 characters.", "error")
             return render_template("auth/register.html")
 
+        if password != confirm_password:
+            flash("Passwords do not match.", "error")
+            return render_template("auth/register.html")
+
+        if not is_valid_username(username):
+            flash("Username must be 3-30 characters, using only letters, numbers, hyphens, and underscores.", "error")
+            return render_template("auth/register.html")
+
+        # Check for duplicates
         if User.query.filter_by(email=email).first():
             flash("Email already registered.", "error")
             return render_template("auth/register.html")
 
+        if User.query.filter_by(username=username).first():
+            flash("Username already taken. Please choose another.", "error")
+            return render_template("auth/register.html")
+
+        # Create user
         user = User(
             name=name,
+            username=username,
             email=email,
             password_hash=generate_password_hash(password)
         )
@@ -123,9 +170,11 @@ def google_callback():
                 db.session.commit()
                 user = existing_user
             else:
-                # Create new user
+                # Create new user with auto-generated username
+                username = generate_unique_username(name)
                 user = User(
                     name=name,
+                    username=username,
                     email=email,
                     google_id=google_id,
                     oauth_provider="google",

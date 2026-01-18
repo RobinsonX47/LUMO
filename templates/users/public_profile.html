@@ -1,5 +1,5 @@
-{% extends "base.html" %} {% block title %}{{ user.name }}'s Profile – LUMO{%
-endblock %} {% block content %}
+{% extends "base.html" %} {% block title %}{{ user.name }} (@{{ user.username
+}}) – LUMO{% endblock %} {% block content %}
 
 <div
   class="profile-header card-glass"
@@ -42,6 +42,7 @@ endblock %} {% block content %}
           justify-content: space-between;
           gap: 16px;
           margin-bottom: 16px;
+          flex-wrap: wrap;
         "
       >
         <div>
@@ -50,13 +51,36 @@ endblock %} {% block content %}
             @{{ user.username }}
           </p>
         </div>
-        <a
-          href="{{ url_for('users.edit_profile') }}"
+
+        <!-- Follow Button -->
+        {% if not is_own_profile and current_user.is_authenticated %} {% if
+        is_following %}
+        <button
           class="btn-secondary"
+          id="follow-btn"
+          onclick="unfollowUser({{ user.id }})"
           style="white-space: nowrap"
         >
-          ✏️ Edit Profile
+          ✓ Following
+        </button>
+        {% else %}
+        <button
+          class="btn-primary"
+          id="follow-btn"
+          onclick="followUser({{ user.id }})"
+          style="white-space: nowrap"
+        >
+          + Follow
+        </button>
+        {% endif %} {% elif not current_user.is_authenticated %}
+        <a
+          href="{{ url_for('auth.login', next=request.url) }}"
+          class="btn-primary"
+          style="white-space: nowrap; text-decoration: none"
+        >
+          + Follow
         </a>
+        {% endif %}
       </div>
 
       <!-- Bio -->
@@ -166,40 +190,10 @@ endblock %} {% block content %}
         >
           Following {{ following_count }}
         </a>
-        {% if unread_notifications > 0 %}
-        <a
-          href="{{ url_for('users.notifications') }}"
-          class="btn-tertiary"
-          style="
-            background: rgba(59, 130, 246, 0.2);
-            border-color: rgba(59, 130, 246, 0.4);
-          "
-        >
-          🔔 {{ unread_notifications }}
-        </a>
-        {% endif %}
       </div>
     </div>
   </div>
 </div>
-
-<!-- Flash Messages -->
-{% with messages = get_flashed_messages() %} {% if messages %}
-<div
-  style="
-    background: rgba(34, 197, 94, 0.15);
-    border: 1px solid rgba(34, 197, 94, 0.4);
-    border-radius: 12px;
-    padding: 12px;
-    margin-bottom: 24px;
-    color: #86efac;
-  "
->
-  {% for message in messages %}
-  <p style="margin: 4px 0">{{ message }}</p>
-  {% endfor %}
-</div>
-{% endif %} {% endwith %}
 
 <!-- Recent Reviews Section -->
 {% if reviewed_movies %}
@@ -252,11 +246,11 @@ endblock %} {% block content %}
 </section>
 {% endif %}
 
-<!-- Watchlist -->
+<!-- Watchlist Section -->
+{% if watchlist %}
 <section style="margin-bottom: 48px">
-  <h2 style="margin-bottom: 24px">📋 Your Watchlist</h2>
+  <h2 style="margin-bottom: 24px">📋 Watchlist</h2>
 
-  {% if watchlist %}
   <div class="movie-grid">
     {% for movie in watchlist %}
     <a
@@ -293,17 +287,27 @@ endblock %} {% block content %}
     </a>
     {% endfor %}
   </div>
-  {% else %}
-  <div class="card-glass" style="padding: 40px; text-align: center">
-    <p style="color: var(--muted); margin-bottom: 16px">
-      Your watchlist is empty.
-    </p>
-    <a href="{{ url_for('movies.movie_list') }}" class="btn-primary">
-      Discover Movies
-    </a>
-  </div>
-  {% endif %}
 </section>
+{% endif %}
+
+<!-- Empty State -->
+{% if not reviewed_movies and not watchlist %}
+<div
+  style="
+    text-align: center;
+    padding: 60px 20px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  "
+>
+  <p style="font-size: 48px; margin-bottom: 12px">🎬</p>
+  <h3 style="margin-bottom: 8px">No Public Activity</h3>
+  <p style="color: var(--muted)">
+    {{ user.name }} hasn't shared any reviews or watchlist yet.
+  </p>
+</div>
+{% endif %}
 
 <style>
   .profile-avatar {
@@ -339,19 +343,6 @@ endblock %} {% block content %}
     border-color: rgba(255, 255, 255, 0.25);
   }
 
-  .btn-primary:hover,
-  .btn-secondary:hover {
-    transform: translateY(-2px);
-  }
-
-  .btn-primary:hover {
-    box-shadow: 0 12px 24px rgba(123, 92, 255, 0.4);
-  }
-
-  .btn-secondary:hover {
-    border-color: var(--accent);
-  }
-
   @media (max-width: 768px) {
     .profile-avatar {
       width: 100px;
@@ -363,5 +354,94 @@ endblock %} {% block content %}
     }
   }
 </style>
+
+<script>
+  function followUser(userId) {
+    fetch(
+      `{{ url_for('users.follow_user', user_id='__ID__') }}`.replace(
+        "__ID__",
+        userId,
+      ),
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    )
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          const btn = document.getElementById("follow-btn");
+          btn.textContent = "✓ Following";
+          btn.className = "btn-secondary";
+          btn.onclick = function () {
+            unfollowUser(userId);
+          };
+          showNotification("Success", data.message);
+        }
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        showNotification("Error", "Failed to follow user");
+      });
+  }
+
+  function unfollowUser(userId) {
+    if (!confirm("Unfollow this user?")) return;
+
+    fetch(
+      `{{ url_for('users.unfollow_user', user_id='__ID__') }}`.replace(
+        "__ID__",
+        userId,
+      ),
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    )
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          const btn = document.getElementById("follow-btn");
+          btn.textContent = "+ Follow";
+          btn.className = "btn-primary";
+          btn.onclick = function () {
+            followUser(userId);
+          };
+          showNotification("Success", data.message);
+        }
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        showNotification("Error", "Failed to unfollow user");
+      });
+  }
+
+  function showNotification(title, message) {
+    // Simple toast notification
+    const toast = document.createElement("div");
+    toast.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 16px 24px;
+      border-radius: 8px;
+      z-index: 9999;
+      animation: slideIn 0.3s ease;
+    `;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+      toast.style.animation = "slideOut 0.3s ease";
+      setTimeout(() => toast.remove(), 300);
+    }, 3000);
+  }
+</script>
 
 {% endblock %}

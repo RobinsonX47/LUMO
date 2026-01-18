@@ -1,0 +1,269 @@
+{% extends "base.html" %} {% block title %}User Directory – LUMO{% endblock %}
+{% block content %}
+
+<div style="max-width: 1200px; margin: 40px auto; padding: 0 20px">
+  <!-- Header -->
+  <div style="margin-bottom: 40px">
+    <h1 style="margin-bottom: 8px">👥 User Directory</h1>
+    <p style="color: var(--muted); margin-bottom: 24px">
+      Discover and follow other movie enthusiasts
+    </p>
+
+    <!-- Sort Options -->
+    <div style="display: flex; gap: 12px; flex-wrap: wrap">
+      <a
+        href="{{ url_for('users.directory', sort='followers') }}"
+        class="btn-tertiary"
+        style="{% if sort_by == 'followers' %}background: var(--primary); color: white;{% endif %}"
+      >
+        🏆 Most Popular
+      </a>
+      <a
+        href="{{ url_for('users.directory', sort='newest') }}"
+        class="btn-tertiary"
+        style="{% if sort_by == 'newest' %}background: var(--primary); color: white;{% endif %}"
+      >
+        ⭐ Newest Members
+      </a>
+      <a
+        href="{{ url_for('users.directory', sort='alphabetical') }}"
+        class="btn-tertiary"
+        style="{% if sort_by == 'alphabetical' %}background: var(--primary); color: white;{% endif %}"
+      >
+        📝 A-Z
+      </a>
+    </div>
+  </div>
+
+  <!-- Users Grid -->
+  {% if users.items %}
+  <div
+    style="
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 48px;
+    "
+  >
+    {% for user in users.items %}
+    <div
+      class="card-glass"
+      style="
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        transition: transform 0.3s ease;
+      "
+    >
+      <!-- Avatar -->
+      <a
+        href="{{ url_for('users.public_profile', username=user.username) }}"
+        style="text-decoration: none"
+      >
+        <div
+          style="
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            overflow: hidden;
+            margin-bottom: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+          "
+        >
+          {% if user.avatar %}
+          <img
+            src="{{ user.avatar }}"
+            alt="{{ user.name }}"
+            style="width: 100%; height: 100%; object-fit: cover"
+          />
+          {% else %}
+          <div
+            style="
+              width: 100%;
+              height: 100%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              background: var(--gradient);
+              font-size: 24px;
+              font-weight: 700;
+            "
+          >
+            {{ user.name[0]|upper }}
+          </div>
+          {% endif %}
+        </div>
+      </a>
+
+      <!-- Info -->
+      <a
+        href="{{ url_for('users.public_profile', username=user.username) }}"
+        style="text-decoration: none; color: inherit"
+      >
+        <h3 style="margin-bottom: 4px">{{ user.name }}</h3>
+        <p style="color: var(--muted); font-size: 14px">@{{ user.username }}</p>
+      </a>
+
+      <!-- Stats -->
+      <div style="font-size: 12px; color: var(--muted); margin-bottom: 16px">
+        <p style="margin: 2px 0">👥 {{ user.followers.count() }} followers</p>
+        <p style="margin: 2px 0">⭐ {{ user.reviews|length }} reviews</p>
+      </div>
+
+      <!-- Follow Button -->
+      {% if current_user.is_authenticated and current_user.id != user.id %} {%
+      if user.id in following_ids %}
+      <button
+        class="btn-secondary"
+        onclick="unfollowUser(this, {{ user.id }})"
+        style="width: 100%; padding: 10px"
+      >
+        ✓ Following
+      </button>
+      {% else %}
+      <button
+        class="btn-primary"
+        onclick="followUser(this, {{ user.id }})"
+        style="width: 100%; padding: 10px"
+      >
+        + Follow
+      </button>
+      {% endif %} {% elif not current_user.is_authenticated %}
+      <a
+        href="{{ url_for('auth.login', next=request.url) }}"
+        class="btn-primary"
+        style="
+          width: 100%;
+          padding: 10px;
+          text-align: center;
+          text-decoration: none;
+          display: block;
+        "
+      >
+        + Follow
+      </a>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Pagination -->
+  {% if users.pages > 1 %}
+  <div
+    style="
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 40px;
+    "
+  >
+    {% if users.has_prev %}
+    <a
+      href="{{ url_for('users.directory', sort=sort_by, page=users.prev_num) }}"
+      class="btn-tertiary"
+      >← Previous</a
+    >
+    {% endif %} {% for page_num in users.iter_pages() %} {% if page_num %} {% if
+    page_num == users.page %}
+    <span class="btn-tertiary" style="background: var(--primary); color: white"
+      >{{ page_num }}</span
+    >
+    {% else %}
+    <a
+      href="{{ url_for('users.directory', sort=sort_by, page=page_num) }}"
+      class="btn-tertiary"
+      >{{ page_num }}</a
+    >
+    {% endif %} {% endif %} {% endfor %} {% if users.has_next %}
+    <a
+      href="{{ url_for('users.directory', sort=sort_by, page=users.next_num) }}"
+      class="btn-tertiary"
+      >Next →</a
+    >
+    {% endif %}
+  </div>
+  {% endif %} {% else %}
+  <div style="text-align: center; padding: 60px 20px">
+    <p style="font-size: 48px; margin-bottom: 12px">👥</p>
+    <h3 style="margin-bottom: 8px">No Users Found</h3>
+    <p style="color: var(--muted)">
+      Check back soon or search for specific users.
+    </p>
+  </div>
+  {% endif %}
+</div>
+
+<style>
+  .btn-tertiary {
+    display: inline-block;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+
+  .btn-tertiary:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.25);
+  }
+
+  .card-glass:hover {
+    transform: translateY(-4px);
+  }
+</style>
+
+<script>
+  function followUser(btn, userId) {
+    fetch(
+      `{{ url_for('users.follow_user', user_id='__ID__') }}`.replace(
+        "__ID__",
+        userId,
+      ),
+      {
+        method: "POST",
+      },
+    )
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          btn.textContent = "✓ Following";
+          btn.className = "btn-secondary";
+          btn.onclick = function () {
+            unfollowUser(btn, userId);
+          };
+        }
+      });
+  }
+
+  function unfollowUser(btn, userId) {
+    fetch(
+      `{{ url_for('users.unfollow_user', user_id='__ID__') }}`.replace(
+        "__ID__",
+        userId,
+      ),
+      {
+        method: "POST",
+      },
+    )
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          btn.textContent = "+ Follow";
+          btn.className = "btn-primary";
+          btn.onclick = function () {
+            followUser(btn, userId);
+          };
+        }
+      });
+  }
+</script>
+
+{% endblock %}
