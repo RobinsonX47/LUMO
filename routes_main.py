@@ -26,6 +26,26 @@ def movies_section():
         top_rated=top_rated_movies
     )
 
+@main_bp.route("/movies/trending")
+def movies_trending():
+    """Trending movies page"""
+    trending_movies = TMDBService.get_trending_movies('week', limit=56)
+
+    return render_template(
+        "sections/movies_trending.html",
+        movies=trending_movies
+    )
+
+@main_bp.route("/movies/top-rated")
+def movies_top_rated():
+    """Top rated movies and shows page"""
+    top_rated_items = TMDBService.get_top_rated_all(limit=104)
+
+    return render_template(
+        "sections/movies_top_rated.html",
+        items=top_rated_items
+    )
+
 @main_bp.route("/anime")
 def anime_section():
     """Dedicated anime section"""

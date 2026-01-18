@@ -9,6 +9,7 @@ import random
 import json
 import os
 import time
+import math
 from datetime import datetime, timedelta
 from pathlib import Path
 import hashlib
@@ -89,6 +90,68 @@ class TMDBService:
     cache = None
     last_request_time = 0
     min_request_interval = 0.26  # ~4 requests per second (well under 40/10s limit)
+
+    @staticmethod
+    def _select_best_trailer(videos):
+        """Pick the most appropriate official trailer from TMDB videos."""
+        if not videos:
+            return None
+
+        def is_bad_variant(name):
+            bad_terms = [
+                'audio description',
+                'audio-described',
+                'described',
+                'deaf',
+                'hard of hearing',
+                'closed captions',
+                'cc',
+                'captioned',
+                'subtitled',
+                'subtitle',
+            ]
+            return any(term in name for term in bad_terms)
+
+        def score(video):
+            name = (video.get('name') or '').lower()
+            score = 0
+
+            if video.get('official'):
+                score += 50
+
+            if 'official trailer 2' in name or 'official trailer ii' in name:
+                score += 95
+            elif 'official trailer' in name:
+                score += 100
+            elif 'main trailer' in name:
+                score += 70
+            elif 'trailer 2' in name:
+                score += 40
+
+            if 'final trailer' in name:
+                score += 20
+
+            if 'teaser' in name:
+                score -= 30
+            if 'clip' in name or 'featurette' in name or 'tv spot' in name or 'promo' in name:
+                score -= 40
+
+            return score
+
+        candidates = [
+            v for v in videos
+            if v.get('type') == 'Trailer' and v.get('site') == 'YouTube'
+        ]
+
+        if not candidates:
+            return None
+
+        filtered = [v for v in candidates if not is_bad_variant((v.get('name') or '').lower())]
+        if filtered:
+            candidates = filtered
+
+        candidates.sort(key=lambda v: (score(v), v.get('published_at') or ''), reverse=True)
+        return candidates[0]
     
     @staticmethod
     def init_cache():
@@ -176,20 +239,25 @@ class TMDBService:
         return combined[:min_count]
     
     @staticmethod
-    def get_image_url(path, size='original', is_backdrop=False):
-        """Get full image URL from TMDB path - Always use highest quality"""
+    def get_image_url(path, size=None, is_backdrop=False):
+        """Get full image URL from TMDB path with sensible size limits."""
         if not path:
             return None
         base_url = current_app.config['TMDB_IMAGE_BASE_URL']
-        # Always use original quality for premium experience
-        return f"{base_url}/original{path}"
+        if not size:
+            size = 'w1280' if is_backdrop else 'w780'
+        return f"{base_url}/{size}{path}"
     
     # ===== MOVIES =====
     
     @staticmethod
-    def get_trending_movies(time_window='week', page=1):
+    def get_trending_movies(time_window='week', page=1, limit=24):
         """Get trending movies"""
-        results = TMDBService._get_results_multi_pages(f'trending/movie/{time_window}', {}, min_count=24, max_pages=2)
+        target = max(1, int(limit or 24))
+        max_pages = max(1, math.ceil(target / 20))
+        results = TMDBService._get_results_multi_pages(
+            f'trending/movie/{time_window}', {}, min_count=target, max_pages=max_pages
+        )
         for movie in results:
             movie['poster_url'] = TMDBService.get_image_url(movie.get('poster_path'))
             movie['backdrop_url'] = TMDBService.get_image_url(movie.get('backdrop_path'), is_backdrop=True)
@@ -197,9 +265,13 @@ class TMDBService:
         return results
     
     @staticmethod
-    def get_top_rated_movies(page=1):
+    def get_top_rated_movies(page=1, limit=24):
         """Get top rated movies of all time"""
-        results = TMDBService._get_results_multi_pages('movie/top_rated', {}, min_count=24, max_pages=2)
+        target = max(1, int(limit or 24))
+        max_pages = max(1, math.ceil(target / 20))
+        results = TMDBService._get_results_multi_pages(
+            'movie/top_rated', {}, min_count=target, max_pages=max_pages
+        )
         for movie in results:
             movie['poster_url'] = TMDBService.get_image_url(movie.get('poster_path'))
             movie['backdrop_url'] = TMDBService.get_image_url(movie.get('backdrop_path'), is_backdrop=True)
@@ -250,9 +322,13 @@ class TMDBService:
         return results
     
     @staticmethod
-    def get_top_rated_tv(page=1):
+    def get_top_rated_tv(page=1, limit=24):
         """Get top rated TV series"""
-        results = TMDBService._get_results_multi_pages('tv/top_rated', {}, min_count=24, max_pages=2)
+        target = max(1, int(limit or 24))
+        max_pages = max(1, math.ceil(target / 20))
+        results = TMDBService._get_results_multi_pages(
+            'tv/top_rated', {}, min_count=target, max_pages=max_pages
+        )
         for show in results:
             show['title'] = show.get('name')
             show['poster_url'] = TMDBService.get_image_url(show.get('poster_path'))
@@ -260,6 +336,20 @@ class TMDBService:
             show['release_date'] = show.get('first_air_date')
             show['media_type'] = 'tv'
         return results
+
+    @staticmethod
+    def get_top_rated_all(limit=100):
+        """Get top rated movies and TV shows combined"""
+        target = max(1, int(limit or 100))
+        movie_limit = max(1, math.ceil(target * 0.6))
+        tv_limit = max(1, target - movie_limit)
+
+        movies = TMDBService.get_top_rated_movies(limit=movie_limit)
+        shows = TMDBService.get_top_rated_tv(limit=tv_limit)
+
+        combined = movies + shows
+        combined.sort(key=lambda item: item.get('vote_average') or 0, reverse=True)
+        return combined[:target]
     
     @staticmethod
     def get_popular_tv(page=1):
@@ -356,10 +446,10 @@ class TMDBService:
             
             # Get trailer
             if 'videos' in data and 'results' in data['videos']:
-                trailers = [v for v in data['videos']['results'] if v['type'] == 'Trailer' and v['site'] == 'YouTube']
-                if trailers:
-                    data['trailer_key'] = trailers[0]['key']
-                    data['trailer_url'] = f"https://www.youtube.com/watch?v={trailers[0]['key']}"
+                trailer = TMDBService._select_best_trailer(data['videos']['results'])
+                if trailer:
+                    data['trailer_key'] = trailer['key']
+                    data['trailer_url'] = f"https://www.youtube.com/watch?v={trailer['key']}"
             
             return data
         return None
@@ -380,10 +470,10 @@ class TMDBService:
             
             # Get trailer
             if 'videos' in data and 'results' in data['videos']:
-                trailers = [v for v in data['videos']['results'] if v['type'] == 'Trailer' and v['site'] == 'YouTube']
-                if trailers:
-                    data['trailer_key'] = trailers[0]['key']
-                    data['trailer_url'] = f"https://www.youtube.com/watch?v={trailers[0]['key']}"
+                trailer = TMDBService._select_best_trailer(data['videos']['results'])
+                if trailer:
+                    data['trailer_key'] = trailer['key']
+                    data['trailer_url'] = f"https://www.youtube.com/watch?v={trailer['key']}"
             
             return data
         return None

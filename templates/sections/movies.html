@@ -1,23 +1,58 @@
 <!-- templates/sections/movies.html -->
-{% extends "base.html" %}
-{% block title %}Movies – LUMO{% endblock %}
-{% block content %}
+{% extends "base.html" %} {% block title %}Movies – LUMO{% endblock %} {% block
+content %}
 
-<section style="margin-bottom: 60px;">
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
+<section style="margin-bottom: 60px">
+  <div
+    style="
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
+    "
+  >
     <h1>🎬 Movies</h1>
-    <a href="{{ url_for('movies.movie_list') }}" class="btn-secondary">Browse All</a>
   </div>
 
-  <h2 style="margin-bottom: 24px;">🔥 Trending This Week</h2>
+  <div
+    style="
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    "
+  >
+    <h2 style="margin: 0">🔥 Trending This Week</h2>
+    <a href="{{ url_for('main.movies_trending') }}" class="btn-secondary"
+      >Browse All</a
+    >
+  </div>
   <div class="movie-grid">
     {% for movie in trending %}
-    <a href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}" class="card-link">
+    <a
+      href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}"
+      class="card-link"
+    >
       <div class="card-glass">
         {% if movie.poster_url %}
-        <img src="{{ movie.poster_url }}" alt="{{ movie.title }}" class="movie-poster" />
+        <img
+          src="{{ movie.poster_url }}"
+          alt="{{ movie.title }}"
+          class="movie-poster"
+        />
         {% else %}
-        <div class="movie-poster" style="background: linear-gradient(135deg, #1a1a1a, #2d2d2d); display: flex; align-items: center; justify-content: center; font-size: 3rem;">🎬</div>
+        <div
+          class="movie-poster"
+          style="
+            background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+          "
+        >
+          🎬
+        </div>
         {% endif %}
         <div class="movie-title">{{ movie.title }}</div>
         <div class="movie-meta">
@@ -31,15 +66,45 @@
 </section>
 
 <section>
-  <h2 style="margin-bottom: 24px;">🏆 Top Rated</h2>
+  <div
+    style="
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    "
+  >
+    <h2 style="margin: 0">🏆 Top Rated</h2>
+    <a href="{{ url_for('main.movies_top_rated') }}" class="btn-secondary"
+      >Browse All</a
+    >
+  </div>
   <div class="movie-grid">
     {% for movie in top_rated %}
-    <a href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}" class="card-link">
+    <a
+      href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}"
+      class="card-link"
+    >
       <div class="card-glass">
         {% if movie.poster_url %}
-        <img src="{{ movie.poster_url }}" alt="{{ movie.title }}" class="movie-poster" />
+        <img
+          src="{{ movie.poster_url }}"
+          alt="{{ movie.title }}"
+          class="movie-poster"
+        />
         {% else %}
-        <div class="movie-poster" style="background: linear-gradient(135deg, #1a1a1a, #2d2d2d); display: flex; align-items: center; justify-content: center; font-size: 3rem;">🎬</div>
+        <div
+          class="movie-poster"
+          style="
+            background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+          "
+        >
+          🎬
+        </div>
         {% endif %}
         <div class="movie-title">{{ movie.title }}</div>
         <div class="movie-meta">

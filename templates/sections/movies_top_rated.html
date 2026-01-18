@@ -1,0 +1,61 @@
+{% extends "base.html" %} {% block title %}Top Rated – LUMO{% endblock %} {%
+block content %}
+
+<section style="margin-bottom: 40px">
+  <div
+    style="
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    "
+  >
+    <h1 style="margin: 0">🏆 Top Rated</h1>
+    <a href="{{ url_for('main.movies_section') }}" class="btn-secondary"
+      >Back to Movies</a
+    >
+  </div>
+</section>
+
+<div class="movie-grid">
+  {% for item in items %}
+  <a
+    href="{% if item.media_type == 'tv' %}{{ url_for('movies.tv_detail', tv_id=item.id) }}{% else %}{{ url_for('movies.movie_detail', movie_id=item.id) }}{% endif %}"
+    class="card-link"
+  >
+    <div class="card-glass">
+      {% if item.poster_url %}
+      <img
+        src="{{ item.poster_url }}"
+        alt="{{ item.title }}"
+        class="movie-poster"
+      />
+      {% else %}
+      <div
+        class="movie-poster"
+        style="
+          background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 3rem;
+        "
+      >
+        🎬
+      </div>
+      {% endif %}
+      <div class="movie-title">{{ item.title }}</div>
+      <div class="movie-meta">
+        {% if item.release_date %}{{ item.release_date[:4] }} • {% endif %} ⭐
+        {{ item.vote_average|round(1) }}/10
+      </div>
+    </div>
+  </a>
+  {% else %}
+  <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px">
+    <p style="color: var(--muted)">No top rated titles available right now.</p>
+  </div>
+  {% endfor %}
+</div>
+
+{% endblock %}

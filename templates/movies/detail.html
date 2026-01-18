@@ -6,6 +6,13 @@
   <!-- YouTube Trailer Background (fullscreen, highest quality) -->
   {% if movie.trailer_key %}
   <div id="trailerContainer" class="trailer-container-fullscreen">
+    <div id="posterOverlay" class="hero-poster-overlay">
+      <img
+        src="{{ movie.backdrop_url or movie.poster_url }}"
+        alt="{{ movie.title }}"
+      />
+      <div class="hero-gradient-overlay"></div>
+    </div>
     <div id="trailerPlayer"></div>
     <div class="trailer-fade-overlay"></div>
 
@@ -347,6 +354,28 @@
     inset: 0;
     width: 100%;
     height: 100%;
+  }
+
+  .hero-poster-overlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 4;
+    opacity: 1;
+    transition: opacity 0.8s ease;
+  }
+
+  .hero-poster-overlay.is-hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .hero-poster-overlay img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
   }
 
   #trailerPlayer {
@@ -840,12 +869,13 @@
   let hasScrolled = false;
 
   const FADE_DELAY = 5000; // 5 seconds
+  const POSTER_DELAY = 2000; // 2 seconds
 
   function onYouTubeIframeAPIReady() {
     player = new YT.Player("trailerPlayer", {
       videoId: "{{ movie.trailer_key }}",
       playerVars: {
-        autoplay: 1,
+        autoplay: 0,
         controls: 0,
         modestbranding: 1,
         rel: 0,
@@ -867,11 +897,21 @@
   }
 
   function onPlayerReady(event) {
-    event.target.playVideo();
-    event.target.setPlaybackQuality("highres");
+    const posterOverlay = document.getElementById("posterOverlay");
     // Show metadata and scroll indicator for 5 seconds on page load
     showMetadata();
     scheduleMetadataFadeOut();
+
+    if (posterOverlay) {
+      setTimeout(() => {
+        posterOverlay.classList.add("is-hidden");
+        event.target.playVideo();
+        event.target.setPlaybackQuality("highres");
+      }, POSTER_DELAY);
+    } else {
+      event.target.playVideo();
+      event.target.setPlaybackQuality("highres");
+    }
   }
 
   function onPlayerStateChange(event) {
