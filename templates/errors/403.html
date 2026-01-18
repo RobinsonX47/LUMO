@@ -1,0 +1,47 @@
+{% extends "base.html" %} {% block title %}Access Forbidden – LUMO{% endblock %}
+{% block content %}
+
+<div
+  style="
+    min-height: calc(100vh - 100px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  "
+>
+  <div style="text-align: center; max-width: 500px">
+    <div
+      style="
+        font-size: 6rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #ff9500, #ff453a);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 20px;
+      "
+    >
+      403
+    </div>
+
+    <h1 style="font-size: 2.5rem; margin-bottom: 12px">Access Forbidden</h1>
+
+    <p
+      style="
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+        margin-bottom: 32px;
+      "
+    >
+      You don't have permission to access this resource. Admin access is
+      required.
+    </p>
+
+    <div style="display: flex; gap: 16px; justify-content: center">
+      <a href="{{ url_for('main.home') }}" class="btn-primary"> Return Home </a>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

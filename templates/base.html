@@ -3,7 +3,52 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% block title %}LUMO{% endblock %}</title>
+    <title>
+      {% block title %}LUMO – Discover Movies, Anime & Series{% endblock %}
+    </title>
+
+    <!-- SEO Meta Tags -->
+    <meta
+      name="description"
+      content="Discover and track movies, anime, and TV series. Create watchlists, get personalized recommendations, and connect with other entertainment enthusiasts."
+    />
+    <meta
+      name="keywords"
+      content="movies, anime, TV series, watchlist, recommendations, entertainment, streaming"
+    />
+    <meta name="author" content="LUMO" />
+    <meta name="theme-color" content="#000000" />
+
+    <!-- Open Graph Tags for Social Sharing -->
+    <meta
+      property="og:title"
+      content="{% block og_title %}LUMO – Discover Movies, Anime & Series{% endblock %}"
+    />
+    <meta
+      property="og:description"
+      content="Your ultimate entertainment discovery and tracking platform."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="{{ request.url }}" />
+    <meta
+      property="og:image"
+      content="{{ url_for('static', filename='images/logo.svg', _external=True) }}"
+    />
+
+    <!-- Twitter Card Tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="{% block twitter_title %}LUMO – Discover Movies, Anime & Series{% endblock %}"
+    />
+    <meta
+      name="twitter:description"
+      content="Your ultimate entertainment discovery and tracking platform."
+    />
+    <meta
+      name="twitter:image"
+      content="{{ url_for('static', filename='images/logo.svg', _external=True) }}"
+    />
 
     <!-- Favicon -->
     <link
@@ -207,7 +252,11 @@
           method="get"
           class="nav-search"
           onsubmit="return validateSearch(event);"
+          aria-label="Search movies"
         >
+          <label for="nav-search-input" style="display: none"
+            >Search movies</label
+          >
           <svg
             width="18"
             height="18"
@@ -221,12 +270,15 @@
               top: 50%;
               transform: translateY(-50%);
               opacity: 0.5;
+              pointer-events: none;
             "
+            aria-hidden="true"
           >
             <circle cx="11" cy="11" r="8"></circle>
             <path d="m21 21-4.35-4.35"></path>
           </svg>
           <input
+            id="nav-search-input"
             name="q"
             type="search"
             placeholder="Search..."

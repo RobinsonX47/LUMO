@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, render_template
 from config import Config
 from extensions import db, login_manager
 from tmdb_service import TMDBService
@@ -82,6 +82,24 @@ def create_app():
             count = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
             return {'unread_notifications_count': count}
         return {'unread_notifications_count': 0}
+
+    # Error handlers for production
+    @app.errorhandler(404)
+    def page_not_found(error):
+        return render_template('errors/404.html'), 404
+
+    @app.errorhandler(500)
+    def internal_error(error):
+        db.session.rollback()
+        return render_template('errors/500.html'), 500
+
+    @app.errorhandler(403)
+    def forbidden(error):
+        return render_template('errors/403.html'), 403
+
+    @app.errorhandler(400)
+    def bad_request(error):
+        return render_template('errors/400.html'), 400
 
     # Background cache warming (non-blocking)
     def warm_cache_async():

@@ -224,33 +224,37 @@
       <form
         method="POST"
         action="{{ url_for('movies.add_review', movie_id=movie.id) }}"
+        aria-label="Movie review form"
       >
         <div class="form-group">
-          <label>Your Rating</label>
-          <div class="star-rating-input-premium">
+          <label for="rating-group">Your Rating (1-5 stars)</label>
+          <div class="star-rating-input-premium" id="rating-group" role="group" aria-labelledby="rating-label">
+            <span id="rating-label" style="display: none;">Select a rating from 1 to 5 stars</span>
             {% set rating_value = user_review.rating if user_review else 0 %}
-            <input type="radio" name="rating" value="1" id="rating1" {{'checked' if rating_value == 1 else ''}} required /><label for="rating1" class="star-label-premium">⭐</label>
-            <input type="radio" name="rating" value="2" id="rating2" {{'checked' if rating_value == 2 else ''}} required /><label for="rating2" class="star-label-premium">⭐</label>
-            <input type="radio" name="rating" value="3" id="rating3" {{'checked' if rating_value == 3 else ''}} required /><label for="rating3" class="star-label-premium">⭐</label>
-            <input type="radio" name="rating" value="4" id="rating4" {{'checked' if rating_value == 4 else ''}} required /><label for="rating4" class="star-label-premium">⭐</label>
-            <input type="radio" name="rating" value="5" id="rating5" {{'checked' if rating_value == 5 else ''}} required /><label for="rating5" class="star-label-premium">⭐</label>
+            <input type="radio" name="rating" value="1" id="rating1" aria-label="1 star" {{'checked' if rating_value == 1 else ''}} required /><label for="rating1" class="star-label-premium" aria-hidden="true">⭐</label>
+            <input type="radio" name="rating" value="2" id="rating2" aria-label="2 stars" {{'checked' if rating_value == 2 else ''}} required /><label for="rating2" class="star-label-premium" aria-hidden="true">⭐</label>
+            <input type="radio" name="rating" value="3" id="rating3" aria-label="3 stars" {{'checked' if rating_value == 3 else ''}} required /><label for="rating3" class="star-label-premium" aria-hidden="true">⭐</label>
+            <input type="radio" name="rating" value="4" id="rating4" aria-label="4 stars" {{'checked' if rating_value == 4 else ''}} required /><label for="rating4" class="star-label-premium" aria-hidden="true">⭐</label>
+            <input type="radio" name="rating" value="5" id="rating5" aria-label="5 stars" {{'checked' if rating_value == 5 else ''}} required /><label for="rating5" class="star-label-premium" aria-hidden="true">⭐</label>
           </div>
         </div>
 
         <div class="form-group">
-          <label>Your Review</label>
+          <label for="review-text">Your Review</label>
           <textarea
+            id="review-text"
             name="review_text"
             rows="4"
             required
             placeholder="Share your thoughts..."
+            aria-describedby="review-help"
           >
-{% if user_review %}{{ user_review.review_text }}{% endif %}</textarea
-          >
+{% if user_review %}{{ user_review.review_text }}{% endif %}</textarea>
+          <small id="review-help" style="color: var(--text-muted); display: block; margin-top: 4px;">Share your honest thoughts about this movie (optional but appreciated)</small>
         </div>
 
         <div class="form-actions">
-          <button type="submit" class="btn-primary">
+          <button type="submit" class="btn-primary" aria-label="Submit movie review">
             {% if user_review %}Update Review{% else %}Submit Review{% endif %}
           </button>
 
@@ -262,6 +266,7 @@
                 document.getElementById('deleteForm').submit();
             "
             class="btn-danger-premium"
+            aria-label="Delete your review"
           >
             Delete Review
           </button>
