@@ -349,6 +349,30 @@
   {% endif %}
 </div>
 
+{% if not current_user.is_authenticated %}
+<section class="content-section" style="text-align:center; margin-top:24px">
+  <h2>🤖 AI Recommendations</h2>
+  <p style="color: var(--muted); margin-bottom: 12px;">
+    Log in to get personalized picks based on your tastes.
+  </p>
+  <a href="{{ url_for('auth.login', next=request.url) }}" class="btn-primary nav-ai-btn" style="display:inline-flex; align-items:center; gap:8px;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+    </svg>
+    Login to See Recommendations
+  </a>
+</section>
+{% else %}
+<section class="content-section" style="text-align:center; margin-top:24px">
+  <a href="{{ url_for('movies.recommendations') }}" class="btn-primary nav-ai-btn" style="display:inline-flex; align-items:center; gap:8px;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+    </svg>
+    See AI Recommendations
+  </a>
+</section>
+{% endif %}
+
 <style>
   /* Premium Fullscreen Hero */
   .premium-hero-fullscreen {

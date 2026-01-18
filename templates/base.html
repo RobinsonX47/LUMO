@@ -161,10 +161,10 @@
             <span>Genres</span>
           </a>
 
-          {% if current_user.is_authenticated %}
           <a
-            href="{{ url_for('movies.recommendations') }}"
+            href="{{ url_for('movies.recommendations') if current_user.is_authenticated else url_for('auth.login', next=request.url) }}"
             class="nav-link nav-ai-btn"
+            title="{{ 'AI Recommendations' if current_user.is_authenticated else 'Login to get AI Recommendations' }}"
           >
             <svg
               class="nav-icon"
@@ -182,6 +182,7 @@
             <span>Recommendation</span>
           </a>
 
+          {% if current_user.is_authenticated %}
           <div class="nav-divider"></div>
 
           <a
@@ -348,25 +349,31 @@
           Logout
         </a>
         {% else %}
-        <a href="{{ url_for('auth.login') }}">
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            style="vertical-align: middle; margin-right: 6px"
+        <div class="auth-buttons-group">
+          <a
+            href="{{ url_for('auth.login', next=request.url) }}"
+            class="btn-auth btn-login"
+            title="Login to access your profile and features"
           >
-            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
-            <polyline points="10 17 15 12 10 7"></polyline>
-            <line x1="15" y1="12" x2="3" y2="12"></line>
-          </svg>
-          Login
-        </a>
-        <a href="{{ url_for('auth.register') }}" class="btn-primary btn-sm"
-          >Sign up</a
-        >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              style="vertical-align: middle"
+            >
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+              <polyline points="10 17 15 12 10 7"></polyline>
+              <line x1="15" y1="12" x2="3" y2="12"></line>
+            </svg>
+            Login
+          </a>
+          <a href="{{ url_for('auth.register') }}" class="btn-auth btn-signup"
+            >Sign up</a
+          >
+        </div>
         {% endif %}
       </div>
     </nav>
@@ -434,6 +441,36 @@
       rgba(236, 95, 160, 0.3)
     ) !important;
     border-color: rgba(123, 92, 255, 0.7) !important;
+  }
+
+  .auth-buttons-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .btn-auth {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+  }
+
+  .btn-login {
+    background: transparent;
+    color: var(--text);
+  }
+
+  .btn-signup {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text);
   }
 
   .profile-btn {

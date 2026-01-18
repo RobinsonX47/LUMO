@@ -224,9 +224,9 @@ endblock %} {% block content %}
 <script>
   function followUser(btn, userId) {
     fetch(
-      `{{ url_for('users.follow_user', user_id='__ID__') }}`.replace(
-        "__ID__",
-        userId,
+      `{{ url_for('users.follow_user', user_id=0) }}`.replace(
+        "/0/",
+        `/${userId}/`,
       ),
       {
         method: "POST",
@@ -246,9 +246,9 @@ endblock %} {% block content %}
 
   function unfollowUser(btn, userId) {
     fetch(
-      `{{ url_for('users.unfollow_user', user_id='__ID__') }}`.replace(
-        "__ID__",
-        userId,
+      `{{ url_for('users.unfollow_user', user_id=0) }}`.replace(
+        "/0/",
+        `/${userId}/`,
       ),
       {
         method: "POST",
