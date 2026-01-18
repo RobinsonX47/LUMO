@@ -38,7 +38,7 @@ body {
 }
 
 .app-wrapper {
-  padding: 70px 3vw 60px;
+  padding: 76px 3vw 60px;
   max-width: 100%;
   margin: 0 auto;
 }
@@ -49,8 +49,8 @@ body {
   top: 0;
   left: 0;
   right: 0;
-  padding: 6px 2vw;
-  height: 52px;
+  padding: 8px 2vw;
+  height: 58px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -142,6 +142,7 @@ body {
 .nav-link:hover {
   color: var(--text-primary);
   background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-2px);
 }
 
 .nav-link span {
