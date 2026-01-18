@@ -9,7 +9,7 @@ endblock %} {% block content %}
     style="display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap"
   >
     <!-- Avatar Section -->
-    <div class="profile-avatar">
+    <div class="profile-page-avatar">
       {% if user.avatar %}
       <img
         src="{{ user.avatar }}"
@@ -306,7 +306,7 @@ endblock %} {% block content %}
 </section>
 
 <style>
-  .profile-avatar {
+  .profile-page-avatar {
     width: 80px;
     height: 80px;
     border-radius: 12px;
@@ -348,7 +348,7 @@ endblock %} {% block content %}
   }
 
   @media (max-width: 768px) {
-    .profile-avatar {
+    .profile-page-avatar {
       width: 70px;
       height: 70px;
     }

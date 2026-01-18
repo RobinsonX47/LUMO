@@ -9,7 +9,7 @@
     style="display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap"
   >
     <!-- Avatar Section -->
-    <div class="profile-avatar">
+    <div class="profile-page-avatar">
       {% if user.avatar %}
       <img
         src="{{ user.avatar }}"
@@ -310,14 +310,14 @@
 {% endif %}
 
 <style>
-  .profile-avatar {
-    width: 140px;
-    height: 140px;
-    border-radius: 16px;
+  .profile-page-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 12px;
     overflow: hidden;
     flex-shrink: 0;
-    border: 3px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   }
 
   .stat-item {
@@ -344,9 +344,9 @@
   }
 
   @media (max-width: 768px) {
-    .profile-avatar {
-      width: 100px;
-      height: 100px;
+    .profile-page-avatar {
+      width: 70px;
+      height: 70px;
     }
 
     .profile-header {

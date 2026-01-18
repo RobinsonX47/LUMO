@@ -275,7 +275,9 @@
             {{ current_user.name[0]|upper }}
           </div>
           {% endif %}
-          <span style="margin-left: 6px; font-size: 0.9rem; line-height: 1;">Profile</span>
+          <span style="margin-left: 6px; font-size: 0.9rem; line-height: 1"
+            >Profile</span
+          >
         </a>
         <a href="{{ url_for('auth.logout') }}" class="nav-logout-btn">
           <svg
