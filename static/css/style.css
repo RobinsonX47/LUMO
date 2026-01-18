@@ -521,7 +521,6 @@ body {
 
 /* ===== GLASS CARDS ===== */
 .card-glass:hover {
-  transform: translateY(-6px) scale(1.02);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(168, 85, 247, 0.4);
   border-color: rgba(168, 85, 247, 0.35);
   transition-duration: 0.32s, 0.25s, 0.25s, 0.32s;

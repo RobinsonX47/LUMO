@@ -3,10 +3,10 @@ endblock %} {% block content %}
 
 <div
   class="profile-header card-glass"
-  style="padding: 32px; margin-bottom: 48px"
+  style="padding: 20px; margin-bottom: 32px"
 >
   <div
-    style="display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap"
+    style="display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap"
   >
     <!-- Avatar Section -->
     <div class="profile-avatar">
@@ -307,13 +307,13 @@ endblock %} {% block content %}
 
 <style>
   .profile-avatar {
-    width: 140px;
-    height: 140px;
-    border-radius: 16px;
+    width: 80px;
+    height: 80px;
+    border-radius: 12px;
     overflow: hidden;
     flex-shrink: 0;
-    border: 3px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   }
 
   .stat-item {
@@ -339,11 +339,6 @@ endblock %} {% block content %}
     border-color: rgba(255, 255, 255, 0.25);
   }
 
-  .btn-primary:hover,
-  .btn-secondary:hover {
-    transform: translateY(-2px);
-  }
-
   .btn-primary:hover {
     box-shadow: 0 12px 24px rgba(123, 92, 255, 0.4);
   }
@@ -354,8 +349,8 @@ endblock %} {% block content %}
 
   @media (max-width: 768px) {
     .profile-avatar {
-      width: 100px;
-      height: 100px;
+      width: 70px;
+      height: 70px;
     }
 
     .profile-header {
