@@ -152,6 +152,35 @@ class TMDBService:
 
         candidates.sort(key=lambda v: (score(v), v.get('published_at') or ''), reverse=True)
         return candidates[0]
+
+    @staticmethod
+    def _select_logo(images):
+        """Pick the best title logo from TMDB images."""
+        if not images or not images.get('logos'):
+            return None
+
+        logos = images.get('logos', [])
+        if not logos:
+            return None
+
+        def lang_rank(logo):
+            lang = logo.get('iso_639_1')
+            if lang == 'en':
+                return 2
+            if lang in (None, ''):
+                return 1
+            return 0
+
+        logos.sort(
+            key=lambda l: (
+                lang_rank(l),
+                l.get('vote_count') or 0,
+                l.get('width') or 0,
+                l.get('height') or 0,
+            ),
+            reverse=True,
+        )
+        return logos[0]
     
     @staticmethod
     def init_cache():
@@ -437,12 +466,17 @@ class TMDBService:
     def get_movie_details(movie_id):
         """Get detailed information about a movie"""
         data = TMDBService._make_request(f'movie/{movie_id}', {
-            'append_to_response': 'credits,videos,similar'
+            'append_to_response': 'credits,videos,similar,images',
+            'include_image_language': 'en,null'
         })
         if data and 'id' in data:
             data['poster_url'] = TMDBService.get_image_url(data.get('poster_path'))
             data['backdrop_url'] = TMDBService.get_image_url(data.get('backdrop_path'), is_backdrop=True)
             data['media_type'] = 'movie'
+
+            logo = TMDBService._select_logo(data.get('images'))
+            if logo and logo.get('file_path'):
+                data['logo_url'] = TMDBService.get_image_url(logo.get('file_path'), size='w500')
             
             # Get trailer
             if 'videos' in data and 'results' in data['videos']:
@@ -458,7 +492,8 @@ class TMDBService:
     def get_tv_details(tv_id):
         """Get detailed information about a TV show"""
         data = TMDBService._make_request(f'tv/{tv_id}', {
-            'append_to_response': 'credits,videos,similar'
+            'append_to_response': 'credits,videos,similar,images',
+            'include_image_language': 'en,null'
         })
         if data and 'id' in data:
             data['title'] = data.get('name')
@@ -467,6 +502,10 @@ class TMDBService:
             data['release_date'] = data.get('first_air_date')
             data['runtime'] = data.get('episode_run_time', [45])[0] if data.get('episode_run_time') else 45
             data['media_type'] = 'tv'
+
+            logo = TMDBService._select_logo(data.get('images'))
+            if logo and logo.get('file_path'):
+                data['logo_url'] = TMDBService.get_image_url(logo.get('file_path'), size='w500')
             
             # Get trailer
             if 'videos' in data and 'results' in data['videos']:

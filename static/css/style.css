@@ -92,7 +92,7 @@ body {
   color: var(--text-secondary);
   text-decoration: none;
   font-weight: 500;
-  font-size: 0.95rem;
+  font-size: 1.05rem;
   transition: var(--transition);
   display: inline-flex;
   align-items: center;
@@ -104,6 +104,10 @@ body {
   margin: 0;
   width: 20px;
   height: 20px;
+}
+
+.nav-center .nav-icon {
+  margin-right: 6px;
 }
 
 .nav-center a:hover {
@@ -359,9 +363,10 @@ body {
 
 /* ===== GLASS CARDS ===== */
 .card-glass:hover {
-  transform: translateY(-6px);
+  transform: translateY(-6px) scale(1.02);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(168, 85, 247, 0.4);
   border-color: rgba(168, 85, 247, 0.35);
+  transition-duration: 0.32s, 0.25s, 0.25s, 0.32s;
 }
 
 /* ===== MOVIE GRID ===== */
@@ -379,7 +384,8 @@ body {
   backdrop-filter: blur(40px) saturate(180%);
   -webkit-backdrop-filter: blur(40px) saturate(180%);
   padding: 16px;
-  transition: var(--transition);
+  transition: box-shadow 0.35s ease, border-color 0.35s ease, filter 0.35s ease, transform 0.55s ease-out;
+  will-change: transform;
 }
 
 /* Movie grid cards - constrained height */
@@ -403,6 +409,7 @@ body {
 
 .card-glass:hover .movie-poster {
   filter: brightness(1.05);
+  transition-delay: 0s;
 }
 
 .movie-title {

@@ -63,7 +63,18 @@
   <div id="heroOverlay" class="hero-info-overlay-netflix">
     <div class="hero-content-wrapper-netflix">
       <div id="heroDetails" class="hero-details-netflix">
+        {% if movie.logo_url %}
+        <img
+          class="hero-logo-premium"
+          src="{{ movie.logo_url }}"
+          alt="{{ movie.title }} logo"
+          loading="lazy"
+          onerror="this.classList.add('is-hidden'); this.nextElementSibling.classList.remove('is-hidden');"
+        />
+        <h1 class="hero-title-premium is-hidden">{{ movie.title }}</h1>
+        {% else %}
         <h1 class="hero-title-premium">{{ movie.title }}</h1>
+        {% endif %}
 
         {% if movie.tagline %}
         <p class="hero-tagline-premium">"{{ movie.tagline }}"</p>
@@ -504,6 +515,23 @@
     text-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
   }
 
+  .hero-logo-premium {
+    display: block;
+    width: auto;
+    max-width: min(480px, 85%);
+    max-height: 150px;
+    height: auto;
+    object-fit: contain;
+    object-position: left center;
+    margin-bottom: 20px;
+    filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.55));
+  }
+
+  .hero-logo-premium.is-hidden,
+  .hero-title-premium.is-hidden {
+    display: none !important;
+  }
+
   .hero-tagline-premium {
     font-style: italic;
     color: var(--text-secondary);
@@ -842,6 +870,11 @@
 
     .hero-title-premium {
       font-size: 2.2rem;
+    }
+
+    .hero-logo-premium {
+      max-width: min(320px, 85%);
+      max-height: 100px;
     }
 
     .mute-btn-premium {
