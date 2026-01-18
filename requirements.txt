@@ -10,4 +10,4 @@ gunicorn==21.2.0
 cachetools==5.3.2
 google-auth-oauthlib==1.0.0
 google-auth==2.25.2
-psycopg2-binary==2.9.9
+psycopg[binary]==3.1.10
