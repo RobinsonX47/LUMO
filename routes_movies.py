@@ -217,10 +217,15 @@ def recommendations():
                 watchlist_genres.extend([g['name'] for g in movie['genres']])
     
     try:
-        recommended_items = get_personalized_recommendations(watchlist_titles, watchlist_genres)
+        # Get 24 initial recommendations
+        recommended_items = get_personalized_recommendations(watchlist_titles, watchlist_genres, batch=0, items_per_batch=24)
     except Exception as e:
         print(f"Recommendation generation error: {e}")
-        recommended_items = get_fallback_recommendations(watchlist_genres)
+        recommended_items = get_fallback_recommendations(watchlist_genres, limit=24)
+    
+    # Store seen IDs in session to prevent duplicates on load-more
+    from flask import session
+    session['seen_recommendation_ids'] = [item.get('id') for item in recommended_items]
     
     return render_template(
         "movies/recommendations.html",
@@ -228,23 +233,89 @@ def recommendations():
         watchlist_count=len(watchlist_entries)
     )
 
-def get_personalized_recommendations(watchlist_titles, watchlist_genres):
-    if not watchlist_titles:
-        return get_fallback_recommendations(watchlist_genres)
+
+@movies_bp.route("/recommendations/load-more", methods=["POST"])
+@login_required
+def load_more_recommendations():
+    import json
+    from flask import session
+    
+    data = request.get_json()
+    items_per_batch = 16
+    
+    watchlist_entries = Watchlist.query.filter_by(user_id=current_user.id).limit(20).all()
+    
+    if not watchlist_entries:
+        return json.dumps({"items": [], "error": "No watchlist"}), 400
+    
+    watchlist_titles = []
+    watchlist_genres = []
+    
+    for entry in watchlist_entries[:15]:
+        movie = TMDBService.get_movie_details(entry.tmdb_movie_id)
+        if not movie:
+            movie = TMDBService.get_tv_details(entry.tmdb_movie_id)
+        if movie:
+            watchlist_titles.append(movie.get('title', 'Unknown'))
+            if 'genres' in movie and movie['genres']:
+                watchlist_genres.extend([g['name'] for g in movie['genres']])
+    
+    # Get previously seen IDs from session
+    seen_ids = set(session.get('seen_recommendation_ids', []))
     
     try:
-        titles_str = ", ".join(watchlist_titles[:10])
-        genres_str = ", ".join(set(watchlist_genres[:10]))
+        # Request a large batch and filter out seen items
+        recommended_items = get_personalized_recommendations_paginated(
+            watchlist_titles, 
+            watchlist_genres, 
+            exclude_ids=seen_ids,
+            limit=items_per_batch
+        )
+    except Exception as e:
+        print(f"Load more recommendation error: {e}")
+        recommended_items = get_fallback_recommendations(watchlist_genres, limit=items_per_batch, exclude_ids=seen_ids)
+    
+    # Update session with newly seen IDs
+    new_ids = [item.get('id') for item in recommended_items]
+    session['seen_recommendation_ids'] = list(seen_ids) + new_ids
+    session.modified = True
+    
+    # Format items for JSON response
+    items_data = []
+    for item in recommended_items:
+        items_data.append({
+            'id': item.get('id'),
+            'title': item.get('title'),
+            'poster_url': item.get('poster_url'),
+            'media_type': item.get('media_type', 'movie'),
+            'release_date': item.get('release_date', ''),
+            'vote_average': item.get('vote_average', 0)
+        })
+    
+    return json.dumps({"items": items_data}), 200, {'Content-Type': 'application/json'}
+
+def get_personalized_recommendations(watchlist_titles, watchlist_genres, batch=0, items_per_batch=24):
+    if not watchlist_titles:
+        return get_fallback_recommendations(watchlist_genres, limit=items_per_batch)
+    
+    try:
+        titles_str = ", ".join(watchlist_titles[:15])
+        genres_str = ", ".join(set(watchlist_genres[:15]))
         
-        prompt = f"""Based on a user who enjoys these movies: {titles_str}
+        prompt = f"""Based on a user who enjoys these movies/shows: {titles_str}
 
-Their favorite genres appear to be: {genres_str}
+Their favorite genres are: {genres_str}
 
-Recommend 10 movies or TV shows they would enjoy.
+Recommend {items_per_batch * 2} movies and TV shows that match their taste. Focus on:
+1. Similar plots and themes
+2. Same genres
+3. Similar tone and style
+4. Well-reviewed titles
 
-Return ONLY JSON:
+Return ONLY valid JSON array:
 [
-  {{"title": "Movie Name", "year": 2020}}
+  {{"title": "Movie/Show Name", "year": 2020}},
+  ...
 ]"""
 
         response = requests.post(
@@ -252,14 +323,14 @@ Return ONLY JSON:
             headers={"Content-Type": "application/json"},
             json={
                 "model": "claude-sonnet-4-20250514",
-                "max_tokens": 1000,
+                "max_tokens": 2000,
                 "messages": [{"role": "user", "content": prompt}]
             },
             timeout=30
         )
         
         if response.status_code != 200:
-            return get_fallback_recommendations(watchlist_genres)
+            return get_fallback_recommendations(watchlist_genres, limit=items_per_batch)
         
         data = response.json()
         content = data['content'][0].get('text', '').strip()
@@ -270,53 +341,154 @@ Return ONLY JSON:
         recommendations = json.loads(content)
         
         results = []
-        for rec in recommendations[:12]:
+        seen_ids = set()
+        for rec in recommendations:
             if not rec.get('title'):
                 continue
             
             title = rec['title']
-            movies = TMDBService.search_all(title, 1)
+            movies = TMDBService.search_all(title, 3)
             
             if movies:
-                best_match = movies[0]
-                results.append(best_match)
-                
-                if len(results) >= 10:
-                    break
+                for movie in movies:
+                    if movie['id'] not in seen_ids:
+                        seen_ids.add(movie['id'])
+                        results.append(movie)
+                        if len(results) >= items_per_batch * 2:
+                            break
+            
+            if len(results) >= items_per_batch * 2:
+                break
         
-        return results if results else get_fallback_recommendations(watchlist_genres)
+        return results[:items_per_batch] if results else get_fallback_recommendations(watchlist_genres, limit=items_per_batch)
     
-    except:
-        return get_fallback_recommendations(watchlist_genres)
+    except Exception as e:
+        print(f"AI recommendation error: {e}")
+        return get_fallback_recommendations(watchlist_genres, limit=items_per_batch)
 
 
-def get_fallback_recommendations(genres):
+def get_personalized_recommendations_paginated(watchlist_titles, watchlist_genres, exclude_ids=None, limit=16):
+    """Get paginated recommendations excluding previously seen IDs"""
+    if exclude_ids is None:
+        exclude_ids = set()
+    
+    if not watchlist_titles:
+        return get_fallback_recommendations(watchlist_genres, limit=limit, exclude_ids=exclude_ids)
+    
+    try:
+        titles_str = ", ".join(watchlist_titles[:15])
+        genres_str = ", ".join(set(watchlist_genres[:15]))
+        
+        prompt = f"""Based on a user who enjoys these movies/shows: {titles_str}
+
+Their favorite genres are: {genres_str}
+
+Recommend {limit * 3} DIFFERENT movies and TV shows (completely different from previous recommendations). Focus on:
+1. Different themes but similar quality
+2. Same genres but lesser-known titles
+3. Similar tone but different stories
+4. Well-reviewed hidden gems
+
+Return ONLY valid JSON array:
+[
+  {{"title": "Movie/Show Name", "year": 2020}},
+  ...
+]"""
+
+        response = requests.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={"Content-Type": "application/json"},
+            json={
+                "model": "claude-sonnet-4-20250514",
+                "max_tokens": 2000,
+                "messages": [{"role": "user", "content": prompt}]
+            },
+            timeout=30
+        )
+        
+        if response.status_code != 200:
+            return get_fallback_recommendations(watchlist_genres, limit=limit, exclude_ids=exclude_ids)
+        
+        data = response.json()
+        content = data['content'][0].get('text', '').strip()
+        
+        if '```' in content:
+            content = content.split('```')[1].split('```')[0].strip()
+        
+        recommendations = json.loads(content)
+        
+        results = []
+        for rec in recommendations:
+            if not rec.get('title'):
+                continue
+            
+            title = rec['title']
+            movies = TMDBService.search_all(title, 3)
+            
+            if movies:
+                for movie in movies:
+                    if movie['id'] not in exclude_ids:
+                        results.append(movie)
+                        if len(results) >= limit:
+                            break
+            
+            if len(results) >= limit:
+                break
+        
+        return results[:limit] if results else get_fallback_recommendations(watchlist_genres, limit=limit, exclude_ids=exclude_ids)
+    
+    except Exception as e:
+        print(f"AI paginated recommendation error: {e}")
+        return get_fallback_recommendations(watchlist_genres, limit=limit, exclude_ids=exclude_ids)
+
+
+def get_fallback_recommendations(genres, limit=24, exclude_ids=None):
+    if exclude_ids is None:
+        exclude_ids = set()
+    
     try:
         all_genres = TMDBService.get_genres()
         
         if not genres or not all_genres:
-            return TMDBService.get_popular_movies(1)[:10]
+            popular = TMDBService.get_popular_movies(1)[:limit*2]
+            filtered = [m for m in popular if m['id'] not in exclude_ids]
+            return filtered[:limit]
         
         genre_counts = {}
         for g in genres:
             genre_counts[g] = genre_counts.get(g, 0) + 1
         
-        top_genre_names = [g[0] for g in sorted(genre_counts.items(), key=lambda x: x[1], reverse=True)[:2]]
+        top_genre_names = [g[0] for g in sorted(genre_counts.items(), key=lambda x: x[1], reverse=True)[:4]]
         
         genre_ids = [g['id'] for g in all_genres if g['name'] in top_genre_names]
         
         results = []
-        for gid in genre_ids[:2]:
-            results.extend(TMDBService.get_movies_by_genre(gid, 1)[:5])
         
-        unique = []
-        seen = set()
-        for movie in results:
-            if movie['id'] not in seen:
-                seen.add(movie['id'])
-                unique.append(movie)
+        # Get movies from top genres with increased page sampling
+        for gid in genre_ids[:4]:
+            for page in range(1, 5):
+                movies = TMDBService.get_movies_by_genre(gid, page)
+                for movie in movies[:10]:
+                    if movie['id'] not in exclude_ids:
+                        results.append(movie)
+                        if len(results) >= limit:
+                            break
+                if len(results) >= limit:
+                    break
         
-        return unique[:10]
+        # If still not enough, add popular movies
+        if len(results) < limit:
+            popular = TMDBService.get_popular_movies(1)[:20]
+            for movie in popular:
+                if movie['id'] not in exclude_ids:
+                    results.append(movie)
+                    if len(results) >= limit:
+                        break
         
-    except:
-        return TMDBService.get_popular_movies(1)[:10]
+        return results[:limit]
+        
+    except Exception as e:
+        print(f"Fallback recommendation error: {e}")
+        popular = TMDBService.get_popular_movies(1)[:limit*2]
+        filtered = [m for m in popular if m['id'] not in exclude_ids]
+        return filtered[:limit]

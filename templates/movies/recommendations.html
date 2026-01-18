@@ -10,7 +10,8 @@
     </div>
     <h1 class="gradient-title">Personalized Recommendations</h1>
     <p class="subtitle">
-      Based on {{ watchlist_count }} items in your watchlist, curated for you
+      Based on {{ watchlist_count }} items in your watchlist, discover {{
+      recommendations|length }} curated titles matching your taste
     </p>
   </div>
 </div>
@@ -18,7 +19,7 @@
 <!-- Recommendations Grid -->
 {% if recommendations %}
 <section style="margin-bottom: 60px">
-  <div class="movie-grid">
+  <div class="movie-grid" id="recommendations-grid">
     {% for item in recommendations %}
     <a
       href="{% if item.media_type == 'tv' %}{{ url_for('movies.tv_detail', tv_id=item.id) }}{% else %}{{ url_for('movies.movie_detail', movie_id=item.id) }}{% endif %}"
@@ -81,10 +82,15 @@
   </div>
 </section>
 
-<!-- Refresh Button -->
-<div style="text-align: center; margin-top: 60px">
-  <a href="{{ url_for('movies.recommendations') }}" class="btn-primary btn-lg">
+<!-- Load More Button -->
+<div style="text-align: center; margin-top: 60px; margin-bottom: 60px">
+  <button
+    id="load-more-btn"
+    class="btn-primary btn-lg"
+    onclick="loadMoreRecommendations()"
+  >
     <svg
+      id="load-more-svg"
       width="20"
       height="20"
       viewBox="0 0 24 24"
@@ -98,8 +104,8 @@
         d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
       ></path>
     </svg>
-    Get New Recommendations
-  </a>
+    <span id="load-more-text">Get More Recommendations</span>
+  </button>
   <p style="margin-top: 16px; color: var(--text-muted); font-size: 0.9rem">
     Add more items to your watchlist for better personalized suggestions
   </p>
@@ -341,6 +347,132 @@
       padding: 10px 20px;
     }
   }
+
+  .loading-spinner {
+    display: inline-block;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  #load-more-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .recommendation-card.new {
+    animation: slideIn 0.5s ease-out;
+  }
+
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 </style>
+
+<script>
+  let loadMoreBatch = 1;
+
+  async function loadMoreRecommendations() {
+    const btn = document.getElementById("load-more-btn");
+    const btnText = document.getElementById("load-more-text");
+    const svg = document.getElementById("load-more-svg");
+    const originalText = btnText.textContent;
+
+    btn.disabled = true;
+    btnText.textContent = "Loading...";
+    svg.style.animation = "spin 1s linear infinite";
+
+    try {
+      const response = await fetch(
+        '{{ url_for("movies.load_more_recommendations") }}',
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ batch: loadMoreBatch }),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to load more recommendations");
+      }
+
+      const data = await response.json();
+      const grid = document.getElementById("recommendations-grid");
+
+      if (data.items && data.items.length > 0) {
+        data.items.forEach((item) => {
+          const movieUrl =
+            item.media_type === "tv"
+              ? `/movies/tv/${item.id}`
+              : `/movies/${item.id}`;
+
+          const posterHtml = item.poster_url
+            ? `<img src="${item.poster_url}" alt="${item.title}" class="movie-poster" />`
+            : `<div class="movie-poster" style="background: linear-gradient(135deg, #7b5cff, #ec5fa0); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">${item.media_type === "tv" ? "Series" : item.media_type === "anime" ? "Anime" : "Movie"}</div>`;
+
+          const mediaType =
+            item.media_type === "tv"
+              ? "Series"
+              : item.media_type === "anime"
+                ? "Anime"
+                : "Movie";
+          const releaseYear = item.release_date
+            ? item.release_date.substring(0, 4)
+            : "";
+          const rating = parseFloat(item.vote_average).toFixed(1);
+
+          const cardHTML = `
+            <a href="${movieUrl}" class="card-link">
+              <div class="card-glass recommendation-card new">
+                <div class="ai-indicator">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                  </svg>
+                  AI Pick
+                </div>
+                ${posterHtml}
+                <div class="movie-title">${item.title}</div>
+                <div class="media-type-badge">${mediaType}</div>
+                <div class="movie-meta">${releaseYear ? releaseYear + " • " : ""}Rating: ${rating}/10</div>
+              </div>
+            </a>
+          `;
+
+          grid.insertAdjacentHTML("beforeend", cardHTML);
+        });
+
+        loadMoreBatch++;
+        btnText.textContent = originalText;
+        svg.style.animation = "none";
+        btn.disabled = false;
+      } else {
+        btnText.textContent = "No more recommendations available";
+        svg.style.animation = "none";
+        btn.disabled = true;
+      }
+    } catch (error) {
+      console.error("Error loading more recommendations:", error);
+      btnText.textContent = "Error loading recommendations";
+      svg.style.animation = "none";
+      btn.disabled = false;
+    }
+  }
+</script>
 
 {% endblock %}
