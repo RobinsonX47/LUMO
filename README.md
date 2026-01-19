@@ -79,6 +79,15 @@ Whether you're a casual viewer or a cinephile, LUMO offers a premium experience 
 - Personal statistics dashboard
 - Review management (edit/delete your reviews)
 - Privacy-focused user data handling
+- Reliable watchlist management with media-type aware adds/removes and a dedicated full watchlist page
+
+---
+
+## 🆕 What's New
+
+- Watchlist adds/removes now carry media type to prevent cross-linking movies vs TV
+- Dedicated watchlist page shows your complete list with accurate titles and posters
+- Profile/public watchlists resolve ID collisions using the saved title, so the right item always displays
 
 ---
 
