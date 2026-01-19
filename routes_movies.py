@@ -58,7 +58,8 @@ def movie_detail(movie_id):
         movie=movie,
         reviews=reviews,
         in_watchlist=in_watchlist,
-        user_review=user_review
+        user_review=user_review,
+        media_type="movie"
     )
 
 @movies_bp.route("/tv/<int:tv_id>")
@@ -93,7 +94,8 @@ def tv_detail(tv_id):
         movie=show,
         reviews=reviews,
         in_watchlist=in_watchlist,
-        user_review=user_review
+        user_review=user_review,
+        media_type="tv"
     )
 
 @movies_bp.route("/<int:movie_id>/review", methods=["POST"])
@@ -155,10 +157,14 @@ def delete_review(movie_id):
 @login_required
 def toggle_watchlist(movie_id):
     from flask import jsonify
-    
-    # Detect movie vs TV by checking referer
-    is_tv = '/tv/' in request.referrer if request.referrer else False
-    
+
+    payload = request.get_json(silent=True) or {}
+    media_type = payload.get("media_type") or payload.get("type")
+
+    # Fallback detection when media_type is missing
+    if media_type not in ("movie", "tv"):
+        media_type = "tv" if (request.referrer and "/tv/" in request.referrer) else "movie"
+
     entry = Watchlist.query.filter_by(
         user_id=current_user.id,
         tmdb_movie_id=movie_id
@@ -174,10 +180,8 @@ def toggle_watchlist(movie_id):
     
     else:
         # Fetch title from TMDB
-        if is_tv:
-            movie = TMDBService.get_tv_details(movie_id)
-        else:
-            movie = TMDBService.get_movie_details(movie_id)
+        fetch_details = TMDBService.get_tv_details if media_type == "tv" else TMDBService.get_movie_details
+        movie = fetch_details(movie_id)
         
         if movie:
             new_entry = Watchlist(
@@ -193,6 +197,50 @@ def toggle_watchlist(movie_id):
             return jsonify({'success': True, 'in_watchlist': True})
         
         return jsonify({'success': False, 'message': 'Could not fetch movie details'})
+
+
+@movies_bp.route("/watchlist")
+@login_required
+def watchlist():
+    entries = (
+        Watchlist.query
+        .filter_by(user_id=current_user.id)
+        .order_by(Watchlist.added_at.desc())
+        .all()
+    )
+
+    def resolve_entry(entry):
+        """Fetch the correct TMDB payload, disambiguating movie vs TV by stored title."""
+        movie = TMDBService.get_movie_details(entry.tmdb_movie_id)
+        tv = TMDBService.get_tv_details(entry.tmdb_movie_id)
+
+        # Prefer exact title/name match with cached title if available
+        target_title = (entry.movie_title or "").strip().casefold()
+        candidates = [c for c in [movie, tv] if c]
+        if target_title and candidates:
+            for c in candidates:
+                candidate_title = (c.get("title") or c.get("name") or "").strip().casefold()
+                if candidate_title == target_title:
+                    return c
+
+        # Fallback: prefer movie over tv if only one exists
+        return movie or tv
+
+    watchlist_items = []
+    for entry in entries:
+        item = resolve_entry(entry)
+        if not item:
+            continue
+
+        item["media_type"] = item.get("media_type") or (
+            "tv" if (item.get("name") and not item.get("title")) else "movie"
+        )
+        watchlist_items.append(item)
+
+    return render_template(
+        "movies/watchlist.html",
+        watchlist=watchlist_items
+    )
 
 
 @movies_bp.route("/recommendations")

@@ -1,0 +1,104 @@
+{% extends "base.html" %} {% block content %}
+<section class="page-section" style="padding: 32px 0 48px">
+  <div class="container">
+    <div
+      class="section-header"
+      style="
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+      "
+    >
+      <div>
+        <p class="eyebrow">Your Library</p>
+        <h1 style="margin: 4px 0 0">Watchlist ({{ watchlist|length }})</h1>
+      </div>
+      <a href="{{ url_for('users.profile') }}" class="btn-secondary"
+        >Back to Profile</a
+      >
+    </div>
+
+    {% if watchlist %}
+    <div
+      class="grid"
+      style="
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 18px;
+      "
+    >
+      {% for item in watchlist %}
+      <a
+        href="{{ url_for('movies.movie_detail', movie_id=item.id) if item.media_type != 'tv' else url_for('movies.tv_detail', tv_id=item.id) }}"
+        class="card"
+        style="
+          text-decoration: none;
+          color: inherit;
+          background: #0f1624;
+          border-radius: 12px;
+          overflow: hidden;
+          border: 1px solid rgba(255, 255, 255, 0.05);
+        "
+      >
+        {% if item.poster_path %}
+        <div
+          style="position: relative; padding-top: 150%; background: url('https://image.tmdb.org/t/p/w500{{ item.poster_path }}') center/cover no-repeat;"
+        ></div>
+        {% else %}
+        <div
+          style="
+            position: relative;
+            padding-top: 150%;
+            background: linear-gradient(135deg, #182236, #0f1624);
+          "
+        ></div>
+        {% endif %}
+        <div style="padding: 12px 12px 14px">
+          <p style="font-weight: 600; margin: 0 0 6px; line-height: 1.3">
+            {{ item.title or item.name }}
+          </p>
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              font-size: 13px;
+              color: #9fb0c9;
+            "
+          >
+            <span
+              >{{ (item.release_date or item.first_air_date or '')[:4] }}</span
+            >
+            <span style="text-transform: uppercase">{{ item.media_type }}</span>
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div
+      class="empty-state"
+      style="
+        padding: 32px;
+        background: #0f1624;
+        border: 1px dashed rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        text-align: center;
+      "
+    >
+      <p style="margin: 0 0 8px; font-size: 18px; font-weight: 600">
+        Your watchlist is empty.
+      </p>
+      <p style="margin: 0 0 16px; color: #9fb0c9">
+        Browse titles and hit "Add to Watchlist" to save them here.
+      </p>
+      <a href="{{ url_for('movies.movie_list') }}" class="btn-primary"
+        >Find movies & shows</a
+      >
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

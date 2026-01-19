@@ -117,7 +117,7 @@
             type="button"
             class="btn-primary btn-watchlist-premium"
             id="watchlistBtn"
-            onclick="toggleWatchlist({{ movie.id }})"
+            onclick="toggleWatchlist({{ movie.id }}, '{{ media_type }}')"
           >
             <svg
               width="20"
@@ -1092,7 +1092,7 @@
   });
 
   // Toggle watchlist without page reload
-  function toggleWatchlist(movieId) {
+  function toggleWatchlist(movieId, mediaType = "movie") {
     const btn = document.getElementById("watchlistBtn");
     const icon = document.getElementById("watchlistIcon");
     const text = document.getElementById("watchlistText");
@@ -1105,6 +1105,7 @@
       headers: {
         "Content-Type": "application/json",
       },
+      body: JSON.stringify({ media_type: mediaType }),
     })
       .then((response) => response.json())
       .then((data) => {

@@ -254,20 +254,34 @@ endblock %} {% block content %}
 
 <!-- Watchlist -->
 <section style="margin-bottom: 48px">
-  <h2 style="margin-bottom: 24px">📋 Your Watchlist</h2>
+  <div
+    style="
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    "
+  >
+    <h2 style="margin: 0">📋 Your Watchlist</h2>
+    <a href="{{ url_for('movies.watchlist') }}" class="btn-secondary"
+      >View full list</a
+    >
+  </div>
 
   {% if watchlist %}
   <div class="movie-grid">
     {% for movie in watchlist %}
     <a
-      href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}"
+      href="{{ url_for('movies.tv_detail', tv_id=movie.id) if movie.media_type == 'tv' else url_for('movies.movie_detail', movie_id=movie.id) }}"
       style="text-decoration: none; color: inherit"
     >
       <div class="card-glass">
-        {% if movie.poster_url %}
+        {% if movie.poster_path %}
         <img
-          src="{{ movie.poster_url }}"
-          alt="{{ movie.title }}"
+          src="https://image.tmdb.org/t/p/w342{{ movie.poster_path }}"
+          alt="{{ movie.title or movie.name }}"
           class="movie-poster"
         />
         {% else %}
@@ -284,10 +298,11 @@ endblock %} {% block content %}
           🎬
         </div>
         {% endif %}
-        <div class="movie-title">{{ movie.title }}</div>
+        <div class="movie-title">{{ movie.title or movie.name }}</div>
         <div class="movie-meta">
-          {% if movie.release_date %}{{ movie.release_date[:4] }} • {% endif %}
-          ⭐ {{ movie.vote_average|round(1) }}/10
+          {% if movie.release_date or movie.first_air_date %} {{
+          (movie.release_date or movie.first_air_date)[:4] }} • {% endif %} ⭐
+          {{ movie.vote_average|round(1) }}/10
         </div>
       </div>
     </a>

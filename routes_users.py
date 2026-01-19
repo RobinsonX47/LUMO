@@ -44,13 +44,33 @@ def profile():
             })
     
     # Get user's watchlist with movie details from TMDB
-    watchlist_entries = Watchlist.query.filter_by(user_id=user.id).order_by(Watchlist.added_at.desc()).limit(8).all()
+    watchlist_entries = (
+        Watchlist.query
+        .filter_by(user_id=user.id)
+        .order_by(Watchlist.added_at.desc())
+        .all()
+    )
+
+    def resolve_entry(entry):
+        movie = TMDBService.get_movie_details(entry.tmdb_movie_id)
+        tv = TMDBService.get_tv_details(entry.tmdb_movie_id)
+
+        target_title = (entry.movie_title or "").strip().casefold()
+        candidates = [c for c in [movie, tv] if c]
+        if target_title and candidates:
+            for c in candidates:
+                candidate_title = (c.get('title') or c.get('name') or "").strip().casefold()
+                if candidate_title == target_title:
+                    return c
+        return movie or tv
+
     watchlist_movies = []
     for entry in watchlist_entries:
-        movie = TMDBService.get_movie_details(entry.tmdb_movie_id)
-        if not movie:
-            movie = TMDBService.get_tv_details(entry.tmdb_movie_id)
+        movie = resolve_entry(entry)
         if movie:
+            movie['media_type'] = movie.get('media_type') or (
+                'tv' if (movie.get('name') and not movie.get('title')) else 'movie'
+            )
             watchlist_movies.append(movie)
     
     # Get followers and following counts
@@ -172,12 +192,27 @@ def public_profile(username):
     
     # Get user's watchlist (public)
     watchlist_entries = Watchlist.query.filter_by(user_id=user.id).order_by(Watchlist.added_at.desc()).limit(8).all()
+
+    def resolve_entry(entry):
+        movie = TMDBService.get_movie_details(entry.tmdb_movie_id)
+        tv = TMDBService.get_tv_details(entry.tmdb_movie_id)
+
+        target_title = (entry.movie_title or "").strip().casefold()
+        candidates = [c for c in [movie, tv] if c]
+        if target_title and candidates:
+            for c in candidates:
+                candidate_title = (c.get('title') or c.get('name') or "").strip().casefold()
+                if candidate_title == target_title:
+                    return c
+        return movie or tv
+
     watchlist_movies = []
     for entry in watchlist_entries:
-        movie = TMDBService.get_movie_details(entry.tmdb_movie_id)
-        if not movie:
-            movie = TMDBService.get_tv_details(entry.tmdb_movie_id)
+        movie = resolve_entry(entry)
         if movie:
+            movie['media_type'] = movie.get('media_type') or (
+                'tv' if (movie.get('name') and not movie.get('title')) else 'movie'
+            )
             watchlist_movies.append(movie)
     
     # Get followers and following counts
