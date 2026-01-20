@@ -7,6 +7,86 @@ from sqlalchemy import func
 import requests
 import json
 
+
+def build_ai_style_recommendations(base_item, media_type):
+    """Curate 6 strong recs using era, genres, cast overlap, and TMDB similar."""
+    if not base_item:
+        return []
+
+    base_year = None
+    release_field = base_item.get('release_date') or base_item.get('first_air_date')
+    if release_field and len(release_field) >= 4:
+        try:
+            base_year = int(release_field[:4])
+        except ValueError:
+            base_year = None
+
+    base_genre_ids = [g.get('id') for g in base_item.get('genres', []) if g.get('id')]
+    base_cast = []
+    if base_item.get('credits') and isinstance(base_item['credits'], dict):
+        base_cast = [c.get('name') for c in base_item['credits'].get('cast', [])[:6] if c.get('name')]
+
+    candidates = []
+    similar_block = base_item.get('similar', {})
+    if isinstance(similar_block, dict):
+        candidates.extend(similar_block.get('results', []) or [])
+
+    # Add top genre picks to widen pool
+    for gid in base_genre_ids[:2]:
+        genre_movies = TMDBService.get_movies_by_genre(gid, 1) or []
+        candidates.extend(genre_movies[:10])
+
+    seen_ids = set()
+    scored = []
+
+    for cand in candidates:
+        cid = cand.get('id')
+        if not cid or cid == base_item.get('id'):
+            continue
+        if cid in seen_ids:
+            continue
+        seen_ids.add(cid)
+
+        ctype = cand.get('media_type') or ('tv' if (cand.get('name') and not cand.get('title')) else 'movie')
+
+        cand_detail = cand
+        needs_detail = not cand.get('genres') or not cand.get('credits') or not cand.get('release_date') and not cand.get('first_air_date')
+        if needs_detail:
+            detail = TMDBService.get_tv_details(cid) if ctype == 'tv' else TMDBService.get_movie_details(cid)
+            if detail:
+                cand_detail = {**cand, **detail}
+
+        cand_genres = [g.get('id') for g in cand_detail.get('genres', []) if g.get('id')]
+        genre_overlap = len(set(base_genre_ids) & set(cand_genres))
+
+        cand_year = None
+        rel_field = cand_detail.get('release_date') or cand_detail.get('first_air_date')
+        if rel_field and len(rel_field) >= 4:
+            try:
+                cand_year = int(rel_field[:4])
+            except ValueError:
+                cand_year = None
+
+        era_score = 0
+        if base_year and cand_year:
+            diff = abs(base_year - cand_year)
+            era_score = max(0, 10 - diff) / 10  # closer years score higher
+
+        cand_cast = []
+        if cand_detail.get('credits') and isinstance(cand_detail['credits'], dict):
+            cand_cast = [c.get('name') for c in cand_detail['credits'].get('cast', [])[:6] if c.get('name')]
+        cast_overlap = len(set(base_cast) & set(cand_cast))
+
+        vote = cand_detail.get('vote_average') or cand.get('vote_average') or 0
+        score = genre_overlap * 2 + cast_overlap * 3 + era_score + (vote / 10)
+
+        cand_detail['media_type'] = ctype
+        scored.append({'data': cand_detail, 'score': score})
+
+    scored.sort(key=lambda x: x['score'], reverse=True)
+    top = [s['data'] for s in scored[:6]]
+    return top
+
 movies_bp = Blueprint("movies", __name__)
 
 @movies_bp.route("/")
@@ -53,13 +133,16 @@ def movie_detail(movie_id):
             tmdb_movie_id=movie_id
         ).first()
     
+    smart_recs = build_ai_style_recommendations(movie, media_type="movie")
+
     return render_template(
         "movies/detail.html",
         movie=movie,
         reviews=reviews,
         in_watchlist=in_watchlist,
         user_review=user_review,
-        media_type="movie"
+        media_type="movie",
+        smart_recs=smart_recs
     )
 
 @movies_bp.route("/tv/<int:tv_id>")
@@ -89,13 +172,16 @@ def tv_detail(tv_id):
             tmdb_movie_id=tv_id
         ).first()
     
+    smart_recs = build_ai_style_recommendations(show, media_type="tv")
+
     return render_template(
         "movies/detail.html",
         movie=show,
         reviews=reviews,
         in_watchlist=in_watchlist,
         user_review=user_review,
-        media_type="tv"
+        media_type="tv",
+        smart_recs=smart_recs
     )
 
 @movies_bp.route("/<int:movie_id>/review", methods=["POST"])

@@ -317,29 +317,32 @@
     </div>
   </section>
 
-  <!-- Similar Movies -->
-  {% if movie.similar and movie.similar.results %}
+  <!-- AI-style Curated Similar -->
+  {% if smart_recs %}
   <section class="content-section">
     <h2>🎬 You Might Also Like</h2>
     <div class="movie-grid">
-      {% for similar in movie.similar.results[:6] %}
+      {% for rec in smart_recs %}
       <a
-        href="{% if movie.media_type == 'tv' %}{{ url_for('movies.tv_detail', tv_id=similar.id) }}{% else %}{{ url_for('movies.movie_detail', movie_id=similar.id) }}{% endif %}"
+        href="{{ url_for('movies.tv_detail', tv_id=rec.id) if rec.media_type == 'tv' else url_for('movies.movie_detail', movie_id=rec.id) }}"
         class="card-link"
       >
         <div class="card-glass">
-          {% if similar.poster_path %}
+          {% if rec.poster_path %}
           <img
-            src="https://image.tmdb.org/t/p/original{{ similar.poster_path }}"
-            alt="{{ similar.title or similar.name }}"
+            src="https://image.tmdb.org/t/p/w500{{ rec.poster_path }}"
+            alt="{{ rec.title or rec.name }}"
             class="movie-poster"
           />
           {% else %}
           <div class="movie-poster movie-poster-placeholder">🎬</div>
           {% endif %}
-          <div class="movie-title">{{ similar.title or similar.name }}</div>
+          <div class="movie-title">{{ rec.title or rec.name }}</div>
           <div class="movie-meta">
-            ⭐ {{ similar.vote_average|round(1) }}/10
+            {% if rec.release_date or rec.first_air_date %}
+            {{ (rec.release_date or rec.first_air_date)[:4] }} •
+            {% endif %}
+            ⭐ {{ rec.vote_average|round(1) }}/10
           </div>
         </div>
       </a>
