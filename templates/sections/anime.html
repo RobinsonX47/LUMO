@@ -1,25 +1,49 @@
 <!-- templates/sections/anime.html -->
-{% extends "base.html" %}
-{% block title %}Anime – LUMO{% endblock %}
-{% block content %}
+{% extends "base.html" %} {% block title %}Anime – LUMO{% endblock %} {% block
+content %}
 
-<section style="margin-bottom: 60px;">
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
+<section style="margin-bottom: 60px">
+  <div
+    style="
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
+    "
+  >
     <h1>Anime</h1>
   </div>
 
-  <h2 style="margin-bottom: 24px;">Trending Anime</h2>
+  <h2 style="margin-bottom: 24px">Trending Anime</h2>
   <div class="movie-grid">
     {% for anime in trending %}
-    <a href="{{ url_for('movies.tv_detail', tv_id=anime.id) }}" class="card-link">
+    <a
+      href="{{ url_for('movies.tv_detail', tv_id=anime.id) }}"
+      class="card-link"
+    >
       <div class="card-glass">
         {% if anime.poster_url %}
-        <img src="{{ anime.poster_url }}" alt="{{ anime.title }}" class="movie-poster" />
+        <img
+          src="{{ anime.poster_url }}"
+          alt="{{ anime.title }}"
+          class="movie-poster"
+        />
         {% else %}
-        <div class=\"movie-poster\" style=\"background: linear-gradient(135deg, #ec4899, #8b5cf6); display: flex; align-items: center; justify-content: center; font-size: 3rem;\">Series</div>
+        <div
+          class="movie-poster"
+          style="
+            background: linear-gradient(135deg, #ec4899, #8b5cf6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+          "
+        >
+          Anime
+        </div>
         {% endif %}
-        <div class=\"movie-title\">{{ anime.title }}</div>
-        <div class=\"movie-meta\">
+        <div class="movie-title">{{ anime.title }}</div>
+        <div class="movie-meta">
           {% if anime.release_date %}{{ anime.release_date[:4] }} • {% endif %}
           {{ anime.vote_average|round(1) }}/10
         </div>
@@ -30,18 +54,36 @@
 </section>
 
 <section>
-  <h2 style="margin-bottom: 24px;">Top Rated Anime</h2>
+  <h2 style="margin-bottom: 24px">Top Rated Anime</h2>
   <div class="movie-grid">
     {% for anime in top_rated %}
-    <a href="{{ url_for('movies.tv_detail', tv_id=anime.id) }}" class="card-link">
+    <a
+      href="{{ url_for('movies.tv_detail', tv_id=anime.id) }}"
+      class="card-link"
+    >
       <div class="card-glass">
         {% if anime.poster_url %}
-        <img src="{{ anime.poster_url }}" alt="{{ anime.title }}" class="movie-poster" />
+        <img
+          src="{{ anime.poster_url }}"
+          alt="{{ anime.title }}"
+          class="movie-poster"
+        />
         {% else %}
-        <div class=\"movie-poster\" style=\"background: linear-gradient(135deg, #ec4899, #8b5cf6); display: flex; align-items: center; justify-content: center; font-size: 3rem;\">Series</div>
+        <div
+          class="movie-poster"
+          style="
+            background: linear-gradient(135deg, #ec4899, #8b5cf6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+          "
+        >
+          Anime
+        </div>
         {% endif %}
-        <div class=\"movie-title\">{{ anime.title }}</div>
-        <div class=\"movie-meta\">
+        <div class="movie-title">{{ anime.title }}</div>
+        <div class="movie-meta">
           {% if anime.release_date %}{{ anime.release_date[:4] }} • {% endif %}
           {{ anime.vote_average|round(1) }}/10
         </div>
