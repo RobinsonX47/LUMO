@@ -406,12 +406,12 @@ block content %}
 
     if (!/^[a-zA-Z0-9_-]{3,30}$/.test(username)) {
       usernameStatus.innerHTML =
-        '<span style="color: #fca5a5;">❌ Invalid format (3-30 chars, alphanumeric, hyphens, underscores)</span>';
+        '<span style="color: #fca5a5;">Invalid format (3-30 chars, alphanumeric, hyphens, underscores)</span>';
       return;
     }
 
     usernameStatus.innerHTML =
-      '<span style="color: #fbbf24;">⏳ Checking...</span>';
+      '<span style="color: #fbbf24;">Checking...</span>';
 
     checkTimeout = setTimeout(() => {
       fetch(
@@ -421,15 +421,15 @@ block content %}
         .then((data) => {
           if (data.available) {
             usernameStatus.innerHTML =
-              '<span style="color: #86efac;">✅ Username available!</span>';
+              '<span style="color: #86efac;">Username available!</span>';
           } else {
             usernameStatus.innerHTML =
-              '<span style="color: #fca5a5;">❌ Username taken</span>';
+              '<span style="color: #fca5a5;">Username taken</span>';
           }
         })
         .catch((error) => {
           usernameStatus.innerHTML =
-            '<span style="color: #fbbf24;">⚠️ Error checking username</span>';
+            '<span style="color: #fbbf24;">Error checking username</span>';
         });
     }, 500);
   });

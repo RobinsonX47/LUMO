@@ -18,7 +18,7 @@ block content %}
       margin-bottom: 32px;
     "
   >
-    <h1>🔔 Notifications</h1>
+    <h1>Notifications</h1>
     {% if notifications.total > 0 and filter_type != 'unread' %}
     <button
       onclick="markAllAsRead()"
@@ -198,7 +198,6 @@ block content %}
   </div>
   {% endif %} {% else %}
   <div style="text-align: center; padding: 60px 20px">
-    <p style="font-size: 48px; margin-bottom: 12px">🔔</p>
     <h3 style="margin-bottom: 8px">No Notifications</h3>
     <p style="color: var(--muted)">
       {% if filter_type == 'unread' %}All caught up!{% else %}You're all set!{%

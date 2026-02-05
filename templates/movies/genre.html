@@ -55,13 +55,13 @@ endblock %} {% block content %}
           font-size: 3rem;
         "
       >
-        🎬
+        Movie
       </div>
       {% endif %}
       <div class="movie-title">{{ movie.title }}</div>
       <div class="movie-meta">
-        {% if movie.release_date %}{{ movie.release_date[:4] }} • {% endif %} ⭐
-        {{ movie.vote_average|round(1) }}/10
+        {% if movie.release_date %}{{ movie.release_date[:4] }} • {% endif %}
+        Rating: {{ movie.vote_average|round(1) }}/10
       </div>
     </div>
   </a>

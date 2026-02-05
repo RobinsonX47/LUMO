@@ -20,10 +20,10 @@ Series{% endblock %} {% block content %}
 
         <div class="meta-row">
           {% if movie.release_date %}
-          <span class="badge-pill">📅 {{ movie.release_date[:4] }}</span>
+          <span class="badge-pill">{{ movie.release_date[:4] }}</span>
           {% endif %}
           <span class="badge-pill"
-            >⭐ {{ movie.vote_average|round(1) }}/10</span
+            >Rating: {{ movie.vote_average|round(1) }}/10</span
           >
         </div>
 
@@ -86,7 +86,7 @@ Series{% endblock %} {% block content %}
           border: 1px solid rgba(168, 85, 247, 0.3);
         "
       >
-        <div class="card-icon">🎬</div>
+        <div class=\"card-icon\">Film</div>
         <h3>Movies</h3>
         <p>Discover trending and top-rated movies from around the world</p>
       </div>
@@ -105,7 +105,7 @@ Series{% endblock %} {% block content %}
           border: 1px solid rgba(217, 70, 239, 0.3);
         "
       >
-        <div class="card-icon">🎌</div>
+        <div class=\"card-icon\">Series</div>
         <h3>Anime</h3>
         <p>Browse popular anime series and discover new favorites</p>
       </div>
@@ -193,7 +193,7 @@ Series{% endblock %} {% block content %}
         ></div>
         <div style="position: relative; z-index: 1; text-align: center">
           <div class="card-icon" style="font-size: 4rem; margin-bottom: 20px">
-            ✨
+            <span>AI-Powered</span>
           </div>
           <h3
             style="

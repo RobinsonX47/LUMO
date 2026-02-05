@@ -226,7 +226,7 @@
             font-size: 3rem;
           "
         >
-          🎬
+          Movie
         </div>
         {% endif %}
         <div class="movie-title">{{ item.movie.title }}</div>
@@ -239,7 +239,7 @@
             font-size: 0.9rem;
           "
         >
-          {% for i in range(item.review.rating) %}⭐{% endfor %}
+          {% for i in range(item.review.rating) %}★{% endfor %}{% for i in range(5 - item.review.rating) %}☆{% endfor %}
         </div>
       </div>
     </a>
@@ -251,7 +251,7 @@
 <!-- Watchlist Section -->
 {% if watchlist %}
 <section style="margin-bottom: 48px">
-  <h2 style="margin-bottom: 24px">📋 Watchlist</h2>
+  <h2 style="margin-bottom: 24px">Watchlist</h2>
 
   <div class="movie-grid">
     {% for movie in watchlist %}
@@ -277,13 +277,14 @@
             font-size: 3rem;
           "
         >
-          🎬
+          Movie
         </div>
         {% endif %}
         <div class="movie-title">{{ movie.title or movie.name }}</div>
         <div class="movie-meta">
           {% if movie.release_date or movie.first_air_date %} {{
-          (movie.release_date or movie.first_air_date)[:4] }} • {% endif %} ⭐
+          (movie.release_date or movie.first_air_date)[:4] }} • {% endif %} 
+          Rating:
           {{ movie.vote_average|round(1) }}/10
         </div>
       </div>
@@ -304,10 +305,12 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
   "
 >
-  <p style="font-size: 48px; margin-bottom: 12px">🎬</p>
-  <h3 style="margin-bottom: 8px">No Public Activity</h3>
-  <p style="color: var(--muted)">
-    {{ user.name }} hasn't shared any reviews or watchlist yet.
+  <p style=\"color: var(--muted); margin-bottom: 16px\">
+    No shared reviews or watchlist yet.
+  </p>
+  <a href=\"{{ url_for('movies.movie_list') }}\" class=\"btn-primary\">
+    Discover Movies
+  </a>
   </p>
 </div>
 {% endif %}

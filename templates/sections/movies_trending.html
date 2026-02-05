@@ -10,7 +10,7 @@
       margin-bottom: 16px;
     "
   >
-    <h1 style="margin: 0">🔥 Trending This Week</h1>
+    <h1 style="margin: 0">Trending This Week</h1>
     <a href="{{ url_for('main.movies_section') }}" class="btn-secondary"
       >Back to Movies</a
     >
@@ -58,8 +58,8 @@
       {% endif %}
       <div class="movie-title">{{ movie.title }}</div>
       <div class="movie-meta">
-        {% if movie.release_date %}{{ movie.release_date[:4] }} • {% endif %} ⭐
-        {{ movie.vote_average|round(1) }}/10
+        {% if movie.release_date %}{{ movie.release_date[:4] }} • Rating: {%
+        endif %} {{ movie.vote_average|round(1) }}/10
       </div>
     </div>
   </a>

@@ -404,20 +404,20 @@ content %}
       }
 
       if (!/^[a-zA-Z0-9_-]{3,30}$/.test(username)) {
-        usernameStatus.innerHTML = '<span style="color: #fca5a5;">❌ Invalid format</span>';
+        usernameStatus.innerHTML = '<span style=\"color: #fca5a5;\">Invalid format</span>';
         return;
       }
 
-      usernameStatus.innerHTML = '<span style="color: #fbbf24;">⏳ Checking...</span>';
+      usernameStatus.innerHTML = '<span style=\"color: #fbbf24;\">Checking...</span>';
 
       checkTimeout = setTimeout(() => {
         fetch(`{{ url_for('users.check_username') }}?username=${encodeURIComponent(username)}`)
           .then(response => response.json())
           .then(data => {
             if (data.available) {
-              usernameStatus.innerHTML = '<span style="color: #86efac;">✅ Available!</span>';
+            usernameStatus.innerHTML = '<span style=\"color: #86efac;\">Available!</span>';
             } else {
-              usernameStatus.innerHTML = '<span style="color: #fca5a5;">❌ Taken</span>';
+              usernameStatus.innerHTML = '<span style=\"color: #fca5a5;\">Taken</span>';
             }
           });
       }, 500);

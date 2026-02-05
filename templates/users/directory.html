@@ -11,7 +11,7 @@
 <div style="max-width: 1200px; margin: 40px auto; padding: 0 20px">
   <!-- Header -->
   <div style="margin-bottom: 40px">
-    <h1 style="margin-bottom: 8px">👥 User Directory</h1>
+    <h1 style="margin-bottom: 8px">User Directory</h1>
     <p style="color: var(--muted); margin-bottom: 24px">
       Discover and follow other movie enthusiasts
     </p>
@@ -37,7 +37,7 @@
         class="btn-tertiary"
         style="{% if sort_by == 'alphabetical' %}background: var(--primary); color: white;{% endif %}"
       >
-        📝 A-Z
+        A-Z
       </a>
     </div>
   </div>
@@ -118,7 +118,7 @@
 
       <!-- Stats -->
       <div style="font-size: 12px; color: var(--muted); margin-bottom: 16px">
-        <p style="margin: 2px 0">👥 {{ user.followers.count() }} followers</p>
+        <p style="margin: 2px 0">{{ user.followers.count() }} followers</p>
         <p style="margin: 2px 0">{{ user.reviews|length }} reviews</p>
       </div>
 
@@ -196,7 +196,6 @@
   </div>
   {% endif %} {% else %}
   <div style="text-align: center; padding: 60px 20px">
-    <p style="font-size: 48px; margin-bottom: 12px">👥</p>
     <h3 style="margin-bottom: 8px">No Users Found</h3>
     <p style="color: var(--muted)">
       Check back soon or search for specific users.

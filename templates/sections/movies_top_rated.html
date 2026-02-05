@@ -58,8 +58,8 @@ block content %}
       {% endif %}
       <div class="movie-title">{{ item.title }}</div>
       <div class="movie-meta">
-        {% if item.release_date %}{{ item.release_date[:4] }} • {% endif %} ⭐
-        {{ item.vote_average|round(1) }}/10
+        {% if item.release_date %}{{ item.release_date[:4] }} • Rating: {% endif
+        %} {{ item.vote_average|round(1) }}/10
       </div>
     </div>
   </a>

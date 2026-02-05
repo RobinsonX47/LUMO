@@ -175,7 +175,7 @@ endblock %} {% block content %}
             border-color: rgba(59, 130, 246, 0.4);
           "
         >
-          🔔 {{ unread_notifications }}
+          Notifications ({{ unread_notifications }})
         </a>
         {% endif %}
       </div>
@@ -230,7 +230,7 @@ endblock %} {% block content %}
             font-size: 3rem;
           "
         >
-          🎬
+          Movie
         </div>
         {% endif %}
         <div class="movie-title">{{ item.movie.title }}</div>
@@ -243,7 +243,7 @@ endblock %} {% block content %}
             font-size: 0.9rem;
           "
         >
-          {% for i in range(item.review.rating) %}⭐{% endfor %}
+          {{ \"★\" * item.review.rating }}{{ \"☆\" * (5 - item.review.rating) }}
         </div>
       </div>
     </a>
@@ -264,7 +264,7 @@ endblock %} {% block content %}
       flex-wrap: wrap;
     "
   >
-    <h2 style="margin: 0">📋 Your Watchlist</h2>
+    <h2 style="margin: 0">Your Watchlist</h2>
     <a href="{{ url_for('movies.watchlist') }}" class="btn-secondary"
       >View full list</a
     >
@@ -295,14 +295,14 @@ endblock %} {% block content %}
             font-size: 3rem;
           "
         >
-          🎬
+          Movie
         </div>
         {% endif %}
         <div class="movie-title">{{ movie.title or movie.name }}</div>
         <div class="movie-meta">
           {% if movie.release_date or movie.first_air_date %} {{
-          (movie.release_date or movie.first_air_date)[:4] }} • {% endif %} ⭐
-          {{ movie.vote_average|round(1) }}/10
+          (movie.release_date or movie.first_air_date)[:4] }} • {% endif %}
+          Rating: {{ movie.vote_average|round(1) }}/10
         </div>
       </div>
     </a>

@@ -37,7 +37,7 @@ else %}Browse Movies{% endif %} – CineSphere{% endblock %} {% block content %}
           transform: translateY(-50%);
           font-size: 1.2rem;
         "
-        >🔍</span
+        >Search</span
       >
       <button
         type="submit"
@@ -92,19 +92,19 @@ else %}Browse Movies{% endif %} – CineSphere{% endblock %} {% block content %}
           font-size: 3rem;
         "
       >
-        🎬
+        Movie
       </div>
       {% endif %}
       <div class="movie-title">{{ movie.title }}</div>
       <div class="movie-meta">
-        {% if movie.release_date %}{{ movie.release_date[:4] }} • {% endif %} ⭐
-        {{ movie.vote_average|round(1) }}/10
+        {% if movie.release_date %}{{ movie.release_date[:4] }} • {% endif %}
+        Rating: {{ movie.vote_average|round(1) }}/10
       </div>
     </div>
   </a>
   {% else %}
   <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px">
-    <div style="font-size: 4rem; margin-bottom: 16px">🎬</div>
+    <div style="font-size: 4rem; margin-bottom: 16px">Movie</div>
     <p style="color: var(--muted); font-size: 1.1rem; margin-bottom: 24px">
       {% if query %} No movies found matching your search. {% else %} No movies
       available. {% endif %}

@@ -87,11 +87,11 @@
           <span class="badge-pill">{{ movie.runtime }} min</span>
           {% endif %}
           <span class="badge-pill"
-            >⭐ {{ movie.vote_average|round(1) }}/10</span
+            >{{ movie.vote_average|round(1) }}/10</span
           >
           {% if movie.local_avg_rating %}
           <span class="badge-pill badge-highlight"
-            >⭐ {{ movie.local_avg_rating }}/5 ({{ movie.local_review_count
+            >{{ movie.local_avg_rating }}/5 ({{ movie.local_review_count
             }})</span
           >
           {% endif %}
@@ -241,15 +241,14 @@
       >
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
         <div class="form-group">
-          <label for="rating-group">Your Rating (1-5 stars)</label>
-          <div class="star-rating-input-premium" id="rating-group" role="group" aria-labelledby="rating-label">
-            <span id="rating-label" style="display: none;">Select a rating from 1 to 5 stars</span>
+          <label style="margin-bottom: 12px; display: block;">Your Rating</label>
+          <div class="star-rating-input-premium" id="rating-group" role="group">
             {% set rating_value = user_review.rating if user_review else 0 %}
-            <input type="radio" name="rating" value="5" id="rating5" aria-label="5 stars" {{'checked' if rating_value == 5 else ''}} required /><label for="rating5" class="star-label-premium" aria-hidden="true">⭐</label>
-            <input type="radio" name="rating" value="4" id="rating4" aria-label="4 stars" {{'checked' if rating_value == 4 else ''}} required /><label for="rating4" class="star-label-premium" aria-hidden="true">⭐</label>
-            <input type="radio" name="rating" value="3" id="rating3" aria-label="3 stars" {{'checked' if rating_value == 3 else ''}} required /><label for="rating3" class="star-label-premium" aria-hidden="true">⭐</label>
-            <input type="radio" name="rating" value="2" id="rating2" aria-label="2 stars" {{'checked' if rating_value == 2 else ''}} required /><label for="rating2" class="star-label-premium" aria-hidden="true">⭐</label>
-            <input type="radio" name="rating" value="1" id="rating1" aria-label="1 star" {{'checked' if rating_value == 1 else ''}} required /><label for="rating1" class="star-label-premium" aria-hidden="true">⭐</label>
+            <input type="radio" name="rating" value="5" id="rating5" {{'checked' if rating_value == 5 else ''}} required /><label for="rating5" class="star-label-premium" data-rating="5">★</label>
+            <input type="radio" name="rating" value="4" id="rating4" {{'checked' if rating_value == 4 else ''}} required /><label for="rating4" class="star-label-premium" data-rating="4">★</label>
+            <input type="radio" name="rating" value="3" id="rating3" {{'checked' if rating_value == 3 else ''}} required /><label for="rating3" class="star-label-premium" data-rating="3">★</label>
+            <input type="radio" name="rating" value="2" id="rating2" {{'checked' if rating_value == 2 else ''}} required /><label for="rating2" class="star-label-premium" data-rating="2">★</label>
+            <input type="radio" name="rating" value="1" id="rating1" {{'checked' if rating_value == 1 else ''}} required /><label for="rating1" class="star-label-premium" data-rating="1">★</label>
           </div>
         </div>
 
@@ -360,7 +359,7 @@
             {% if rec.release_date or rec.first_air_date %}
             {{ (rec.release_date or rec.first_air_date)[:4] }} •
             {% endif %}
-            ⭐ {{ rec.vote_average|round(1) }}/10
+            {{ rec.vote_average|round(1) }}/10
           </div>
         </div>
       </a>
@@ -855,7 +854,7 @@
   .star-rating-input-premium {
     display: flex;
     flex-direction: row-reverse;
-    gap: 10px;
+    gap: 8px;
     justify-content: flex-end;
   }
 
@@ -864,17 +863,29 @@
   }
 
   .star-label-premium {
-    font-size: 2.8rem;
+    font-size: 2.5rem;
     cursor: pointer;
-    transition: var(--transition);
-    opacity: 0.3;
+    transition: opacity 0.15s ease;
+    opacity: 0.2;
+    color: #fbbf24;
   }
 
-  .star-label-premium:hover,
-  .star-rating-input-premium input[type="radio"]:checked + .star-label-premium,
-  .star-rating-input-premium input[type="radio"]:checked ~ .star-label-premium {
+  .star-rating-input-premium:hover .star-label-premium {
+    opacity: 0.5;
+  }
+
+  .star-rating-input-premium .star-label-premium:hover,
+  .star-rating-input-premium .star-label-premium:hover ~ .star-label-premium {
+    opacity: 0.5;
+  }
+
+  .star-rating-input-premium .star-label-premium:hover {
     opacity: 1;
-    transform: scale(1.15);
+  }
+
+  .star-rating-input-premium input[type="radio"]:checked + .star-label-premium,
+  .star-rating-input-premium input[type="radio"]:checked + .star-label-premium ~ .star-label-premium {
+    opacity: 1;
   }
 
   .form-actions {
@@ -1310,6 +1321,21 @@
           showMoreBtn.classList.add("hidden");
         }
       }, 100);
+    }
+
+    // Initialize review rating - hover to preview, click to confirm
+    const ratingGroup = document.getElementById("rating-group");
+    const ratingLabels = document.querySelectorAll(".star-label-premium");
+
+    if (ratingLabels.length > 0) {
+      ratingLabels.forEach(label => {
+        label.addEventListener("click", (e) => {
+          e.preventDefault();
+          const rating = label.getAttribute("data-rating");
+          const input = document.getElementById(`rating${rating}`);
+          input.checked = true;
+        });
+      });
     }
   });
 
