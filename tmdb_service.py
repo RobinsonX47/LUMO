@@ -200,8 +200,8 @@ class TMDBService:
         TMDBService.last_request_time = time.time()
     
     @staticmethod
-    def _make_request(endpoint, params=None, use_cache=True):
-        """Make a request to TMDB API with caching"""
+    def _make_request(endpoint, params=None, use_cache=True, retries=2):
+        """Make a request to TMDB API with caching and retry logic"""
         # Initialize cache if not done yet
         if TMDBService.cache is None:
             TMDBService.init_cache()
@@ -223,23 +223,44 @@ class TMDBService:
             if cached_data is not None:
                 return cached_data
         
-        # Rate limit before making request
-        TMDBService._rate_limit()
+        # Try with retries
+        for attempt in range(retries + 1):
+            # Rate limit before making request
+            TMDBService._rate_limit()
+            
+            try:
+                if attempt > 0:
+                    print(f"🔄 Retry {attempt}/{retries}: {endpoint}")
+                else:
+                    print(f"🌐 API Request: {endpoint}")
+                    
+                response = requests.get(f"{base_url}/{endpoint}", params=params, timeout=15)
+                response.raise_for_status()
+                data = response.json()
+                
+                # Cache the response
+                if use_cache:
+                    TMDBService.cache.set(cache_key, data)
+                
+                return data
+                
+            except requests.exceptions.Timeout:
+                if attempt < retries:
+                    print(f"⏱️ TMDB API Timeout, retrying... ({attempt + 1}/{retries})")
+                    time.sleep(0.5)  # Brief pause before retry
+                    continue
+                print(f"⏱️ TMDB API Timeout after {retries} retries: {endpoint}")
+                return None
+                
+            except requests.exceptions.RequestException as e:
+                if attempt < retries:
+                    print(f"⚠️ TMDB API Error, retrying... ({attempt + 1}/{retries})")
+                    time.sleep(0.5)
+                    continue
+                print(f"❌ TMDB API Error after {retries} retries: {e}")
+                return None
         
-        try:
-            print(f"🌐 API Request: {endpoint}")
-            response = requests.get(f"{base_url}/{endpoint}", params=params, timeout=10)
-            response.raise_for_status()
-            data = response.json()
-            
-            # Cache the response
-            if use_cache:
-                TMDBService.cache.set(cache_key, data)
-            
-            return data
-        except requests.exceptions.RequestException as e:
-            print(f"❌ TMDB API Error: {e}")
-            return None
+        return None
 
     @staticmethod
     def _get_results_multi_pages(endpoint, base_params=None, min_count=24, max_pages=2):

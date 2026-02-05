@@ -1,11 +1,10 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from flask_login import login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
-from extensions import db
+from extensions import db, limiter
 from models import User
 from oauth_handler import GoogleOAuth
 from forms import LoginForm, RegisterForm
-from app import limiter
 import re
 
 auth_bp = Blueprint("auth", __name__)

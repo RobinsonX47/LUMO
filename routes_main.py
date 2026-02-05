@@ -19,11 +19,17 @@ def movies_section():
     """Dedicated movies section with trending and top rated"""
     trending_movies = TMDBService.get_trending_movies('week')
     top_rated_movies = TMDBService.get_top_rated_movies()
+    popular_movies = TMDBService.get_popular_movies(1)
+    action_movies = TMDBService.get_movies_by_genre(28, 1)  # Action genre ID = 28
+    comedy_movies = TMDBService.get_movies_by_genre(35, 1)  # Comedy genre ID = 35
     
     return render_template(
         "sections/movies.html",
         trending=trending_movies,
-        top_rated=top_rated_movies
+        top_rated=top_rated_movies,
+        popular=popular_movies,
+        action=action_movies,
+        comedy=comedy_movies
     )
 
 @main_bp.route("/movies/trending")

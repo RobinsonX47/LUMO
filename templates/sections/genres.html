@@ -1,14 +1,22 @@
 <!-- templates/sections/genres.html -->
-{% extends "base.html" %}
-{% block title %}Browse Genres – LUMO{% endblock %}
-{% block content %}
+{% extends "base.html" %} {% block title %}Browse Genres – LUMO{% endblock %} {%
+block content %}
 
 <section>
-  <h1 style="margin-bottom: 32px;">🎭 Browse by Genre</h1>
-  
-  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px;">
+  <h1 style="margin-bottom: 32px">🎭 Browse by Genre</h1>
+
+  <div
+    style="
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 20px;
+    "
+  >
     {% for genre in genres %}
-    <a href="{{ url_for('main.movies_by_genre', genre_id=genre.id) }}" style="text-decoration: none;">
+    <a
+      href="{{ url_for('main.movies_by_genre', genre_id=genre.id) }}"
+      style="text-decoration: none"
+    >
       <div class="card-glass genre-card">
         <div class="genre-icon">🎬</div>
         <div class="genre-name">{{ genre.name }}</div>

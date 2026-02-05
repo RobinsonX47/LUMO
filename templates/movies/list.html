@@ -1,100 +1,180 @@
-{% extends "base.html" %}
-{% block title %}{% if query %}Search: {{ query }}{% else %}Browse Movies{% endif %} – CineSphere{% endblock %}
-{% block content %}
+{% extends "base.html" %} {% block title %}{% if query %}Search: {{ query }}{%
+else %}Browse Movies{% endif %} – CineSphere{% endblock %} {% block content %}
 
-<section style="margin-bottom: 32px;">
-  <h1 style="margin-bottom: 16px;">
-    {% if query %}
-      Search Results for "{{ query }}"
-    {% else %}
-      Popular Movies
-    {% endif %}
+<section style="margin-bottom: 32px">
+  <h1 style="margin-bottom: 16px">
+    {% if query %} Search Results for "{{ query }}" {% else %} Popular Movies {%
+    endif %}
   </h1>
-  
-  <form method="GET" action="{{ url_for('movies.movie_list') }}" style="margin-bottom: 32px;">
-    <div style="position: relative; max-width: 600px;">
-      <input 
-        type="text" 
-        name="q" 
-        placeholder="Search movies by title..." 
+
+  <form
+    method="GET"
+    action="{{ url_for('movies.movie_list') }}"
+    style="margin-bottom: 32px"
+  >
+    <div style="position: relative; max-width: 600px">
+      <input
+        type="text"
+        name="q"
+        placeholder="Search movies by title..."
         value="{{ query }}"
-        style="width: 100%; padding: 14px 20px 14px 48px; border-radius: 16px; border: 1px solid rgba(148, 163, 184, 0.3); background: rgba(15, 23, 42, 0.5); color: var(--text); font-size: 1rem; backdrop-filter: blur(10px);"
+        style="
+          width: 100%;
+          padding: 14px 20px 14px 48px;
+          border-radius: 16px;
+          border: 1px solid rgba(148, 163, 184, 0.3);
+          background: rgba(15, 23, 42, 0.5);
+          color: var(--text);
+          font-size: 1rem;
+          backdrop-filter: blur(10px);
+        "
       />
-      <span style="position: absolute; left: 18px; top: 50%; transform: translateY(-50%); font-size: 1.2rem;">🔍</span>
-      <button type="submit" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); padding: 8px 20px; border-radius: 12px; border: none; background: linear-gradient(135deg, #7b5cff, #a78bfa); color: white; font-weight: 600; cursor: pointer;">
+      <span
+        style="
+          position: absolute;
+          left: 18px;
+          top: 50%;
+          transform: translateY(-50%);
+          font-size: 1.2rem;
+        "
+        >🔍</span
+      >
+      <button
+        type="submit"
+        style="
+          position: absolute;
+          right: 8px;
+          top: 50%;
+          transform: translateY(-50%);
+          padding: 8px 20px;
+          border-radius: 12px;
+          border: none;
+          background: linear-gradient(135deg, #7b5cff, #a78bfa);
+          color: white;
+          font-weight: 600;
+          cursor: pointer;
+        "
+      >
         Search
       </button>
     </div>
   </form>
 
   {% if query %}
-    <p style="color: var(--muted); margin-bottom: 16px;">
-      {% if movies %}
-        Found {{ movies|length }} result(s)
-      {% else %}
-        No results found
-      {% endif %}
-    </p>
+  <p style="color: var(--muted); margin-bottom: 16px">
+    {% if movies %} Found {{ movies|length }} result(s) {% else %} No results
+    found {% endif %}
+  </p>
   {% endif %}
 </section>
 
 <div class="movie-grid">
   {% for movie in movies %}
-    <a href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}" style="text-decoration: none; color: inherit;">
-      <div class="card-glass">
-        {% if movie.poster_url %}
-          <img src="{{ movie.poster_url }}" alt="{{ movie.title }}" class="movie-poster" />
-        {% else %}
-          <div class="movie-poster" style="background: linear-gradient(135deg, #4f46e5, #ec4899); display: flex; align-items: center; justify-content: center; font-size: 3rem;">
-            🎬
-          </div>
-        {% endif %}
-        <div class="movie-title">{{ movie.title }}</div>
-        <div class="movie-meta">
-          {% if movie.release_date %}{{ movie.release_date[:4] }} • {% endif %}
-          ⭐ {{ movie.vote_average|round(1) }}/10
-        </div>
+  <a
+    href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}"
+    style="text-decoration: none; color: inherit"
+  >
+    <div class="card-glass">
+      {% if movie.poster_url %}
+      <img
+        src="{{ movie.poster_url }}"
+        alt="{{ movie.title }}"
+        class="movie-poster"
+      />
+      {% else %}
+      <div
+        class="movie-poster"
+        style="
+          background: linear-gradient(135deg, #4f46e5, #ec4899);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 3rem;
+        "
+      >
+        🎬
       </div>
-    </a>
-  {% else %}
-    <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px;">
-      <div style="font-size: 4rem; margin-bottom: 16px;">🎬</div>
-      <p style="color: var(--muted); font-size: 1.1rem; margin-bottom: 24px;">
-        {% if query %}
-          No movies found matching your search.
-        {% else %}
-          No movies available.
-        {% endif %}
-      </p>
-      {% if query %}
-      <a href="{{ url_for('movies.movie_list') }}" 
-         class="btn-primary"
-         style="display: inline-block; padding: 12px 32px; border-radius: 12px; background: linear-gradient(135deg, #7b5cff, #a78bfa); color: white; text-decoration: none; font-weight: 600;">
-        Browse All Movies
-      </a>
       {% endif %}
+      <div class="movie-title">{{ movie.title }}</div>
+      <div class="movie-meta">
+        {% if movie.release_date %}{{ movie.release_date[:4] }} • {% endif %} ⭐
+        {{ movie.vote_average|round(1) }}/10
+      </div>
     </div>
+  </a>
+  {% else %}
+  <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px">
+    <div style="font-size: 4rem; margin-bottom: 16px">🎬</div>
+    <p style="color: var(--muted); font-size: 1.1rem; margin-bottom: 24px">
+      {% if query %} No movies found matching your search. {% else %} No movies
+      available. {% endif %}
+    </p>
+    {% if query %}
+    <a
+      href="{{ url_for('movies.movie_list') }}"
+      class="btn-primary"
+      style="
+        display: inline-block;
+        padding: 12px 32px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #7b5cff, #a78bfa);
+        color: white;
+        text-decoration: none;
+        font-weight: 600;
+      "
+    >
+      Browse All Movies
+    </a>
+    {% endif %}
+  </div>
   {% endfor %}
 </div>
 
 <!-- Pagination -->
 {% if movies|length >= 20 %}
-<div style="display: flex; justify-content: center; gap: 12px; margin-top: 48px;">
+<div
+  style="display: flex; justify-content: center; gap: 12px; margin-top: 48px"
+>
   {% if page > 1 %}
-  <a href="{{ url_for('movies.movie_list', q=query, page=page-1) }}" 
-     class="btn-secondary" 
-     style="padding: 12px 24px; border-radius: 12px; border: 1px solid rgba(148, 163, 184, 0.3); background: rgba(15, 23, 42, 0.5); color: var(--text); text-decoration: none;">
+  <a
+    href="{{ url_for('movies.movie_list', q=query, page=page-1) }}"
+    class="btn-secondary"
+    style="
+      padding: 12px 24px;
+      border-radius: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: rgba(15, 23, 42, 0.5);
+      color: var(--text);
+      text-decoration: none;
+    "
+  >
     ← Previous
   </a>
   {% endif %}
-  
-  <span style="padding: 12px 24px; border-radius: 12px; border: 1px solid rgba(148, 163, 184, 0.3); background: rgba(123, 92, 255, 0.2);">
+
+  <span
+    style="
+      padding: 12px 24px;
+      border-radius: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: rgba(123, 92, 255, 0.2);
+    "
+  >
     Page {{ page }}
   </span>
-  
-  <a href="{{ url_for('movies.movie_list', q=query, page=page+1) }}" 
-     class="btn-secondary" 
-     style="padding: 12px 24px; border-radius: 12px; border: 1px solid rgba(148, 163, 184, 0.3); background: rgba(15, 23, 42, 0.5); color: var(--text); text-decoration: none;">
+
+  <a
+    href="{{ url_for('movies.movie_list', q=query, page=page+1) }}"
+    class="btn-secondary"
+    style="
+      padding: 12px 24px;
+      border-radius: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: rgba(15, 23, 42, 0.5);
+      color: var(--text);
+      text-decoration: none;
+    "
+  >
     Next →
   </a>
 </div>
@@ -105,17 +185,17 @@
     outline: none;
     border-color: var(--accent);
   }
-  
+
   button[type="submit"]:hover {
     transform: translateY(-50%) scale(1.05);
     box-shadow: 0 8px 16px rgba(123, 92, 255, 0.4);
   }
-  
+
   .btn-secondary:hover {
     border-color: var(--accent);
     transform: translateY(-2px);
   }
-  
+
   .btn-primary:hover {
     transform: translateY(-2px);
     box-shadow: 0 12px 24px rgba(123, 92, 255, 0.4);

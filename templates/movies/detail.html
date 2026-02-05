@@ -934,6 +934,7 @@
   let mouseActivityTimer;
   let windowFocused = true;
   let hasScrolled = false;
+  let isMetadataVisible = true;
 
   const FADE_DELAY = 5000; // 5 seconds
   const POSTER_DELAY = 2000; // 2 seconds
@@ -959,8 +960,24 @@
       events: {
         onReady: onPlayerReady,
         onStateChange: onPlayerStateChange,
+        onError: onPlayerError,
       },
     });
+  }
+
+  function onPlayerError(event) {
+    // Error codes: 150 (same as 1), 2, 5, 100, 101, 150
+    console.log("YouTube Player Error:", event.data);
+    // Show poster permanently if video unavailable
+    const posterOverlay = document.getElementById("posterOverlay");
+    const trailerContainer = document.getElementById("trailerContainer");
+    if (posterOverlay) {
+      posterOverlay.classList.remove("is-hidden");
+    }
+    // Hide the player
+    if (trailerContainer) {
+      trailerContainer.style.opacity = "0.3";
+    }
   }
 
   function onPlayerReady(event) {
@@ -975,6 +992,14 @@
         event.target.playVideo();
         event.target.setPlaybackQuality("highres");
       }, POSTER_DELAY);
+      
+      // Fallback: show poster after 8 seconds if video doesn't play
+      setTimeout(() => {
+        if (player && player.getPlayerState && (player.getPlayerState() === YT.PlayerState.UNSTARTED || player.getPlayerState() === YT.PlayerState.BUFFERING)) {
+          console.log("Video not playing, showing poster");
+          posterOverlay.classList.remove("is-hidden");
+        }
+      }, 8000);
     } else {
       event.target.playVideo();
       event.target.setPlaybackQuality("highres");
@@ -989,6 +1014,12 @@
 
   // Show both metadata and scroll indicator
   function showMetadata() {
+    // Don't repeatedly add fade-in if already visible
+    if (isMetadataVisible) {
+      return;
+    }
+    
+    isMetadataVisible = true;
     const heroDetails = document.getElementById("heroDetails");
     const scrollIndicator = document.querySelector(".scroll-indicator");
 
@@ -1005,6 +1036,12 @@
 
   // Fade out both metadata and scroll indicator
   function fadeOutUI() {
+    // Don't repeatedly remove fade-in if already fading out
+    if (!isMetadataVisible) {
+      return;
+    }
+    
+    isMetadataVisible = false;
     const heroDetails = document.getElementById("heroDetails");
     const scrollIndicator = document.querySelector(".scroll-indicator");
 
@@ -1026,7 +1063,7 @@
 
     fadeOutTimer = setTimeout(() => {
       // Only fade out if window is focused
-      if (windowFocused) {
+      if (windowFocused && isMetadataVisible) {
         fadeOutUI();
       }
     }, FADE_DELAY);
@@ -1034,7 +1071,10 @@
 
   // Track mouse movement
   document.addEventListener("mousemove", () => {
-    showMetadata();
+    // Only show if not already visible to reduce flicker
+    if (!isMetadataVisible) {
+      showMetadata();
+    }
 
     // Clear existing timers
     if (mouseActivityTimer) {
@@ -1051,7 +1091,9 @@
   // Track window focus
   window.addEventListener("focus", () => {
     windowFocused = true;
-    showMetadata();
+    if (!isMetadataVisible) {
+      showMetadata();
+    }
     scheduleMetadataFadeOut();
   });
 

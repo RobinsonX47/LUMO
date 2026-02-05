@@ -52,16 +52,21 @@ def profile():
     )
 
     def resolve_entry(entry):
+        """Try movie first, then TV only if needed to reduce API calls."""
         movie = TMDBService.get_movie_details(entry.tmdb_movie_id)
-        tv = TMDBService.get_tv_details(entry.tmdb_movie_id)
-
+        
         target_title = (entry.movie_title or "").strip().casefold()
-        candidates = [c for c in [movie, tv] if c]
-        if target_title and candidates:
-            for c in candidates:
-                candidate_title = (c.get('title') or c.get('name') or "").strip().casefold()
-                if candidate_title == target_title:
-                    return c
+        if movie and target_title:
+            movie_title = (movie.get('title') or "").strip().casefold()
+            if movie_title == target_title:
+                return movie
+        
+        tv = TMDBService.get_tv_details(entry.tmdb_movie_id)
+        if tv and target_title:
+            tv_title = (tv.get('name') or "").strip().casefold()
+            if tv_title == target_title:
+                return tv
+        
         return movie or tv
 
     watchlist_movies = []
@@ -193,22 +198,27 @@ def public_profile(username):
     # Get user's watchlist (public)
     watchlist_entries = Watchlist.query.filter_by(user_id=user.id).order_by(Watchlist.added_at.desc()).limit(8).all()
 
-    def resolve_entry(entry):
+    def resolve_entry_public(entry):
+        """Try movie first, then TV only if needed to reduce API calls."""
         movie = TMDBService.get_movie_details(entry.tmdb_movie_id)
-        tv = TMDBService.get_tv_details(entry.tmdb_movie_id)
-
+        
         target_title = (entry.movie_title or "").strip().casefold()
-        candidates = [c for c in [movie, tv] if c]
-        if target_title and candidates:
-            for c in candidates:
-                candidate_title = (c.get('title') or c.get('name') or "").strip().casefold()
-                if candidate_title == target_title:
-                    return c
+        if movie and target_title:
+            movie_title = (movie.get('title') or "").strip().casefold()
+            if movie_title == target_title:
+                return movie
+        
+        tv = TMDBService.get_tv_details(entry.tmdb_movie_id)
+        if tv and target_title:
+            tv_title = (tv.get('name') or "").strip().casefold()
+            if tv_title == target_title:
+                return tv
+        
         return movie or tv
 
     watchlist_movies = []
     for entry in watchlist_entries:
-        movie = resolve_entry(entry)
+        movie = resolve_entry_public(entry)
         if movie:
             movie['media_type'] = movie.get('media_type') or (
                 'tv' if (movie.get('name') and not movie.get('title')) else 'movie'

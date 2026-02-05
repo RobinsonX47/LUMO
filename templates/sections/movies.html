@@ -117,4 +117,157 @@ content %}
   </div>
 </section>
 
+<section style="margin-bottom: 60px; margin-top: 60px;">
+  <div
+    style="
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    "
+  >
+    <h2 style="margin: 0">🌟 Popular Now</h2>
+  </div>
+  <div class="movie-grid">
+    {% for movie in popular %}
+    <a
+      href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}"
+      class="card-link"
+    >
+      <div class="card-glass">
+        {% if movie.poster_url %}
+        <img
+          src="{{ movie.poster_url }}"
+          alt="{{ movie.title }}"
+          class="movie-poster"
+        />
+        {% else %}
+        <div
+          class="movie-poster"
+          style="
+            background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+          "
+        >
+          🎬
+        </div>
+        {% endif %}
+        <div class="movie-title">{{ movie.title }}</div>
+        <div class="movie-meta">
+          {% if movie.release_date %}{{ movie.release_date[:4] }} • {% endif %}
+          ⭐ {{ movie.vote_average|round(1) }}/10
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+<section style="margin-bottom: 60px;">
+  <div
+    style="
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    "
+  >
+    <h2 style="margin: 0">💥 Action Movies</h2>
+    <a href="{{ url_for('main.movies_by_genre', genre_id=28) }}" class="btn-secondary"
+      >Browse All</a
+    >
+  </div>
+  <div class="movie-grid">
+    {% for movie in action %}
+    <a
+      href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}"
+      class="card-link"
+    >
+      <div class="card-glass">
+        {% if movie.poster_url %}
+        <img
+          src="{{ movie.poster_url }}"
+          alt="{{ movie.title }}"
+          class="movie-poster"
+        />
+        {% else %}
+        <div
+          class="movie-poster"
+          style="
+            background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+          "
+        >
+          🎬
+        </div>
+        {% endif %}
+        <div class="movie-title">{{ movie.title }}</div>
+        <div class="movie-meta">
+          {% if movie.release_date %}{{ movie.release_date[:4] }} • {% endif %}
+          ⭐ {{ movie.vote_average|round(1) }}/10
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+<section>
+  <div
+    style="
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    "
+  >
+    <h2 style="margin: 0">😂 Comedy Movies</h2>
+    <a href="{{ url_for('main.movies_by_genre', genre_id=35) }}" class="btn-secondary"
+      >Browse All</a
+    >
+  </div>
+  <div class="movie-grid">
+    {% for movie in comedy %}
+    <a
+      href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}"
+      class="card-link"
+    >
+      <div class="card-glass">
+        {% if movie.poster_url %}
+        <img
+          src="{{ movie.poster_url }}"
+          alt="{{ movie.title }}"
+          class="movie-poster"
+        />
+        {% else %}
+        <div
+          class="movie-poster"
+          style="
+            background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+          "
+        >
+          🎬
+        </div>
+        {% endif %}
+        <div class="movie-title">{{ movie.title }}</div>
+        <div class="movie-meta">
+          {% if movie.release_date %}{{ movie.release_date[:4] }} • {% endif %}
+          ⭐ {{ movie.vote_average|round(1) }}/10
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
 {% endblock %}

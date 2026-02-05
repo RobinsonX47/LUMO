@@ -9,83 +9,83 @@ import json
 
 
 def build_ai_style_recommendations(base_item, media_type):
-    """Curate 6 strong recs using era, genres, cast overlap, and TMDB similar."""
+    """Lightweight recommendations using TMDB similar data only - no extra API calls."""
     if not base_item:
         return []
-
-    base_year = None
-    release_field = base_item.get('release_date') or base_item.get('first_air_date')
-    if release_field and len(release_field) >= 4:
-        try:
-            base_year = int(release_field[:4])
-        except ValueError:
-            base_year = None
-
-    base_genre_ids = [g.get('id') for g in base_item.get('genres', []) if g.get('id')]
-    base_cast = []
-    if base_item.get('credits') and isinstance(base_item['credits'], dict):
-        base_cast = [c.get('name') for c in base_item['credits'].get('cast', [])[:6] if c.get('name')]
-
-    candidates = []
-    similar_block = base_item.get('similar', {})
-    if isinstance(similar_block, dict):
-        candidates.extend(similar_block.get('results', []) or [])
-
-    # Add top genre picks to widen pool
-    for gid in base_genre_ids[:2]:
-        genre_movies = TMDBService.get_movies_by_genre(gid, 1) or []
-        candidates.extend(genre_movies[:10])
-
-    seen_ids = set()
-    scored = []
-
-    for cand in candidates:
-        cid = cand.get('id')
-        if not cid or cid == base_item.get('id'):
-            continue
-        if cid in seen_ids:
-            continue
-        seen_ids.add(cid)
-
-        ctype = cand.get('media_type') or ('tv' if (cand.get('name') and not cand.get('title')) else 'movie')
-
-        cand_detail = cand
-        needs_detail = not cand.get('genres') or not cand.get('credits') or not cand.get('release_date') and not cand.get('first_air_date')
-        if needs_detail:
-            detail = TMDBService.get_tv_details(cid) if ctype == 'tv' else TMDBService.get_movie_details(cid)
-            if detail:
-                cand_detail = {**cand, **detail}
-
-        cand_genres = [g.get('id') for g in cand_detail.get('genres', []) if g.get('id')]
-        genre_overlap = len(set(base_genre_ids) & set(cand_genres))
-
-        cand_year = None
-        rel_field = cand_detail.get('release_date') or cand_detail.get('first_air_date')
-        if rel_field and len(rel_field) >= 4:
+    
+    try:
+        # Use TMDB's similar results directly - they're already good
+        similar_block = base_item.get('similar', {})
+        if not similar_block or not isinstance(similar_block, dict):
+            return []
+        
+        candidates = similar_block.get('results', []) or []
+        if not candidates:
+            return []
+        
+        # Get base data for scoring (already in base_item)
+        base_year = None
+        release_field = base_item.get('release_date') or base_item.get('first_air_date')
+        if release_field and len(release_field) >= 4:
             try:
-                cand_year = int(rel_field[:4])
+                base_year = int(release_field[:4])
             except ValueError:
-                cand_year = None
-
-        era_score = 0
-        if base_year and cand_year:
-            diff = abs(base_year - cand_year)
-            era_score = max(0, 10 - diff) / 10  # closer years score higher
-
-        cand_cast = []
-        if cand_detail.get('credits') and isinstance(cand_detail['credits'], dict):
-            cand_cast = [c.get('name') for c in cand_detail['credits'].get('cast', [])[:6] if c.get('name')]
-        cast_overlap = len(set(base_cast) & set(cand_cast))
-
-        vote = cand_detail.get('vote_average') or cand.get('vote_average') or 0
-        score = genre_overlap * 2 + cast_overlap * 3 + era_score + (vote / 10)
-
-        cand_detail['media_type'] = ctype
-        scored.append({'data': cand_detail, 'score': score})
-
-    scored.sort(key=lambda x: x['score'], reverse=True)
-    top = [s['data'] for s in scored[:6]]
-    return top
+                pass
+        
+        base_genre_ids = set(g.get('id') for g in base_item.get('genres', []) if g.get('id'))
+        
+        # Score candidates using only data already available
+        scored = []
+        for cand in candidates[:12]:  # Only process first 12 similar items
+            if not cand.get('id') or cand.get('id') == base_item.get('id'):
+                continue
+            
+            # Calculate year proximity
+            cand_year = None
+            rel_field = cand.get('release_date') or cand.get('first_air_date')
+            if rel_field and len(rel_field) >= 4:
+                try:
+                    cand_year = int(rel_field[:4])
+                except ValueError:
+                    pass
+            
+            era_score = 0
+            if base_year and cand_year:
+                diff = abs(base_year - cand_year)
+                era_score = max(0, 10 - diff) / 10
+            
+            # Genre overlap (using genre_ids from candidate if available)
+            cand_genre_ids = set(cand.get('genre_ids', []))
+            genre_overlap = len(base_genre_ids & cand_genre_ids) if cand_genre_ids else 0
+            
+            vote = cand.get('vote_average', 0)
+            
+            # Simple scoring: genre match + era + rating
+            score = genre_overlap * 3 + era_score * 2 + (vote / 10)
+            
+            # Set media type
+            cand['media_type'] = cand.get('media_type') or (
+                'tv' if (cand.get('name') and not cand.get('title')) else 'movie'
+            )
+            
+            scored.append({'data': cand, 'score': score})
+        
+        # Sort and return top 6
+        scored.sort(key=lambda x: x['score'], reverse=True)
+        return [s['data'] for s in scored[:6]]
+    
+    except Exception as e:
+        print(f"Error in recommendations: {e}")
+        # Fallback: return first 6 similar items
+        similar_block = base_item.get('similar', {})
+        if isinstance(similar_block, dict):
+            results = similar_block.get('results', [])[:6]
+            for r in results:
+                r['media_type'] = r.get('media_type') or (
+                    'tv' if (r.get('name') and not r.get('title')) else 'movie'
+                )
+            return results
+        return []
 
 movies_bp = Blueprint("movies", __name__)
 
@@ -108,81 +108,93 @@ def movie_list():
 
 @movies_bp.route("/<int:movie_id>")
 def movie_detail(movie_id):
-    movie = TMDBService.get_movie_details(movie_id)
-    
-    if not movie:
-        flash("Movie not found", "error")
-        return redirect(url_for("movies.movie_list"))
-    
-    reviews = Review.query.filter_by(tmdb_movie_id=movie_id).order_by(Review.created_at.desc()).all()
-    
-    local_avg = db.session.query(func.avg(Review.rating)).filter_by(tmdb_movie_id=movie_id).scalar()
-    movie['local_avg_rating'] = round(float(local_avg), 1) if local_avg else None
-    movie['local_review_count'] = len(reviews)
-    
-    in_watchlist = False
-    user_review = None
-    if current_user.is_authenticated:
-        in_watchlist = Watchlist.query.filter_by(
-            user_id=current_user.id,
-            tmdb_movie_id=movie_id
-        ).first() is not None
+    try:
+        movie = TMDBService.get_movie_details(movie_id)
         
-        user_review = Review.query.filter_by(
-            user_id=current_user.id,
-            tmdb_movie_id=movie_id
-        ).first()
-    
-    smart_recs = build_ai_style_recommendations(movie, media_type="movie")
+        if not movie:
+            flash("Movie not found", "error")
+            return redirect(url_for("movies.movie_list"))
+        
+        reviews = Review.query.filter_by(tmdb_movie_id=movie_id).order_by(Review.created_at.desc()).all()
+        
+        local_avg = db.session.query(func.avg(Review.rating)).filter_by(tmdb_movie_id=movie_id).scalar()
+        movie['local_avg_rating'] = round(float(local_avg), 1) if local_avg else None
+        movie['local_review_count'] = len(reviews)
+        
+        in_watchlist = False
+        user_review = None
+        if current_user.is_authenticated:
+            in_watchlist = Watchlist.query.filter_by(
+                user_id=current_user.id,
+                tmdb_movie_id=movie_id
+            ).first() is not None
+            
+            user_review = Review.query.filter_by(
+                user_id=current_user.id,
+                tmdb_movie_id=movie_id
+            ).first()
+        
+        # Build recommendations (lightweight, no extra API calls)
+        smart_recs = build_ai_style_recommendations(movie, media_type="movie")
 
-    return render_template(
-        "movies/detail.html",
-        movie=movie,
-        reviews=reviews,
-        in_watchlist=in_watchlist,
-        user_review=user_review,
-        media_type="movie",
-        smart_recs=smart_recs
-    )
+        return render_template(
+            "movies/detail.html",
+            movie=movie,
+            reviews=reviews,
+            in_watchlist=in_watchlist,
+            user_review=user_review,
+            media_type="movie",
+            smart_recs=smart_recs
+        )
+    except Exception as e:
+        print(f"Error loading movie {movie_id}: {e}")
+        flash("Error loading movie details", "error")
+        return redirect(url_for("movies.movie_list"))
 
 @movies_bp.route("/tv/<int:tv_id>")
 def tv_detail(tv_id):
-    show = TMDBService.get_tv_details(tv_id)
-    
-    if not show:
-        flash("TV show not found", "error")
-        return redirect(url_for("main.series_section"))
-    
-    reviews = Review.query.filter_by(tmdb_movie_id=tv_id).order_by(Review.created_at.desc()).all()
-    
-    local_avg = db.session.query(func.avg(Review.rating)).filter_by(tmdb_movie_id=tv_id).scalar()
-    show['local_avg_rating'] = round(float(local_avg), 1) if local_avg else None
-    show['local_review_count'] = len(reviews)
-    
-    in_watchlist = False
-    user_review = None
-    if current_user.is_authenticated:
-        in_watchlist = Watchlist.query.filter_by(
-            user_id=current_user.id,
-            tmdb_movie_id=tv_id
-        ).first() is not None
+    try:
+        show = TMDBService.get_tv_details(tv_id)
         
-        user_review = Review.query.filter_by(
-            user_id=current_user.id,
-            tmdb_movie_id=tv_id
-        ).first()
-    
-    smart_recs = build_ai_style_recommendations(show, media_type="tv")
+        if not show:
+            flash("TV show not found", "error")
+            return redirect(url_for("main.series_section"))
+        
+        reviews = Review.query.filter_by(tmdb_movie_id=tv_id).order_by(Review.created_at.desc()).all()
+        
+        local_avg = db.session.query(func.avg(Review.rating)).filter_by(tmdb_movie_id=tv_id).scalar()
+        show['local_avg_rating'] = round(float(local_avg), 1) if local_avg else None
+        show['local_review_count'] = len(reviews)
+        
+        in_watchlist = False
+        user_review = None
+        if current_user.is_authenticated:
+            in_watchlist = Watchlist.query.filter_by(
+                user_id=current_user.id,
+                tmdb_movie_id=tv_id
+            ).first() is not None
+            
+            user_review = Review.query.filter_by(
+                user_id=current_user.id,
+                tmdb_movie_id=tv_id
+            ).first()
+        
+        # Build recommendations (lightweight, no extra API calls)
+        smart_recs = build_ai_style_recommendations(show, media_type="tv")
 
-    return render_template(
-        "movies/detail.html",
-        movie=show,
-        reviews=reviews,
-        in_watchlist=in_watchlist,
-        user_review=user_review,
-        media_type="tv",
-        smart_recs=smart_recs
-    )
+        return render_template(
+            "movies/detail.html",
+            movie=show,
+            reviews=reviews,
+            in_watchlist=in_watchlist,
+            user_review=user_review,
+            media_type="tv",
+            smart_recs=smart_recs
+        )
+    except Exception as e:
+        print(f"Error loading TV show {tv_id}: {e}")
+        flash("Error loading TV show details", "error")
+        return redirect(url_for("main.series_section"))
 
 @movies_bp.route("/<int:movie_id>/review", methods=["POST"])
 @login_required
@@ -296,20 +308,25 @@ def watchlist():
     )
 
     def resolve_entry(entry):
-        """Fetch the correct TMDB payload, disambiguating movie vs TV by stored title."""
+        """Fetch the correct TMDB payload, trying movie first, then TV only if needed."""
+        # Try movie first
         movie = TMDBService.get_movie_details(entry.tmdb_movie_id)
-        tv = TMDBService.get_tv_details(entry.tmdb_movie_id)
-
-        # Prefer exact title/name match with cached title if available
+        
+        # If we have a cached title, check if movie matches
         target_title = (entry.movie_title or "").strip().casefold()
-        candidates = [c for c in [movie, tv] if c]
-        if target_title and candidates:
-            for c in candidates:
-                candidate_title = (c.get("title") or c.get("name") or "").strip().casefold()
-                if candidate_title == target_title:
-                    return c
-
-        # Fallback: prefer movie over tv if only one exists
+        if movie and target_title:
+            movie_title = (movie.get("title") or "").strip().casefold()
+            if movie_title == target_title:
+                return movie
+        
+        # If movie exists but no title match, try TV
+        tv = TMDBService.get_tv_details(entry.tmdb_movie_id)
+        if tv and target_title:
+            tv_title = (tv.get("name") or "").strip().casefold()
+            if tv_title == target_title:
+                return tv
+        
+        # Fallback: return whichever exists
         return movie or tv
 
     watchlist_items = []

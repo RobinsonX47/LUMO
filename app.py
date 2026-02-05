@@ -1,12 +1,10 @@
 from flask import Flask, render_template, jsonify
 from config import Config
-from extensions import db, login_manager
+from extensions import db, login_manager, csrf, limiter
 from tmdb_service import TMDBService
 from flask_login import current_user
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 from flask_talisman import Talisman
-from flask_wtf.csrf import CSRFProtect, CSRFError
+from flask_wtf.csrf import CSRFError
 import os
 import threading
 import logging
@@ -19,15 +17,6 @@ load_dotenv()
 
 # === ONE-TIME DATABASE INITIALIZATION FLAG ===
 _first_request_done = False
-
-# Initialize security extensions
-csrf = CSRFProtect()
-limiter = Limiter(
-    key_func=get_remote_address,
-    default_limits=["200 per hour"],
-    storage_uri=Config.RATELIMIT_STORAGE_URL,
-    strategy="fixed-window"
-)
 
 
 def datetime_difference(dt):
@@ -70,7 +59,8 @@ def create_app():
     # CSRF Protection
     csrf.init_app(app)
     
-    # Rate Limiting
+    # Rate Limiting with storage from config
+    app.config['RATELIMIT_STORAGE_URL'] = Config.RATELIMIT_STORAGE_URL
     limiter.init_app(app)
     
     # Security Headers (Talisman)
