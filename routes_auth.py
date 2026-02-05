@@ -4,6 +4,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from extensions import db
 from models import User
 from oauth_handler import GoogleOAuth
+from forms import LoginForm, RegisterForm
+from app import limiter
 import re
 
 auth_bp = Blueprint("auth", __name__)
@@ -33,88 +35,55 @@ def generate_unique_username(name):
         counter += 1
 
 @auth_bp.route("/login", methods=["GET", "POST"])
+@limiter.limit("10 per minute")  # Prevent brute force attacks
 def login():
-    """Email/password login with basic validation and next support."""
-    if request.method == "POST":
-        email = (request.form.get("email", "") or "").strip().lower()
-        password = request.form.get("password", "") or ""
-
-        if not email or not password:
-            flash("Please provide both email and password.", "error")
-            return render_template("auth/login.html")
-
+    """Email/password login with WTForms validation and CSRF protection"""
+    form = LoginForm()
+    
+    if form.validate_on_submit():
+        email = form.email.data.strip().lower()
+        password = form.password.data
+        
         user = User.query.filter_by(email=email).first()
 
         # Disallow password login for OAuth-only accounts
         if user and not user.password_hash and user.oauth_provider:
             flash("This account is linked with Google. Please use Google Sign-In.", "error")
-            return render_template("auth/login.html")
+            return render_template("auth/login.html", form=form)
 
         if user and user.password_hash and check_password_hash(user.password_hash, password):
-            login_user(user, remember=True)
+            login_user(user, remember=form.remember.data)
             next_url = request.args.get("next")
             return redirect(next_url or url_for("main.home"))
 
         flash("Invalid email or password.", "error")
-        return render_template("auth/login.html")
+        return render_template("auth/login.html", form=form)
 
-    return render_template("auth/login.html")
+    return render_template("auth/login.html", form=form)
 
 
 @auth_bp.route("/register", methods=["GET", "POST"])
+@limiter.limit("3 per hour")  # Prevent spam registrations
 def register():
-    """Registration with username validation and duplicate checks."""
-    if request.method == "POST":
-        name = (request.form.get("name", "") or "").strip()
-        email = (request.form.get("email", "") or "").strip().lower()
-        username = (request.form.get("username", "") or "").strip().lower()
-        password = request.form.get("password", "") or ""
-        confirm_password = request.form.get("confirm_password", "") or ""
-
-        # Validation
-        if not name or not email or not username or not password:
-            flash("Please fill in all fields.", "error")
-            return render_template("auth/register.html")
-
-        if len(name) < 2:
-            flash("Name must be at least 2 characters.", "error")
-            return render_template("auth/register.html")
-
-        if len(password) < 6:
-            flash("Password must be at least 6 characters.", "error")
-            return render_template("auth/register.html")
-
-        if password != confirm_password:
-            flash("Passwords do not match.", "error")
-            return render_template("auth/register.html")
-
-        if not is_valid_username(username):
-            flash("Username must be 3-30 characters, using only letters, numbers, hyphens, and underscores.", "error")
-            return render_template("auth/register.html")
-
-        # Check for duplicates
-        if User.query.filter_by(email=email).first():
-            flash("Email already registered.", "error")
-            return render_template("auth/register.html")
-
-        if User.query.filter_by(username=username).first():
-            flash("Username already taken. Please choose another.", "error")
-            return render_template("auth/register.html")
-
+    """Registration with WTForms validation, CSRF protection, and strong password policy"""
+    form = RegisterForm()
+    
+    if form.validate_on_submit():
         # Create user
         user = User(
-            name=name,
-            username=username,
-            email=email,
-            password_hash=generate_password_hash(password)
+            name=form.name.data.strip(),
+            username=form.username.data.strip().lower(),
+            email=form.email.data.strip().lower(),
+            password_hash=generate_password_hash(form.password.data)
         )
         db.session.add(user)
         db.session.commit()
+        
         login_user(user, remember=True)
         flash("Account created! Welcome to LUMO.", "success")
         return redirect(url_for("main.home"))
 
-    return render_template("auth/register.html")
+    return render_template("auth/register.html", form=form)
 
 
 @auth_bp.route("/logout")
@@ -126,6 +95,7 @@ def logout():
 
 # Google OAuth Routes
 @auth_bp.route("/login/google")
+@limiter.limit("10 per minute")
 def google_login():
     """Redirect to Google for authentication"""
     authorization_url = GoogleOAuth.get_authorization_url()
@@ -133,6 +103,7 @@ def google_login():
 
 
 @auth_bp.route("/callback/google")
+@limiter.limit("10 per minute")
 def google_callback():
     """Handle Google OAuth callback"""
     code = request.args.get("code")

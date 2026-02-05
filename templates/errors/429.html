@@ -1,0 +1,43 @@
+{% extends "base.html" %} {% block title %}Too Many Requests - LUMO{% endblock
+%} {% block content %}
+<div
+  style="
+    text-align: center;
+    padding: 60px 20px;
+    max-width: 600px;
+    margin: 0 auto;
+  "
+>
+  <h1 style="font-size: 72px; margin: 0; color: #e74c3c">429</h1>
+  <h2 style="margin: 20px 0; color: #333">Too Many Requests</h2>
+  <p style="color: #666; line-height: 1.6; margin: 20px 0">
+    You've made too many requests in a short period. This is a security measure
+    to protect our service.
+  </p>
+  {% if retry_after %}
+  <p style="color: #e74c3c; font-weight: bold">
+    Please wait {{ retry_after }} before trying again.
+  </p>
+  {% endif %}
+  <div style="margin-top: 40px">
+    <a
+      href="{{ url_for('main.home') }}"
+      class="btn"
+      style="
+        display: inline-block;
+        padding: 12px 30px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: 500;
+      "
+    >
+      Go Home
+    </a>
+  </div>
+  <p style="color: #999; margin-top: 40px; font-size: 14px">
+    If you believe this is an error, please contact support.
+  </p>
+</div>
+{% endblock %}

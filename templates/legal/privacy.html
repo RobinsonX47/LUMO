@@ -1,0 +1,245 @@
+{% extends "base.html" %} {% block title %}Privacy Policy - LUMO{% endblock %}
+{% block content %}
+<div
+  class="container"
+  style="max-width: 900px; margin: 40px auto; padding: 20px"
+>
+  <h1 style="margin-bottom: 10px">Privacy Policy</h1>
+  <p style="color: #666; margin-bottom: 30px">Last updated: February 5, 2026</p>
+
+  <div class="legal-content" style="line-height: 1.8; color: #333">
+    <section style="margin-bottom: 30px">
+      <h2 style="margin-top: 30px; margin-bottom: 15px">
+        1. Information We Collect
+      </h2>
+
+      <h3 style="margin-top: 20px; margin-bottom: 10px">
+        1.1 Information You Provide
+      </h3>
+      <p>We collect information you provide directly to us, including:</p>
+      <ul style="margin-left: 20px; margin-bottom: 15px">
+        <li>Account information (name, username, email, password)</li>
+        <li>Profile information (bio, avatar)</li>
+        <li>Content you create (reviews, ratings, watchlists)</li>
+        <li>Communications with us (support requests, feedback)</li>
+      </ul>
+
+      <h3 style="margin-top: 20px; margin-bottom: 10px">
+        1.2 Information from Third Parties
+      </h3>
+      <p>When you use Google OAuth to sign in, we receive:</p>
+      <ul style="margin-left: 20px; margin-bottom: 15px">
+        <li>Your Google ID</li>
+        <li>Email address</li>
+        <li>Name</li>
+        <li>Profile picture (if provided)</li>
+      </ul>
+
+      <h3 style="margin-top: 20px; margin-bottom: 10px">
+        1.3 Automatically Collected Information
+      </h3>
+      <p>
+        We automatically collect certain information when you use our service:
+      </p>
+      <ul style="margin-left: 20px; margin-bottom: 15px">
+        <li>IP address and device information</li>
+        <li>Browser type and version</li>
+        <li>Pages visited and time spent</li>
+        <li>Referring URLs</li>
+        <li>Cookies and similar tracking technologies</li>
+      </ul>
+    </section>
+
+    <section style="margin-bottom: 30px">
+      <h2 style="margin-top: 30px; margin-bottom: 15px">
+        2. How We Use Your Information
+      </h2>
+      <p>We use the information we collect to:</p>
+      <ul style="margin-left: 20px">
+        <li>Provide, maintain, and improve our services</li>
+        <li>Personalize your experience and recommendations</li>
+        <li>Communicate with you about updates and features</li>
+        <li>Monitor and analyze trends, usage, and activities</li>
+        <li>Detect, prevent, and address security issues and fraud</li>
+        <li>Comply with legal obligations</li>
+      </ul>
+    </section>
+
+    <section style="margin-bottom: 30px">
+      <h2 style="margin-top: 30px; margin-bottom: 15px">
+        3. Information Sharing
+      </h2>
+      <p>
+        We do not sell your personal information. We may share your information
+        with:
+      </p>
+      <ul style="margin-left: 20px">
+        <li>
+          <strong>Service Providers:</strong> Third parties that help us operate
+          our service (hosting, analytics, email)
+        </li>
+        <li>
+          <strong>Legal Requirements:</strong> When required by law or to
+          protect our rights
+        </li>
+        <li>
+          <strong>Business Transfers:</strong> In connection with a merger,
+          acquisition, or sale of assets
+        </li>
+        <li>
+          <strong>With Your Consent:</strong> When you explicitly agree to share
+          your information
+        </li>
+      </ul>
+    </section>
+
+    <section style="margin-bottom: 30px">
+      <h2 style="margin-top: 30px; margin-bottom: 15px">
+        4. Cookies and Tracking
+      </h2>
+      <p>We use cookies and similar technologies to:</p>
+      <ul style="margin-left: 20px">
+        <li>
+          <strong>Essential Cookies:</strong> Required for the site to function
+          (authentication, security)
+        </li>
+        <li>
+          <strong>Analytics Cookies:</strong> Help us understand how you use our
+          service
+        </li>
+        <li>
+          <strong>Advertising Cookies:</strong> Used to show relevant ads (with
+          your consent)
+        </li>
+      </ul>
+      <p style="margin-top: 15px">
+        You can control cookies through your browser settings. See our
+        <a href="{{ url_for('legal.cookie_policy') }}" style="color: #667eea"
+          >Cookie Policy</a
+        >
+        for more details.
+      </p>
+    </section>
+
+    <section style="margin-bottom: 30px">
+      <h2 style="margin-top: 30px; margin-bottom: 15px">
+        5. Your Rights (GDPR)
+      </h2>
+      <p>If you are in the EU/EEA, you have the right to:</p>
+      <ul style="margin-left: 20px">
+        <li><strong>Access:</strong> Request a copy of your personal data</li>
+        <li>
+          <strong>Rectification:</strong> Correct inaccurate or incomplete data
+        </li>
+        <li>
+          <strong>Erasure:</strong> Request deletion of your data ("right to be
+          forgotten")
+        </li>
+        <li>
+          <strong>Portability:</strong> Receive your data in a machine-readable
+          format
+        </li>
+        <li><strong>Objection:</strong> Object to processing of your data</li>
+        <li><strong>Restriction:</strong> Limit how we use your data</li>
+        <li><strong>Withdraw Consent:</strong> Withdraw consent at any time</li>
+      </ul>
+      <p style="margin-top: 15px">
+        To exercise these rights, contact us at
+        <strong>privacy@lumo.example.com</strong>
+      </p>
+    </section>
+
+    <section style="margin-bottom: 30px">
+      <h2 style="margin-top: 30px; margin-bottom: 15px">6. Data Security</h2>
+      <p>We implement industry-standard security measures:</p>
+      <ul style="margin-left: 20px">
+        <li>Encrypted data transmission (HTTPS/TLS)</li>
+        <li>Password hashing with bcrypt</li>
+        <li>CSRF protection on all forms</li>
+        <li>Rate limiting to prevent abuse</li>
+        <li>Regular security audits</li>
+      </ul>
+    </section>
+
+    <section style="margin-bottom: 30px">
+      <h2 style="margin-top: 30px; margin-bottom: 15px">7. Data Retention</h2>
+      <p>
+        We retain your information for as long as your account is active or as
+        needed to provide services. You can request deletion of your account and
+        data at any time.
+      </p>
+    </section>
+
+    <section style="margin-bottom: 30px">
+      <h2 style="margin-top: 30px; margin-bottom: 15px">
+        8. Children's Privacy
+      </h2>
+      <p>
+        Our service is not directed to children under 13. We do not knowingly
+        collect personal information from children under 13. If you believe we
+        have collected such information, please contact us.
+      </p>
+    </section>
+
+    <section style="margin-bottom: 30px">
+      <h2 style="margin-top: 30px; margin-bottom: 15px">
+        9. International Data Transfers
+      </h2>
+      <p>
+        Your information may be transferred to and processed in countries other
+        than your own. We ensure appropriate safeguards are in place for such
+        transfers.
+      </p>
+    </section>
+
+    <section style="margin-bottom: 30px">
+      <h2 style="margin-top: 30px; margin-bottom: 15px">
+        10. Changes to This Policy
+      </h2>
+      <p>
+        We may update this privacy policy from time to time. We will notify you
+        of significant changes by posting a notice on our site or sending you an
+        email.
+      </p>
+    </section>
+
+    <section style="margin-bottom: 30px">
+      <h2 style="margin-top: 30px; margin-bottom: 15px">11. Contact Us</h2>
+      <p>If you have questions about this privacy policy, contact us at:</p>
+      <p style="margin-top: 10px">
+        <strong>Email:</strong> privacy@lumo.example.com<br />
+        <strong>Address:</strong> [Your Company Address]
+      </p>
+    </section>
+  </div>
+
+  <div
+    style="
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+      text-align: center;
+    "
+  >
+    <p style="color: #999; font-size: 14px">
+      <a
+        href="{{ url_for('legal.terms_of_service') }}"
+        style="color: #667eea; margin: 0 10px"
+        >Terms of Service</a
+      >
+      |
+      <a
+        href="{{ url_for('legal.cookie_policy') }}"
+        style="color: #667eea; margin: 0 10px"
+        >Cookie Policy</a
+      >
+      |
+      <a
+        href="{{ url_for('main.home') }}"
+        style="color: #667eea; margin: 0 10px"
+        >Back to Home</a
+      >
+    </p>
+  </div>
+</div>
+{% endblock %}

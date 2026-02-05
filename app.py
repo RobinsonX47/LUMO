@@ -1,10 +1,16 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, jsonify
 from config import Config
 from extensions import db, login_manager
 from tmdb_service import TMDBService
 from flask_login import current_user
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_talisman import Talisman
+from flask_wtf.csrf import CSRFProtect, CSRFError
 import os
 import threading
+import logging
+from logging.handlers import RotatingFileHandler
 from dotenv import load_dotenv
 from datetime import datetime
 
@@ -13,6 +19,15 @@ load_dotenv()
 
 # === ONE-TIME DATABASE INITIALIZATION FLAG ===
 _first_request_done = False
+
+# Initialize security extensions
+csrf = CSRFProtect()
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=["200 per hour"],
+    storage_uri=Config.RATELIMIT_STORAGE_URL,
+    strategy="fixed-window"
+)
 
 
 def datetime_difference(dt):
@@ -48,21 +63,76 @@ def create_app():
     # Ensure instance folder exists (important on Render)
     os.makedirs(os.path.join(app.root_path, "instance"), exist_ok=True)
 
-    # Initialize extensions
+    # ========================================
+    # INITIALIZE SECURITY EXTENSIONS
+    # ========================================
+    
+    # CSRF Protection
+    csrf.init_app(app)
+    
+    # Rate Limiting
+    limiter.init_app(app)
+    
+    # Security Headers (Talisman)
+    # Only enforce HTTPS in production
+    if os.environ.get("FLASK_ENV") == "production":
+        Talisman(app, 
+            force_https=True,
+            strict_transport_security=True,
+            content_security_policy={
+                'default-src': ["'self'"],
+                'script-src': ["'self'", "'unsafe-inline'", "https://www.google.com", "https://www.gstatic.com"],
+                'style-src': ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+                'img-src': ["'self'", "data:", "https:", "http:"],
+                'font-src': ["'self'", "https://fonts.gstatic.com"],
+                'connect-src': ["'self'", "https://api.themoviedb.org"],
+            },
+            content_security_policy_nonce_in=['script-src']
+        )
+    
+    # ========================================
+    # CONFIGURE LOGGING
+    # ========================================
+    
+    if not app.debug:
+        # Create logs directory
+        if not os.path.exists('logs'):
+            os.mkdir('logs')
+        
+        # File handler for errors
+        file_handler = RotatingFileHandler(
+            'logs/lumo.log', 
+            maxBytes=10240000,  # 10MB
+            backupCount=10
+        )
+        file_handler.setFormatter(logging.Formatter(
+            '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+        ))
+        file_handler.setLevel(logging.INFO)
+        app.logger.addHandler(file_handler)
+        
+        app.logger.setLevel(logging.INFO)
+        app.logger.info('LUMO startup')
+
+    # Initialize database and login manager
     db.init_app(app)
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
+    login_manager.login_message = "Please log in to access this page."
+    login_manager.login_message_category = "info"
 
     # Register blueprints
     from routes_main import main_bp
     from routes_auth import auth_bp
     from routes_movies import movies_bp
     from routes_users import users_bp
+    from routes_legal import legal_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(movies_bp, url_prefix="/movies")
     app.register_blueprint(users_bp, url_prefix="/users")
+    app.register_blueprint(legal_bp, url_prefix="/legal")
 
     # Admin optional
     try:
@@ -70,6 +140,37 @@ def create_app():
         app.register_blueprint(admin_bp, url_prefix="/admin")
     except Exception as e:
         print("⚠️ Admin blueprint not loaded:", e)
+    
+    # ========================================
+    # HEALTH CHECK & MONITORING ENDPOINTS
+    # ========================================
+    
+    @app.route('/health')
+    @limiter.exempt  # Don't rate limit health checks
+    def health_check():
+        """Health check endpoint for monitoring"""
+        try:
+            # Check database connection
+            db.session.execute(db.text('SELECT 1'))
+            return jsonify({
+                'status': 'healthy',
+                'database': 'connected',
+                'timestamp': datetime.utcnow().isoformat()
+            }), 200
+        except Exception as e:
+            app.logger.error(f'Health check failed: {str(e)}')
+            return jsonify({
+                'status': 'unhealthy',
+                'database': 'disconnected',
+                'error': str(e),
+                'timestamp': datetime.utcnow().isoformat()
+            }), 503
+    
+    @app.route('/ready')
+    @limiter.exempt
+    def readiness_check():
+        """Readiness check for load balancers"""
+        return jsonify({'status': 'ready'}), 200
 
     # Register Jinja2 filters
     app.jinja_env.filters['datetime_difference'] = datetime_difference
@@ -91,6 +192,7 @@ def create_app():
     @app.errorhandler(500)
     def internal_error(error):
         db.session.rollback()
+        app.logger.error(f'Internal server error: {str(error)}')
         return render_template('errors/500.html'), 500
 
     @app.errorhandler(403)
@@ -100,6 +202,20 @@ def create_app():
     @app.errorhandler(400)
     def bad_request(error):
         return render_template('errors/400.html'), 400
+    
+    @app.errorhandler(429)
+    def ratelimit_handler(error):
+        """Handle rate limit exceeded"""
+        app.logger.warning(f'Rate limit exceeded: {get_remote_address()}')
+        return render_template('errors/429.html', 
+                             retry_after=error.description), 429
+    
+    @app.errorhandler(CSRFError)
+    def csrf_error(error):
+        """Handle CSRF token errors"""
+        app.logger.warning(f'CSRF error: {str(error)}')
+        return render_template('errors/400.html', 
+                             error_message="Security token expired. Please refresh and try again."), 400
 
     # Background cache warming (non-blocking)
     def warm_cache_async():
