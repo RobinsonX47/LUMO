@@ -5,6 +5,7 @@ from tmdb_service import TMDBService
 from flask_login import current_user
 from flask_talisman import Talisman
 from flask_wtf.csrf import CSRFError
+from flask_limiter.util import get_remote_address
 import os
 import threading
 import logging
