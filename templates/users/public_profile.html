@@ -1,6 +1,8 @@
 {% extends "base.html" %} {% block title %}{{ user.name }} (@{{ user.username
 }}) – LUMO{% endblock %} {% block content %}
 
+<input type="hidden" id="csrf_token" value="{{ csrf_token() }}" />
+
 <div
   class="profile-header card-glass"
   style="padding: 32px; margin-bottom: 48px"
@@ -198,7 +200,7 @@
 <!-- Recent Reviews Section -->
 {% if reviewed_movies %}
 <section style="margin-bottom: 48px">
-  <h2 style="margin-bottom: 24px">🎬 Recent Reviews</h2>
+  <h2 style="margin-bottom: 24px">Recent Reviews</h2>
 
   <div class="movie-grid">
     {% for item in reviewed_movies %}
@@ -363,6 +365,7 @@
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "X-CSRFToken": document.getElementById("csrf_token").value,
       },
     })
       .then((response) => response.json())
@@ -391,6 +394,7 @@
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "X-CSRFToken": document.getElementById("csrf_token").value,
       },
     })
       .then((response) => response.json())

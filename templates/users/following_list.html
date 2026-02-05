@@ -1,6 +1,13 @@
 {% extends "base.html" %} {% block title %}{{ user.name }} is Following – LUMO{%
 endblock %} {% block content %}
 
+<input
+  type="hidden"
+  id="csrf_token"
+  name="csrf_token"
+  value="{{ csrf_token() }}"
+/>
+
 <div style="max-width: 900px; margin: 40px auto; padding: 0 20px">
   <!-- Header -->
   <div
@@ -230,6 +237,9 @@ endblock %} {% block content %}
       ),
       {
         method: "POST",
+        headers: {
+          "X-CSRFToken": document.getElementById("csrf_token").value,
+        },
       },
     )
       .then((response) => response.json())
@@ -252,6 +262,9 @@ endblock %} {% block content %}
       ),
       {
         method: "POST",
+        headers: {
+          "X-CSRFToken": document.getElementById("csrf_token").value,
+        },
       },
     )
       .then((response) => response.json())

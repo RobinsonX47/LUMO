@@ -1,6 +1,13 @@
 {% extends "base.html" %} {% block title %}Notifications – LUMO{% endblock %} {%
 block content %}
 
+<input
+  type="hidden"
+  id="csrf_token"
+  name="csrf_token"
+  value="{{ csrf_token() }}"
+/>
+
 <div style="max-width: 700px; margin: 40px auto; padding: 0 20px">
   <!-- Header -->
   <div
@@ -254,6 +261,9 @@ block content %}
   function markAsRead(notificationId) {
     fetch(`/users/notifications/${notificationId}/read`, {
       method: "POST",
+      headers: {
+        "X-CSRFToken": document.getElementById("csrf_token").value,
+      },
     })
       .then((response) => response.json())
       .then((data) => {
@@ -266,6 +276,9 @@ block content %}
   function markAllAsRead() {
     fetch(`{{ url_for('users.mark_notifications_as_read') }}`, {
       method: "POST",
+      headers: {
+        "X-CSRFToken": document.getElementById("csrf_token").value,
+      },
     })
       .then((response) => response.json())
       .then((data) => {

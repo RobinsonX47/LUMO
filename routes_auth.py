@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app
 from flask_login import login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 from extensions import db, limiter
@@ -6,6 +6,7 @@ from models import User
 from oauth_handler import GoogleOAuth
 from forms import LoginForm, RegisterForm
 import re
+import requests
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -106,14 +107,23 @@ def google_login():
 def google_callback():
     """Handle Google OAuth callback"""
     code = request.args.get("code")
+    error = request.args.get("error")
+    
+    if error:
+        flash(f"Google authentication failed: {error}", "error")
+        return redirect(url_for("auth.login"))
     
     if not code:
-        flash("Failed to get authorization code from Google")
+        flash("Failed to get authorization code from Google", "error")
         return redirect(url_for("auth.login"))
     
     try:
         # Exchange code for token
         tokens = GoogleOAuth.exchange_code_for_token(code)
+        
+        if "error" in tokens:
+            flash(f"Token exchange failed: {tokens.get('error_description', 'Unknown error')}", "error")
+            return redirect(url_for("auth.login"))
         
         # Get user info
         user_info = GoogleOAuth.get_user_info(tokens.get("access_token"))
@@ -123,6 +133,10 @@ def google_callback():
         email = user_info.get("email")
         name = user_info.get("name", email.split("@")[0])
         picture = user_info.get("picture")
+        
+        if not google_id or not email:
+            flash("Failed to retrieve user information from Google", "error")
+            return redirect(url_for("auth.login"))
         
         # Check if user exists
         user = User.query.filter_by(google_id=google_id).first()
@@ -158,6 +172,10 @@ def google_callback():
         flash(f"Welcome, {user.name}!", "success")
         return redirect(url_for("main.home"))
     
+    except requests.exceptions.RequestException as e:
+        flash(f"Network error during Google login: {str(e)}", "error")
+        return redirect(url_for("auth.login"))
     except Exception as e:
-        flash(f"An error occurred during Google login: {str(e)}")
+        current_app.logger.error(f"Google OAuth error: {str(e)}", exc_info=True)
+        flash("An error occurred during Google login. Please try again.", "error")
         return redirect(url_for("auth.login"))

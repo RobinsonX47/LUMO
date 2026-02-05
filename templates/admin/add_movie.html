@@ -8,6 +8,7 @@
   enctype="multipart/form-data"
   class="card-glass profile-form"
 >
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
   <div>
     <label for="title">Title</label>
     <input type="text" name="title" id="title" required />

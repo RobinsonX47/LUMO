@@ -1,6 +1,13 @@
 {% extends "base.html" %} {% block title %}User Directory – LUMO{% endblock %}
 {% block content %}
 
+<input
+  type="hidden"
+  id="csrf_token"
+  name="csrf_token"
+  value="{{ csrf_token() }}"
+/>
+
 <div style="max-width: 1200px; margin: 40px auto; padding: 0 20px">
   <!-- Header -->
   <div style="margin-bottom: 40px">
@@ -16,14 +23,14 @@
         class="btn-tertiary"
         style="{% if sort_by == 'followers' %}background: var(--primary); color: white;{% endif %}"
       >
-        🏆 Most Popular
+        Most Popular (By Reviews)
       </a>
       <a
         href="{{ url_for('users.directory', sort='newest') }}"
         class="btn-tertiary"
         style="{% if sort_by == 'newest' %}background: var(--primary); color: white;{% endif %}"
       >
-        ⭐ Newest Members
+        Newest Members
       </a>
       <a
         href="{{ url_for('users.directory', sort='alphabetical') }}"
@@ -112,7 +119,7 @@
       <!-- Stats -->
       <div style="font-size: 12px; color: var(--muted); margin-bottom: 16px">
         <p style="margin: 2px 0">👥 {{ user.followers.count() }} followers</p>
-        <p style="margin: 2px 0">⭐ {{ user.reviews|length }} reviews</p>
+        <p style="margin: 2px 0">{{ user.reviews|length }} reviews</p>
       </div>
 
       <!-- Follow Button -->
@@ -232,6 +239,9 @@
     const url = `/users/${userId}/follow`;
     fetch(url, {
       method: "POST",
+      headers: {
+        "X-CSRFToken": document.getElementById("csrf_token").value,
+      },
     })
       .then((response) => response.json())
       .then((data) => {
@@ -249,6 +259,9 @@
     const url = `/users/${userId}/unfollow`;
     fetch(url, {
       method: "POST",
+      headers: {
+        "X-CSRFToken": document.getElementById("csrf_token").value,
+      },
     })
       .then((response) => response.json())
       .then((data) => {

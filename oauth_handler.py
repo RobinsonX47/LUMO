@@ -52,6 +52,7 @@ class GoogleOAuth:
         }
         
         response = requests.post(token_endpoint, data=token_request)
+        response.raise_for_status()  # Raise exception for HTTP errors
         tokens = response.json()
         return tokens
     
@@ -63,4 +64,5 @@ class GoogleOAuth:
         
         headers = {"Authorization": f"Bearer {token}"}
         response = requests.get(userinfo_endpoint, headers=headers)
+        response.raise_for_status()  # Raise exception for HTTP errors
         return response.json()

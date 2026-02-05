@@ -1,6 +1,13 @@
 {% extends "base.html" %} {% block title %}Recommendations – LUMO{% endblock %}
 {% block content %}
 
+<input
+  type="hidden"
+  id="csrf_token"
+  name="csrf_token"
+  value="{{ csrf_token() }}"
+/>
+
 <!-- Header Section -->
 <div class="recommendations-header">
   <div class="header-content">
@@ -403,6 +410,7 @@
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "X-CSRFToken": document.getElementById("csrf_token").value,
           },
           body: JSON.stringify({ batch: loadMoreBatch }),
         },

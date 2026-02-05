@@ -52,30 +52,35 @@ def profile():
     )
 
     def resolve_entry(entry):
-        """Try movie first, then TV only if needed to reduce API calls."""
-        movie = TMDBService.get_movie_details(entry.tmdb_movie_id)
-        
-        target_title = (entry.movie_title or "").strip().casefold()
-        if movie and target_title:
-            movie_title = (movie.get('title') or "").strip().casefold()
-            if movie_title == target_title:
-                return movie
-        
-        tv = TMDBService.get_tv_details(entry.tmdb_movie_id)
-        if tv and target_title:
-            tv_title = (tv.get('name') or "").strip().casefold()
-            if tv_title == target_title:
-                return tv
-        
-        return movie or tv
+        """Get movie/TV details using stored media_type for better performance."""
+        try:
+            # Use stored media_type if available (new entries have it)
+            media_type = getattr(entry, 'media_type', 'movie')
+            
+            if media_type == 'tv':
+                details = TMDBService.get_tv_details(entry.tmdb_movie_id)
+            else:
+                details = TMDBService.get_movie_details(entry.tmdb_movie_id)
+            
+            # If first attempt fails, try the other type (for old entries without media_type)
+            if not details:
+                if media_type == 'tv':
+                    details = TMDBService.get_movie_details(entry.tmdb_movie_id)
+                else:
+                    details = TMDBService.get_tv_details(entry.tmdb_movie_id)
+            
+            return details
+        except Exception as e:
+            print(f"Error resolving watchlist entry {entry.tmdb_movie_id}: {e}")
+            return None
 
     watchlist_movies = []
     for entry in watchlist_entries:
         movie = resolve_entry(entry)
         if movie:
-            movie['media_type'] = movie.get('media_type') or (
-                'tv' if (movie.get('name') and not movie.get('title')) else 'movie'
-            )
+            # Ensure media_type is set
+            if 'media_type' not in movie:
+                movie['media_type'] = getattr(entry, 'media_type', 'movie')
             watchlist_movies.append(movie)
     
     # Get followers and following counts

@@ -286,7 +286,8 @@ def toggle_watchlist(movie_id):
                 user_id=current_user.id,
                 tmdb_movie_id=movie_id,
                 movie_title=movie.get('title', movie.get('name', 'Unknown')),
-                poster_path=movie.get('poster_path')
+                poster_path=movie.get('poster_path'),
+                media_type=media_type
             )
             db.session.add(new_entry)
             db.session.commit()
@@ -308,26 +309,27 @@ def watchlist():
     )
 
     def resolve_entry(entry):
-        """Fetch the correct TMDB payload, trying movie first, then TV only if needed."""
-        # Try movie first
-        movie = TMDBService.get_movie_details(entry.tmdb_movie_id)
-        
-        # If we have a cached title, check if movie matches
-        target_title = (entry.movie_title or "").strip().casefold()
-        if movie and target_title:
-            movie_title = (movie.get("title") or "").strip().casefold()
-            if movie_title == target_title:
-                return movie
-        
-        # If movie exists but no title match, try TV
-        tv = TMDBService.get_tv_details(entry.tmdb_movie_id)
-        if tv and target_title:
-            tv_title = (tv.get("name") or "").strip().casefold()
-            if tv_title == target_title:
-                return tv
-        
-        # Fallback: return whichever exists
-        return movie or tv
+        """Get movie/TV details using stored media_type for better performance."""
+        try:
+            # Use stored media_type if available (new entries have it)
+            media_type = getattr(entry, 'media_type', 'movie')
+            
+            if media_type == 'tv':
+                details = TMDBService.get_tv_details(entry.tmdb_movie_id)
+            else:
+                details = TMDBService.get_movie_details(entry.tmdb_movie_id)
+            
+            # If first attempt fails, try the other type (for old entries without media_type)
+            if not details:
+                if media_type == 'tv':
+                    details = TMDBService.get_movie_details(entry.tmdb_movie_id)
+                else:
+                    details = TMDBService.get_tv_details(entry.tmdb_movie_id)
+            
+            return details
+        except Exception as e:
+            print(f"Error resolving watchlist entry {entry.tmdb_movie_id}: {e}")
+            return None
 
     watchlist_items = []
     for entry in entries:
@@ -335,9 +337,9 @@ def watchlist():
         if not item:
             continue
 
-        item["media_type"] = item.get("media_type") or (
-            "tv" if (item.get("name") and not item.get("title")) else "movie"
-        )
+        # Ensure media_type is set
+        if 'media_type' not in item:
+            item['media_type'] = getattr(entry, 'media_type', 'movie')
         watchlist_items.append(item)
 
     return render_template(

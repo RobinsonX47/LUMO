@@ -11,7 +11,7 @@ content %}
       margin-bottom: 32px;
     "
   >
-    <h1>🎬 Movies</h1>
+    <h1>Movies</h1>
   </div>
 
   <div
@@ -22,7 +22,7 @@ content %}
       margin-bottom: 24px;
     "
   >
-    <h2 style="margin: 0">🔥 Trending This Week</h2>
+    <h2 style="margin: 0">Trending This Week</h2>
     <a href="{{ url_for('main.movies_trending') }}" class="btn-secondary"
       >Browse All</a
     >
@@ -51,13 +51,13 @@ content %}
             font-size: 3rem;
           "
         >
-          🎬
+          <svg viewBox="0 0 24 24" width="3rem" height="3rem" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
         </div>
         {% endif %}
         <div class="movie-title">{{ movie.title }}</div>
         <div class="movie-meta">
           {% if movie.release_date %}{{ movie.release_date[:4] }} • {% endif %}
-          ⭐ {{ movie.vote_average|round(1) }}/10
+          {{ movie.vote_average|round(1) }}/10
         </div>
       </div>
     </a>
@@ -74,7 +74,7 @@ content %}
       margin-bottom: 24px;
     "
   >
-    <h2 style="margin: 0">🏆 Top Rated</h2>
+    <h2 style="margin: 0">Top Rated</h2>
     <a href="{{ url_for('main.movies_top_rated') }}" class="btn-secondary"
       >Browse All</a
     >
@@ -103,13 +103,13 @@ content %}
             font-size: 3rem;
           "
         >
-          🎬
+          <svg viewBox="0 0 24 24" width="3rem" height="3rem" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
         </div>
         {% endif %}
         <div class="movie-title">{{ movie.title }}</div>
         <div class="movie-meta">
           {% if movie.release_date %}{{ movie.release_date[:4] }} • {% endif %}
-          ⭐ {{ movie.vote_average|round(1) }}/10
+          {{ movie.vote_average|round(1) }}/10
         </div>
       </div>
     </a>
@@ -126,7 +126,7 @@ content %}
       margin-bottom: 24px;
     "
   >
-    <h2 style="margin: 0">🌟 Popular Now</h2>
+    <h2 style="margin: 0">Popular Now</h2>
   </div>
   <div class="movie-grid">
     {% for movie in popular %}
@@ -152,13 +152,13 @@ content %}
             font-size: 3rem;
           "
         >
-          🎬
+          <svg viewBox="0 0 24 24" width="3rem" height="3rem" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
         </div>
         {% endif %}
         <div class="movie-title">{{ movie.title }}</div>
         <div class="movie-meta">
           {% if movie.release_date %}{{ movie.release_date[:4] }} • {% endif %}
-          ⭐ {{ movie.vote_average|round(1) }}/10
+          {{ movie.vote_average|round(1) }}/10
         </div>
       </div>
     </a>
@@ -175,7 +175,7 @@ content %}
       margin-bottom: 24px;
     "
   >
-    <h2 style="margin: 0">💥 Action Movies</h2>
+    <h2 style="margin: 0">Action Movies</h2>
     <a href="{{ url_for('main.movies_by_genre', genre_id=28) }}" class="btn-secondary"
       >Browse All</a
     >
@@ -204,13 +204,13 @@ content %}
             font-size: 3rem;
           "
         >
-          🎬
+          <svg viewBox="0 0 24 24" width="3rem" height="3rem" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
         </div>
         {% endif %}
         <div class="movie-title">{{ movie.title }}</div>
         <div class="movie-meta">
           {% if movie.release_date %}{{ movie.release_date[:4] }} • {% endif %}
-          ⭐ {{ movie.vote_average|round(1) }}/10
+          {{ movie.vote_average|round(1) }}/10
         </div>
       </div>
     </a>
@@ -227,7 +227,7 @@ content %}
       margin-bottom: 24px;
     "
   >
-    <h2 style="margin: 0">😂 Comedy Movies</h2>
+    <h2 style="margin: 0">Comedy Movies</h2>
     <a href="{{ url_for('main.movies_by_genre', genre_id=35) }}" class="btn-secondary"
       >Browse All</a
     >
@@ -256,13 +256,13 @@ content %}
             font-size: 3rem;
           "
         >
-          🎬
+          <svg viewBox="0 0 24 24" width="3rem" height="3rem" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
         </div>
         {% endif %}
         <div class="movie-title">{{ movie.title }}</div>
         <div class="movie-meta">
           {% if movie.release_date %}{{ movie.release_date[:4] }} • {% endif %}
-          ⭐ {{ movie.vote_average|round(1) }}/10
+          {{ movie.vote_average|round(1) }}/10
         </div>
       </div>
     </a>

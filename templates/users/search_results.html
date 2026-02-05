@@ -1,6 +1,13 @@
 {% extends "base.html" %} {% block title %}Search Users – LUMO{% endblock %} {%
 block content %}
 
+<input
+  type="hidden"
+  id="csrf_token"
+  name="csrf_token"
+  value="{{ csrf_token() }}"
+/>
+
 <div style="max-width: 1000px; margin: 40px auto; padding: 0 20px">
   <!-- Search Form -->
   <div class="card-glass" style="padding: 32px; margin-bottom: 48px">
@@ -226,6 +233,9 @@ block content %}
     const url = `/users/${userId}/follow`;
     fetch(url, {
       method: "POST",
+      headers: {
+        "X-CSRFToken": document.getElementById("csrf_token").value,
+      },
     })
       .then((response) => response.json())
       .then((data) => {
@@ -243,6 +253,9 @@ block content %}
     const url = `/users/${userId}/unfollow`;
     fetch(url, {
       method: "POST",
+      headers: {
+        "X-CSRFToken": document.getElementById("csrf_token").value,
+      },
     })
       .then((response) => response.json())
       .then((data) => {

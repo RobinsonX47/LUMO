@@ -246,10 +246,10 @@ class TMDBService:
                 
             except requests.exceptions.Timeout:
                 if attempt < retries:
-                    print(f"⏱️ TMDB API Timeout, retrying... ({attempt + 1}/{retries})")
+                    print(f"TMDB API Timeout, retrying... ({attempt + 1}/{retries})")
                     time.sleep(0.5)  # Brief pause before retry
                     continue
-                print(f"⏱️ TMDB API Timeout after {retries} retries: {endpoint}")
+                print(f"TMDB API Timeout after {retries} retries: {endpoint}")
                 return None
                 
             except requests.exceptions.RequestException as e:
@@ -591,13 +591,13 @@ class TMDBService:
             TMDBService.init_cache()
             
             # Movies
-            print("📽️  Caching movies...")
+            print("Caching movies...")
             TMDBService.get_trending_movies('week')
             TMDBService.get_top_rated_movies()
             TMDBService.get_popular_movies()
             
             # TV Series
-            print("📺 Caching TV series...")
+            print("Caching TV series...")
             TMDBService.get_trending_tv('week')
             TMDBService.get_top_rated_tv()
             TMDBService.get_popular_tv()
@@ -608,7 +608,7 @@ class TMDBService:
             TMDBService.get_top_rated_anime()
             
             # Genres
-            print("🎭 Caching genres...")
+            print("Caching genres...")
             genres = TMDBService.get_genres()
             for i, genre in enumerate(genres[:5]):  # Cache first 5 genres
                 print(f"   Genre {i+1}/5: {genre['name']}")

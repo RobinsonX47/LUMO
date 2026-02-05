@@ -20,6 +20,7 @@ block content %}
       action="{{ url_for('users.edit_profile') }}"
       enctype="multipart/form-data"
     >
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
       <!-- Avatar Upload Section -->
       <div style="margin-bottom: 40px; text-align: center">
         <div class="avatar-upload-wrapper">

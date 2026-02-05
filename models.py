@@ -113,6 +113,7 @@ class Watchlist(db.Model):
     tmdb_movie_id = db.Column(db.Integer, nullable=True)  # For TMDB movies
     movie_title = db.Column(db.String(200))  # Cache title
     poster_path = db.Column(db.String(255))  # Cache poster
+    media_type = db.Column(db.String(10), default='movie')  # 'movie' or 'tv'
     added_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     __table_args__ = (

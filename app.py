@@ -237,7 +237,7 @@ def initialize_database_once():
 # === LOCAL DEVELOPMENT ENTRY ===
 if __name__ == "__main__":
     print("\n" + "=" * 60)
-    print("🎬 LUMO Movie Platform Starting...")
+    print("LUMO Movie Platform Starting...")
     print("=" * 60)
     print(f"✅ Database: {Config.SQLALCHEMY_DATABASE_URI}")
     print(f"✅ TMDB API: {'Configured' if Config.TMDB_API_KEY != 'YOUR_TMDB_API_KEY_HERE' else '⚠️ NOT CONFIGURED'}")

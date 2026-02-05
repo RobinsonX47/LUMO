@@ -11,7 +11,7 @@ block content %}
       margin-bottom: 32px;
     "
   >
-    <h1>📺 TV Series</h1>
+    <h1>TV Series</h1>
   </div>
 
   <h2 style="margin-bottom: 24px">🔥 Trending Series</h2>
@@ -39,8 +39,7 @@ block content %}
             font-size: 3rem;
           "
         >
-          📺
-        </div>
+          <svg viewBox="0 0 24 24" width="3rem" height="3rem" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
         {% endif %}
         <div class="movie-title">{{ show.title }}</div>
         <div class="movie-meta">
@@ -54,7 +53,7 @@ block content %}
 </section>
 
 <section>
-  <h2 style="margin-bottom: 24px">🏆 Top Rated Series</h2>
+  <h2 style="margin-bottom: 24px">Top Rated Series</h2>
   <div class="movie-grid">
     {% for show in top_rated %}
     <a

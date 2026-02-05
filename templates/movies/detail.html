@@ -82,9 +82,9 @@
 
         <div class="hero-meta-row">
           {% if movie.release_date %}
-          <span class="badge-pill">📅 {{ movie.release_date[:4] }}</span>
+          <span class="badge-pill">{{ movie.release_date[:4] }}</span>
           {% endif %} {% if movie.runtime %}
-          <span class="badge-pill">⏱️ {{ movie.runtime }} min</span>
+          <span class="badge-pill">{{ movie.runtime }} min</span>
           {% endif %}
           <span class="badge-pill"
             >⭐ {{ movie.vote_average|round(1) }}/10</span
@@ -198,7 +198,7 @@
   <!-- Cast Section -->
   {% if movie.credits and movie.credits.cast %}
   <section class="content-section">
-    <h2>✨ Cast</h2>
+    <h2>Cast</h2>
     <div class="cast-grid-premium">
       {% for actor in movie.credits.cast[:10] %}
       <div class="cast-card-premium">
@@ -209,7 +209,12 @@
           class="cast-photo-premium"
         />
         {% else %}
-        <div class="cast-photo-placeholder">👤</div>
+        <div class="cast-photo-placeholder">
+          <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+        </div>
         {% endif %}
         <div class="cast-name-premium">{{ actor.name }}</div>
         <div class="cast-character-premium">{{ actor.character }}</div>
@@ -221,7 +226,7 @@
 
   <!-- Reviews Section -->
   <section class="content-section" id="reviewSection">
-    <h2>💬 User Reviews</h2>
+    <h2>User Reviews</h2>
 
     {% if current_user.is_authenticated %}
     <div class="review-form-card-premium">
@@ -234,6 +239,7 @@
         action="{{ url_for('movies.add_review', movie_id=movie.id) }}"
         aria-label="Movie review form"
       >
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
         <div class="form-group">
           <label for="rating-group">Your Rating (1-5 stars)</label>
           <div class="star-rating-input-premium" id="rating-group" role="group" aria-labelledby="rating-label">
@@ -288,7 +294,9 @@
         method="POST"
         action="{{ url_for('movies.delete_review', movie_id=movie.id) }}"
         style="display: none"
-      ></form>
+      >
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      </form>
       {% endif %}
     </div>
     {% else %}
@@ -314,7 +322,7 @@
             </div>
           </div>
           <div class="review-stars-premium">
-            {% for i in range(review.rating) %}⭐{% endfor %}
+            <span class="review-rating">{{ review.rating }}/5</span>
           </div>
         </div>
         <p class="review-text-premium">{{ review.review_text }}</p>
@@ -328,7 +336,7 @@
   <!-- AI-style Curated Similar -->
   {% if smart_recs %}
   <section class="content-section">
-    <h2>🎬 You Might Also Like</h2>
+    <h2>You Might Also Like</h2>
     <div class="movie-grid">
       {% for rec in smart_recs %}
       <a
@@ -343,7 +351,9 @@
             class="movie-poster"
           />
           {% else %}
-          <div class="movie-poster movie-poster-placeholder">🎬</div>
+          <div class="movie-poster movie-poster-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
+          </div>
           {% endif %}
           <div class="movie-title">{{ rec.title or rec.name }}</div>
           <div class="movie-meta">
@@ -1240,6 +1250,7 @@
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "X-CSRFToken": document.querySelector('input[name="csrf_token"]').value,
       },
       body: JSON.stringify({ media_type: mediaType }),
     })
