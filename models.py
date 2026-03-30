@@ -101,6 +101,8 @@ class Review(db.Model):
     # Add unique constraint so user can only review a movie once
     __table_args__ = (
         db.UniqueConstraint('user_id', 'tmdb_movie_id', name='unique_user_tmdb_review'),
+        db.Index('ix_reviews_user_created', 'user_id', 'created_at'),
+        db.Index('ix_reviews_tmdb_created', 'tmdb_movie_id', 'created_at'),
     )
 
 
@@ -118,6 +120,8 @@ class Watchlist(db.Model):
 
     __table_args__ = (
         db.UniqueConstraint('user_id', 'tmdb_movie_id', name='unique_user_tmdb_watchlist'),
+        db.Index('ix_watchlist_user_added', 'user_id', 'added_at'),
+        db.Index('ix_watchlist_user_media', 'user_id', 'media_type'),
     )
 
 
@@ -135,7 +139,37 @@ class Notification(db.Model):
     user = db.relationship("User", foreign_keys=[user_id])
     actor = db.relationship("User", foreign_keys=[actor_id])
 
+    __table_args__ = (
+        db.Index('ix_notifications_user_read_created', 'user_id', 'is_read', 'created_at'),
+        db.Index('ix_notifications_actor_created', 'actor_id', 'created_at'),
+    )
+
+
+class WatchProgress(db.Model):
+    __tablename__ = "watch_progress"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    tmdb_id = db.Column(db.Integer, nullable=False)
+    media_type = db.Column(db.String(10), nullable=False)  # movie|tv
+    season = db.Column(db.Integer, nullable=True)
+    episode = db.Column(db.Integer, nullable=True)
+    current_time = db.Column(db.Integer, default=0)
+    duration = db.Column(db.Integer, default=0)
+    progress_percent = db.Column(db.Float, default=0.0)
+    last_event = db.Column(db.String(30), nullable=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            'user_id', 'tmdb_id', 'media_type', 'season', 'episode',
+            name='uq_watch_progress_user_item'
+        ),
+        db.Index('ix_watch_progress_user_updated', 'user_id', 'updated_at'),
+        db.Index('ix_watch_progress_lookup', 'user_id', 'tmdb_id', 'media_type', 'season', 'episode'),
+    )
+
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))

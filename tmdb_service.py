@@ -4,33 +4,73 @@ Handles all interactions with The Movie Database API with intelligent caching
 """
 
 import requests
-from flask import current_app
+from flask import current_app, has_request_context, has_app_context, g
 import random
 import json
 import os
 import time
 import math
+import logging
 from datetime import datetime, timedelta
 from pathlib import Path
 import hashlib
+
+try:
+    import redis
+except Exception:  # pragma: no cover - graceful fallback when redis client unavailable
+    redis = None
+
+
+logger = logging.getLogger(__name__)
 
 class TMDBCache:
     """Handles caching of TMDB API responses"""
     
     def __init__(self, cache_dir='instance/cache'):
+        self.redis_client = None
+        self.redis_prefix = 'tmdb:cache:'
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.cache_duration = timedelta(hours=6)  # Cache for 6 hours
-        print(f"✅ Cache directory: {self.cache_dir.absolute()}")
+        self.cache_duration_seconds = int(self.cache_duration.total_seconds())
+
+        redis_url = current_app.config.get('REDIS_URL') if has_app_context() else None
+        if redis_url and redis is not None:
+            try:
+                self.redis_client = redis.Redis.from_url(redis_url, decode_responses=True)
+                self.redis_client.ping()
+                logger.info("TMDB cache backend: redis")
+            except Exception as exc:
+                logger.warning("Redis cache unavailable, falling back to filesystem: %s", exc)
+                self.redis_client = None
+
+        logger.info("TMDB cache directory: %s", self.cache_dir.absolute())
     
     def get_cache_path(self, key):
         """Get the file path for a cache key using hash for safe filenames"""
         # Use hash to create safe, consistent filenames
         key_hash = hashlib.md5(key.encode('utf-8')).hexdigest()
         return self.cache_dir / f"{key_hash}.json"
+
+    def get_redis_key(self, key):
+        key_hash = hashlib.md5(key.encode('utf-8')).hexdigest()
+        return f"{self.redis_prefix}{key_hash}"
     
     def get(self, key):
         """Get cached data if it exists and is not expired"""
+        if self.redis_client:
+            redis_key = self.get_redis_key(key)
+            try:
+                raw = self.redis_client.get(redis_key)
+                if not raw:
+                    return None
+                cache_data = json.loads(raw)
+                logger.debug("TMDB redis cache hit: %s", key[:50])
+                return cache_data.get('data')
+            except Exception as exc:
+                logger.warning("TMDB redis cache read error: %s", exc)
+                return None
+
         cache_path = self.get_cache_path(key)
         
         if not cache_path.exists():
@@ -50,10 +90,10 @@ class TMDBCache:
                     pass
                 return None
             
-            print(f"✅ Cache HIT: {key[:50]}...")
+            logger.debug("TMDB cache hit: %s", key[:50])
             return cache_data['data']
         except Exception as e:
-            print(f"⚠️ Cache read error: {e}")
+            logger.warning("TMDB cache read error: %s", e)
             # Delete corrupted cache file
             try:
                 cache_path.unlink()
@@ -63,6 +103,20 @@ class TMDBCache:
     
     def set(self, key, data):
         """Cache data with timestamp"""
+        if self.redis_client:
+            redis_key = self.get_redis_key(key)
+            try:
+                cache_data = {
+                    'timestamp': datetime.now().isoformat(),
+                    'key': key,
+                    'data': data,
+                }
+                self.redis_client.setex(redis_key, self.cache_duration_seconds, json.dumps(cache_data, ensure_ascii=False))
+                logger.debug("TMDB redis cache set: %s", key[:50])
+                return
+            except Exception as exc:
+                logger.warning("TMDB redis cache write error: %s", exc)
+
         cache_path = self.get_cache_path(key)
         
         try:
@@ -73,18 +127,26 @@ class TMDBCache:
             }
             with open(cache_path, 'w', encoding='utf-8') as f:
                 json.dump(cache_data, f, ensure_ascii=False, indent=2)
-            print(f"✅ Cache SET: {key[:50]}...")
+            logger.debug("TMDB cache set: %s", key[:50])
         except Exception as e:
-            print(f"⚠️ Cache write error: {e}")
+            logger.warning("TMDB cache write error: %s", e)
     
     def clear(self):
         """Clear all cache files"""
+        if self.redis_client:
+            try:
+                for key in self.redis_client.scan_iter(f"{self.redis_prefix}*"):
+                    self.redis_client.delete(key)
+                logger.info("TMDB redis cache cleared")
+            except Exception as exc:
+                logger.warning("TMDB redis cache clear error: %s", exc)
+
         try:
             for cache_file in self.cache_dir.glob('*.json'):
                 cache_file.unlink()
-            print("✅ Cache cleared")
+            logger.info("TMDB cache cleared")
         except Exception as e:
-            print(f"⚠️ Cache clear error: {e}")
+            logger.warning("TMDB cache clear error: %s", e)
 
 class TMDBService:
     cache = None
@@ -227,12 +289,15 @@ class TMDBService:
         for attempt in range(retries + 1):
             # Rate limit before making request
             TMDBService._rate_limit()
+
+            if has_request_context():
+                g.tmdb_api_calls = int(getattr(g, 'tmdb_api_calls', 0)) + 1
             
             try:
                 if attempt > 0:
-                    print(f"🔄 Retry {attempt}/{retries}: {endpoint}")
+                    logger.info("TMDB retry %s/%s: %s", attempt, retries, endpoint)
                 else:
-                    print(f"🌐 API Request: {endpoint}")
+                    logger.debug("TMDB API request: %s", endpoint)
                     
                 response = requests.get(f"{base_url}/{endpoint}", params=params, timeout=15)
                 response.raise_for_status()
@@ -246,18 +311,18 @@ class TMDBService:
                 
             except requests.exceptions.Timeout:
                 if attempt < retries:
-                    print(f"TMDB API Timeout, retrying... ({attempt + 1}/{retries})")
+                    logger.warning("TMDB API timeout, retrying (%s/%s): %s", attempt + 1, retries, endpoint)
                     time.sleep(0.5)  # Brief pause before retry
                     continue
-                print(f"TMDB API Timeout after {retries} retries: {endpoint}")
+                logger.error("TMDB API timeout after %s retries: %s", retries, endpoint)
                 return None
                 
             except requests.exceptions.RequestException as e:
                 if attempt < retries:
-                    print(f"⚠️ TMDB API Error, retrying... ({attempt + 1}/{retries})")
+                    logger.warning("TMDB API error, retrying (%s/%s): %s", attempt + 1, retries, endpoint)
                     time.sleep(0.5)
                     continue
-                print(f"❌ TMDB API Error after {retries} retries: {e}")
+                logger.error("TMDB API error after %s retries: %s", retries, e)
                 return None
         
         return None
@@ -582,42 +647,38 @@ class TMDBService:
     @staticmethod
     def warm_cache():
         """Pre-populate cache with common requests"""
-        print("\n" + "="*60)
-        print("🔥 Warming up TMDB cache...")
-        print("="*60)
+        logger.info("Starting TMDB cache warmup")
         
         try:
             # Initialize cache
             TMDBService.init_cache()
             
             # Movies
-            print("Caching movies...")
+            logger.info("Warming movie caches")
             TMDBService.get_trending_movies('week')
             TMDBService.get_top_rated_movies()
             TMDBService.get_popular_movies()
             
             # TV Series
-            print("Caching TV series...")
+            logger.info("Warming TV caches")
             TMDBService.get_trending_tv('week')
             TMDBService.get_top_rated_tv()
             TMDBService.get_popular_tv()
             
             # Anime
-            print("🎌 Caching anime...")
+            logger.info("Warming anime caches")
             TMDBService.get_trending_anime()
             TMDBService.get_top_rated_anime()
             
             # Genres
-            print("Caching genres...")
+            logger.info("Warming genre caches")
             genres = TMDBService.get_genres()
             for i, genre in enumerate(genres[:5]):  # Cache first 5 genres
-                print(f"   Genre {i+1}/5: {genre['name']}")
+                logger.info("Warming genre %s/5: %s", i + 1, genre['name'])
                 TMDBService.get_movies_by_genre(genre['id'])
-            
-            print("\n" + "="*60)
-            print("✅ Cache warming complete!")
-            print("="*60 + "\n")
+
+            logger.info("TMDB cache warmup complete")
         except Exception as e:
-            print(f"\n❌ Cache warming error: {e}")
+            logger.exception("TMDB cache warming error: %s", e)
             import traceback
             traceback.print_exc()

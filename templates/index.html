@@ -10,6 +10,7 @@ Series{% endblock %} {% block content %}
       class="hero-bg"
       src="{{ movie.backdrop_url }}"
       alt="{{ movie.title }}"
+      decoding="async"
     />
     <div class="hero-overlay-left"></div>
     <div class="hero-overlay-bottom"></div>
@@ -52,6 +53,35 @@ Series{% endblock %} {% block content %}
     {% endfor %}
   </div>
 </section>
+{% endif %} {% if recently_viewed %}
+<section style="margin-bottom: 64px">
+  <h2 style="margin-bottom: 20px">Recently Viewed</h2>
+  <div class="movie-grid">
+    {% for item in recently_viewed %}
+    <a
+      href="{{ url_for('movies.tv_detail', tv_id=item.id) if item.media_type == 'tv' else url_for('movies.movie_detail', movie_id=item.id) }}"
+      class="card-link"
+    >
+      <div class="card-glass">
+        {% if item.poster_url %}
+        <img
+          src="{{ item.poster_url }}"
+          alt="{{ item.title or item.name }}"
+          class="movie-poster"
+          loading="lazy"
+          decoding="async"
+        />
+        {% endif %}
+        <div class="movie-title">{{ item.title or item.name }}</div>
+        <div class="movie-meta">
+          {% if item.release_date %}{{ item.release_date[:4] }} • {% endif %} {{
+          item.vote_average|round(1) }}/10
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
 {% endif %}
 
 <!-- Quick Access Section Cards -->
@@ -86,7 +116,7 @@ Series{% endblock %} {% block content %}
           border: 1px solid rgba(168, 85, 247, 0.3);
         "
       >
-        <div class=\"card-icon\">Film</div>
+        <div class="card-icon" aria-hidden="true">🎬</div>
         <h3>Movies</h3>
         <p>Discover trending and top-rated movies from around the world</p>
       </div>
@@ -105,7 +135,7 @@ Series{% endblock %} {% block content %}
           border: 1px solid rgba(217, 70, 239, 0.3);
         "
       >
-        <div class=\"card-icon\">Series</div>
+        <div class="card-icon" aria-hidden="true">🌸</div>
         <h3>Anime</h3>
         <p>Browse popular anime series and discover new favorites</p>
       </div>

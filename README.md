@@ -174,9 +174,19 @@ pip install -r requirements.txt
 ```bash
 # Windows (PowerShell):
 $env:TMDB_API_KEY="your_api_key_here"
+$env:ANTHROPIC_API_KEY="your_anthropic_api_key"
+$env:EMBED_PROVIDER_ENABLED="true"
+$env:EMBED_PROVIDER_BASE_URL="https://your-licensed-provider.example"
+$env:EMBED_PROVIDER_ALLOWED_ORIGIN="https://your-licensed-provider.example"
 
 # Mac/Linux:
 export TMDB_API_KEY="your_api_key_here"
+
+# Optional (for AI recommendations):
+export ANTHROPIC_API_KEY="your_anthropic_api_key"
+export EMBED_PROVIDER_ENABLED="true"
+export EMBED_PROVIDER_BASE_URL="https://your-licensed-provider.example"
+export EMBED_PROVIDER_ALLOWED_ORIGIN="https://your-licensed-provider.example"
 ```
 
 **Option B: Direct Configuration**
@@ -191,9 +201,11 @@ TMDB_API_KEY = "your_actual_api_key_here"
 
 ```bash
 python scripts/migrate_to_tmdb.py
+python scripts/migrate_add_performance_indexes.py
+python scripts/migrate_add_watch_progress.py
 ```
 
-This creates the database with all required tables.
+This creates the database with all required tables and adds performance indexes.
 
 ### Step 7: Run the Application
 

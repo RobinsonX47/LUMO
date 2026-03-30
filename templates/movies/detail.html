@@ -195,6 +195,83 @@
 
 <!-- Content Section (scrollable) -->
 <div class="movie-detail-content">
+  {% if player_embed and player_embed.enabled and player_embed.url %}
+  <section class="content-section">
+    <h2>Watch Now</h2>
+    <div class="player-shell card-glass">
+      {% if media_type == 'tv' %}
+      <form method="GET" class="player-controls player-controls-tv">
+        <div id="episode-pill" class="episode-pill">S{{ player_embed.season or 1 }} • E{{ player_embed.episode or 1 }}</div>
+
+        <div class="control-group">
+          <label for="season-input">Season</label>
+          <div class="tv-dropdown" data-dropdown="season">
+            <input id="season-input" name="season" type="hidden" value="{{ player_embed.season or 1 }}" />
+            <button type="button" class="tv-dropdown-trigger" id="season-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="season-menu">
+              <span id="season-label" class="tv-dropdown-label">Season {{ player_embed.season or 1 }}</span>
+              <span class="tv-dropdown-chevron" aria-hidden="true">▾</span>
+            </button>
+            <div id="season-menu" class="tv-dropdown-menu" role="listbox" aria-labelledby="season-trigger"></div>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label for="episode-input">Episode</label>
+          <div class="tv-dropdown" data-dropdown="episode">
+            <input id="episode-input" name="episode" type="hidden" value="{{ player_embed.episode or 1 }}" />
+            <button type="button" class="tv-dropdown-trigger" id="episode-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="episode-menu">
+              <span id="episode-label" class="tv-dropdown-label">Episode {{ player_embed.episode or 1 }}</span>
+              <span class="tv-dropdown-chevron" aria-hidden="true">▾</span>
+            </button>
+            <div id="episode-menu" class="tv-dropdown-menu" role="listbox" aria-labelledby="episode-trigger"></div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-secondary">Load Episode</button>
+      </form>
+      {% endif %}
+      <div class="player-frame-wrap">
+        <iframe
+          id="licensedPlayer"
+          src="{{ player_embed.url }}"
+          title="Embedded player"
+          width="100%"
+          height="680"
+          frameborder="0"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
+          allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+          allowfullscreen
+          referrerpolicy="no-referrer"
+          loading="lazy"
+        ></iframe>
+      </div>
+    </div>
+  </section>
+  {% else %}
+  <section class="content-section">
+    <h2>Watch Now</h2>
+    <div class="card-glass" style="padding: 16px; display: grid; gap: 12px;">
+      <p style="margin: 0; color: var(--text-secondary);">
+        Player is not configured yet. Set a provider URL below to enable playback in this browser session.
+      </p>
+      <form method="POST" action="{{ url_for('movies.set_player_config') }}" style="display: grid; gap: 10px; max-width: 720px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <div>
+          <label for="embed_provider_base_url" style="display: block; margin-bottom: 6px; color: var(--text-secondary);">Provider Base URL</label>
+          <input id="embed_provider_base_url" name="embed_provider_base_url" type="url" placeholder="https://provider.example" required />
+        </div>
+        <div>
+          <label for="embed_provider_allowed_origin" style="display: block; margin-bottom: 6px; color: var(--text-secondary);">Allowed Origin (optional)</label>
+          <input id="embed_provider_allowed_origin" name="embed_provider_allowed_origin" type="url" placeholder="https://provider.example" />
+        </div>
+        <div>
+          <button type="submit" class="btn-primary">Save And Show Player</button>
+        </div>
+      </form>
+    </div>
+  </section>
+  {% endif %}
+
   <!-- Cast Section -->
   {% if movie.credits and movie.credits.cast %}
   <section class="content-section">
@@ -207,6 +284,8 @@
           src="https://image.tmdb.org/t/p/original{{ actor.profile_path }}"
           alt="{{ actor.name }}"
           class="cast-photo-premium"
+          loading="lazy"
+          decoding="async"
         />
         {% else %}
         <div class="cast-photo-placeholder">
@@ -348,6 +427,8 @@
             src="https://image.tmdb.org/t/p/w500{{ rec.poster_path }}"
             alt="{{ rec.title or rec.name }}"
             class="movie-poster"
+            loading="lazy"
+            decoding="async"
           />
           {% else %}
           <div class="movie-poster movie-poster-placeholder">
@@ -776,6 +857,176 @@
     font-size: 2rem;
   }
 
+  .player-shell {
+    padding: 18px;
+  }
+
+  .player-controls {
+    display: flex;
+    align-items: end;
+    gap: 12px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+
+  .player-controls-tv {
+    padding: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
+    margin-bottom: 16px;
+    display: grid;
+    grid-template-columns: auto minmax(180px, 1fr) minmax(180px, 1fr) auto;
+    gap: 12px;
+    align-items: end;
+  }
+
+  .episode-pill {
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.26), rgba(217, 70, 239, 0.2));
+    border: 1px solid rgba(217, 70, 239, 0.45);
+    color: #f5e9ff;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+
+  .control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 120px;
+  }
+
+  .control-group label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+
+  .tv-dropdown {
+    position: relative;
+    min-width: 0;
+  }
+
+  .tv-dropdown-trigger {
+    width: 100%;
+    min-height: 44px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.04));
+    color: var(--text-primary);
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  }
+
+  .tv-dropdown-trigger:hover {
+    border-color: rgba(168, 85, 247, 0.5);
+  }
+
+  .tv-dropdown-trigger:focus-visible {
+    outline: none;
+    border-color: rgba(168, 85, 247, 0.75);
+    box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.24);
+  }
+
+  .tv-dropdown-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+    font-weight: 500;
+  }
+
+  .tv-dropdown-chevron {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    transform-origin: center;
+    transition: transform 0.2s ease, color 0.2s ease;
+  }
+
+  .tv-dropdown.is-open .tv-dropdown-chevron {
+    transform: rotate(180deg);
+    color: var(--text-primary);
+  }
+
+  .tv-dropdown-menu {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 8px);
+    z-index: 50;
+    display: none;
+    padding: 6px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: linear-gradient(180deg, #0f1420, #0a1020);
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.42);
+    max-height: 280px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  .tv-dropdown.is-open .tv-dropdown-menu {
+    display: block;
+  }
+
+  .tv-dropdown-option {
+    width: 100%;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: #e8ecf3;
+    text-align: left;
+    padding: 10px 12px;
+    cursor: pointer;
+    font-size: 0.94rem;
+    line-height: 1.2;
+    transition: background-color 0.16s ease, color 0.16s ease;
+  }
+
+  .tv-dropdown-option:hover,
+  .tv-dropdown-option:focus-visible {
+    outline: none;
+    background: rgba(72, 102, 156, 0.5);
+    color: #ffffff;
+  }
+
+  .tv-dropdown-option.is-selected {
+    background: rgba(106, 171, 255, 0.26);
+    color: #f5f9ff;
+  }
+
+  .player-controls-tv .btn-secondary {
+    min-height: 42px;
+    white-space: nowrap;
+  }
+
+  .player-frame-wrap {
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--glass-border);
+    background: #000;
+  }
+
+  .player-frame-wrap iframe {
+    display: block;
+    width: 100%;
+    min-height: 680px;
+  }
+
+  .player-progress-note {
+    margin-top: 10px;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+  }
+
   /* Cast Grid */
   .cast-grid-premium {
     display: grid;
@@ -1033,6 +1284,15 @@
     .cast-grid-premium {
       grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
       gap: 20px;
+    }
+
+    .player-controls-tv {
+      grid-template-columns: 1fr;
+      align-items: stretch;
+    }
+
+    .control-group {
+      min-width: 0;
     }
   }
 </style>
@@ -1353,4 +1613,202 @@
     }
   });
 </script>
-{% endif %} {% endblock %}
+{% endif %}
+
+{% if player_embed and player_embed.enabled and current_user.is_authenticated %}
+<script>
+  (function () {
+    const allowedOrigin = "{{ embed_allowed_origin or '' }}";
+    if (!allowedOrigin) return;
+
+    let lastProgressSentAt = 0;
+    const sendIntervalMs = 12000;
+    const csrfInput = document.querySelector('input[name="csrf_token"]');
+    const csrfToken = csrfInput ? csrfInput.value : "";
+
+    function sendProgress(payload) {
+      const now = Date.now();
+      if (payload.event === "timeupdate" && now - lastProgressSentAt < sendIntervalMs) {
+        return;
+      }
+      if (payload.event === "timeupdate") {
+        lastProgressSentAt = now;
+      }
+
+      fetch("{{ url_for('movies.save_watch_progress') }}", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}),
+        },
+        body: JSON.stringify(payload),
+      }).catch(() => {});
+    }
+
+    window.addEventListener("message", function (event) {
+      if (event.origin !== allowedOrigin) return;
+
+      let parsed;
+      if (typeof event.data === "string") {
+        try {
+          parsed = JSON.parse(event.data);
+        } catch {
+          return;
+        }
+      } else {
+        parsed = event.data;
+      }
+
+      if (!parsed || parsed.type !== "PLAYER_EVENT" || !parsed.data) return;
+
+      const eventName = String(parsed.data.event || "").toLowerCase();
+      if (!["timeupdate", "play", "pause", "ended", "seeked"].includes(eventName)) return;
+
+      sendProgress({
+        type: parsed.type,
+        event: eventName,
+        id: parsed.data.id || {{ movie.id }},
+        mediaType: parsed.data.mediaType || "{{ media_type }}",
+        season: parsed.data.season || {{ player_embed.season or 'null' }},
+        episode: parsed.data.episode || {{ player_embed.episode or 'null' }},
+        currentTime: parsed.data.currentTime || 0,
+        duration: parsed.data.duration || 0,
+        progress: parsed.data.progress || 0,
+      });
+    });
+  })();
+</script>
+{% endif %}
+
+{% if player_embed and player_embed.enabled and media_type == 'tv' %}
+<script>
+  (function () {
+    const seasonInput = document.getElementById("season-input");
+    const episodeInput = document.getElementById("episode-input");
+    const seasonLabel = document.getElementById("season-label");
+    const episodeLabel = document.getElementById("episode-label");
+    const seasonMenu = document.getElementById("season-menu");
+    const episodeMenu = document.getElementById("episode-menu");
+    const seasonDropdown = document.querySelector('[data-dropdown="season"]');
+    const episodeDropdown = document.querySelector('[data-dropdown="episode"]');
+    const episodePill = document.getElementById("episode-pill");
+    const seasonMeta = {{ tv_seasons|tojson }};
+
+    if (!seasonInput || !episodeInput || !seasonLabel || !episodeLabel || !seasonMenu || !episodeMenu || !seasonDropdown || !episodeDropdown || !Array.isArray(seasonMeta)) {
+      return;
+    }
+
+    const dropdowns = [seasonDropdown, episodeDropdown];
+
+    function closeAllDropdowns() {
+      dropdowns.forEach((dropdown) => {
+        dropdown.classList.remove("is-open");
+        const trigger = dropdown.querySelector(".tv-dropdown-trigger");
+        if (trigger) trigger.setAttribute("aria-expanded", "false");
+      });
+    }
+
+    function toggleDropdown(targetDropdown) {
+      const shouldOpen = !targetDropdown.classList.contains("is-open");
+      closeAllDropdowns();
+      if (shouldOpen) {
+        targetDropdown.classList.add("is-open");
+        const trigger = targetDropdown.querySelector(".tv-dropdown-trigger");
+        if (trigger) trigger.setAttribute("aria-expanded", "true");
+      }
+    }
+
+    function seasonDisplay(season) {
+      if (!season) return "Season 1";
+      const seasonNo = Number(season.season_number || 1);
+      const seasonName = season.name ? ` - ${season.name}` : "";
+      const episodeCount = Number(season.episode_count || 1);
+      return `S${seasonNo}${seasonName} · ${episodeCount} eps`;
+    }
+
+    function getSeasonDetails() {
+      const currentSeason = Number(seasonInput.value || 1);
+      return seasonMeta.find((season) => Number(season.season_number) === currentSeason) || seasonMeta[0];
+    }
+
+    function updateEpisodePill() {
+      if (!episodePill) return;
+      episodePill.textContent = `S${seasonInput.value} • E${episodeInput.value}`;
+    }
+
+    function renderSeasonOptions() {
+      seasonMenu.innerHTML = "";
+      seasonMeta.forEach((season) => {
+        const seasonNo = Number(season.season_number || 1);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "tv-dropdown-option";
+        button.textContent = seasonDisplay(season);
+        if (seasonNo === Number(seasonInput.value || 1)) {
+          button.classList.add("is-selected");
+        }
+        button.addEventListener("click", () => {
+          seasonInput.value = String(seasonNo);
+          seasonLabel.textContent = seasonDisplay(season);
+          renderSeasonOptions();
+          renderEpisodeOptions();
+          closeAllDropdowns();
+        });
+        seasonMenu.appendChild(button);
+      });
+    }
+
+    function renderEpisodeOptions() {
+      const selectedSeason = getSeasonDetails();
+      const maxEpisodes = Math.max(Number(selectedSeason && selectedSeason.episode_count ? selectedSeason.episode_count : 1), 1);
+      const currentEpisode = Math.min(Math.max(Number(episodeInput.value || 1), 1), maxEpisodes);
+
+      episodeInput.value = String(currentEpisode);
+      episodeLabel.textContent = `Episode ${currentEpisode}`;
+      updateEpisodePill();
+
+      episodeMenu.innerHTML = "";
+      for (let episodeNumber = 1; episodeNumber <= maxEpisodes; episodeNumber += 1) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "tv-dropdown-option";
+        button.textContent = `Episode ${episodeNumber}`;
+        if (episodeNumber === currentEpisode) {
+          button.classList.add("is-selected");
+        }
+        button.addEventListener("click", () => {
+          episodeInput.value = String(episodeNumber);
+          episodeLabel.textContent = `Episode ${episodeNumber}`;
+          updateEpisodePill();
+          renderEpisodeOptions();
+          closeAllDropdowns();
+        });
+        episodeMenu.appendChild(button);
+      }
+    }
+
+    const seasonTrigger = seasonDropdown.querySelector(".tv-dropdown-trigger");
+    const episodeTrigger = episodeDropdown.querySelector(".tv-dropdown-trigger");
+    if (seasonTrigger) {
+      seasonTrigger.addEventListener("click", () => toggleDropdown(seasonDropdown));
+    }
+    if (episodeTrigger) {
+      episodeTrigger.addEventListener("click", () => toggleDropdown(episodeDropdown));
+    }
+
+    document.addEventListener("click", (event) => {
+      const insideAnyDropdown = dropdowns.some((dropdown) => dropdown.contains(event.target));
+      if (!insideAnyDropdown) closeAllDropdowns();
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeAllDropdowns();
+    });
+
+    seasonLabel.textContent = seasonDisplay(getSeasonDetails());
+    renderSeasonOptions();
+    renderEpisodeOptions();
+  })();
+</script>
+{% endif %}
+{% endblock %}

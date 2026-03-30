@@ -22,6 +22,16 @@ def is_valid_username(username):
     pattern = r'^[a-zA-Z0-9_-]{3,30}$'
     return re.match(pattern, username) is not None
 
+
+def fetch_tmdb_details(entry):
+    """Fetch TMDB details using known media type first, then fallback once."""
+    media_type = getattr(entry, 'media_type', 'movie')
+    if media_type == 'tv':
+        details = TMDBService.get_tv_details(entry.tmdb_movie_id)
+        return details or TMDBService.get_movie_details(entry.tmdb_movie_id)
+    details = TMDBService.get_movie_details(entry.tmdb_movie_id)
+    return details or TMDBService.get_tv_details(entry.tmdb_movie_id)
+
 # ============= OWN PROFILE =============
 
 @users_bp.route("/profile")
@@ -54,22 +64,21 @@ def profile():
     def resolve_entry(entry):
         """Get movie/TV details using stored media_type for better performance."""
         try:
-            # Use stored media_type if available (new entries have it)
+            details = fetch_tmdb_details(entry)
+            if details:
+                return details
+
+            # Fallback to cached watchlist data when TMDB details fail.
+            title = entry.movie_title or 'Unknown'
             media_type = getattr(entry, 'media_type', 'movie')
-            
-            if media_type == 'tv':
-                details = TMDBService.get_tv_details(entry.tmdb_movie_id)
-            else:
-                details = TMDBService.get_movie_details(entry.tmdb_movie_id)
-            
-            # If first attempt fails, try the other type (for old entries without media_type)
-            if not details:
-                if media_type == 'tv':
-                    details = TMDBService.get_movie_details(entry.tmdb_movie_id)
-                else:
-                    details = TMDBService.get_tv_details(entry.tmdb_movie_id)
-            
-            return details
+            return {
+                'id': entry.tmdb_movie_id,
+                'title': title,
+                'name': title,
+                'poster_path': entry.poster_path,
+                'poster_url': TMDBService.get_image_url(entry.poster_path),
+                'media_type': media_type,
+            }
         except Exception as e:
             print(f"Error resolving watchlist entry {entry.tmdb_movie_id}: {e}")
             return None
@@ -204,22 +213,21 @@ def public_profile(username):
     watchlist_entries = Watchlist.query.filter_by(user_id=user.id).order_by(Watchlist.added_at.desc()).limit(8).all()
 
     def resolve_entry_public(entry):
-        """Try movie first, then TV only if needed to reduce API calls."""
-        movie = TMDBService.get_movie_details(entry.tmdb_movie_id)
-        
-        target_title = (entry.movie_title or "").strip().casefold()
-        if movie and target_title:
-            movie_title = (movie.get('title') or "").strip().casefold()
-            if movie_title == target_title:
-                return movie
-        
-        tv = TMDBService.get_tv_details(entry.tmdb_movie_id)
-        if tv and target_title:
-            tv_title = (tv.get('name') or "").strip().casefold()
-            if tv_title == target_title:
-                return tv
-        
-        return movie or tv
+        """Use media type aware lookup and fallback to cached entry fields."""
+        details = fetch_tmdb_details(entry)
+        if details:
+            return details
+
+        title = entry.movie_title or 'Unknown'
+        media_type = getattr(entry, 'media_type', 'movie')
+        return {
+            'id': entry.tmdb_movie_id,
+            'title': title,
+            'name': title,
+            'poster_path': entry.poster_path,
+            'poster_url': TMDBService.get_image_url(entry.poster_path),
+            'media_type': media_type,
+        }
 
     watchlist_movies = []
     for entry in watchlist_entries:

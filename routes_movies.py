@@ -1,11 +1,13 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app, session, g
 from flask_login import current_user, login_required
 from extensions import db
-from models import Review, Watchlist
+from models import Review, Watchlist, WatchProgress
 from tmdb_service import TMDBService
+from embed_provider_service import build_movie_embed_url, build_tv_embed_url, normalize_provider_base_url
 from sqlalchemy import func
 import requests
 import json
+import time
 
 
 def build_ai_style_recommendations(base_item, media_type):
@@ -87,10 +89,206 @@ def build_ai_style_recommendations(base_item, media_type):
             return results
         return []
 
+
+def _get_watchlist_recommendation_seed(watchlist_entries, max_title_items=15, max_genre_items=8):
+    """Build recommendation seed data while limiting expensive TMDB detail lookups."""
+    watchlist_titles = []
+    watchlist_genres = []
+
+    for idx, entry in enumerate(watchlist_entries[:max_title_items]):
+        title = (entry.movie_title or "").strip()
+        if title:
+            watchlist_titles.append(title)
+        else:
+            fetch_details = TMDBService.get_tv_details if getattr(entry, 'media_type', 'movie') == 'tv' else TMDBService.get_movie_details
+            details = fetch_details(entry.tmdb_movie_id)
+            if details:
+                watchlist_titles.append(details.get('title') or details.get('name') or 'Unknown')
+
+        # Pull genre signals from only the first few entries to cap network overhead.
+        if idx < max_genre_items:
+            fetch_details = TMDBService.get_tv_details if getattr(entry, 'media_type', 'movie') == 'tv' else TMDBService.get_movie_details
+            details = fetch_details(entry.tmdb_movie_id)
+            if details and details.get('genres'):
+                watchlist_genres.extend([g['name'] for g in details['genres'] if g.get('name')])
+
+    return watchlist_titles, watchlist_genres
+
+
+def _call_anthropic_recommendation(prompt):
+    """Call Anthropic recommendations API and return parsed JSON list or None."""
+    api_key = current_app.config.get('ANTHROPIC_API_KEY', '').strip()
+    if not api_key:
+        return None
+
+    headers = {
+        "Content-Type": "application/json",
+        "x-api-key": api_key,
+        "anthropic-version": "2023-06-01",
+    }
+    payload = {
+        "model": current_app.config.get('ANTHROPIC_MODEL', 'claude-sonnet-4-20250514'),
+        "max_tokens": 2000,
+        "messages": [{"role": "user", "content": prompt}],
+    }
+
+    try:
+        response = requests.post(
+            "https://api.anthropic.com/v1/messages",
+            headers=headers,
+            json=payload,
+            timeout=30,
+        )
+        if response.status_code != 200:
+            current_app.logger.warning("Anthropic recommendations returned status %s", response.status_code)
+            return None
+
+        data = response.json()
+        content = data.get('content', [{}])[0].get('text', '').strip()
+        if '```' in content:
+            content = content.split('```')[1].split('```')[0].strip()
+        return json.loads(content)
+    except Exception as exc:
+        current_app.logger.warning("Anthropic recommendation call failed: %s", exc)
+        return None
+
 movies_bp = Blueprint("movies", __name__)
+
+
+def _get_allowed_embed_origins():
+    configured = current_app.config.get("EMBED_PROVIDER_ALLOWED_ORIGINS", [])
+    if isinstance(configured, str):
+        configured = [configured]
+    return {origin.strip().lower().rstrip("/") for origin in configured if origin.strip()}
+
+
+def _is_allowed_embed_origin(url):
+    normalized = normalize_provider_base_url(url)
+    if not normalized:
+        return False
+    return normalized.lower().rstrip("/") in _get_allowed_embed_origins()
+
+
+def _log_route_perf(route_name, started_at):
+    duration_ms = int((time.perf_counter() - started_at) * 1000)
+    tmdb_calls = getattr(g, "tmdb_api_calls", 0)
+    current_app.logger.info("%s took %sms (tmdb_api_calls=%s)", route_name, duration_ms, tmdb_calls)
+
+
+def _track_recently_viewed(item_id, media_type):
+    """Track recently viewed items in session for quick home-page retrieval."""
+    recent = session.get('recently_viewed', [])
+    filtered = [x for x in recent if not (x.get('id') == item_id and x.get('media_type') == media_type)]
+    filtered.insert(0, {'id': item_id, 'media_type': media_type})
+    session['recently_viewed'] = filtered[:12]
+    session.modified = True
+
+
+def _build_player_context(media_type, tmdb_id, season=None, episode=None):
+    session_base_url = normalize_provider_base_url(session.get("embed_provider_base_url") or "")
+    session_origin = normalize_provider_base_url(session.get("embed_provider_allowed_origin") or "")
+    config_base_url = normalize_provider_base_url(current_app.config.get("EMBED_PROVIDER_BASE_URL", ""))
+    config_origin = normalize_provider_base_url(current_app.config.get("EMBED_PROVIDER_ALLOWED_ORIGIN", ""))
+
+    base_url = session_base_url or config_base_url
+    enabled = bool(base_url) and (
+        current_app.config.get("EMBED_PROVIDER_ENABLED", False) or bool(session_base_url)
+    )
+    if not enabled or not base_url:
+        return {
+            "enabled": False,
+            "url": None,
+            "base_url": base_url,
+            "allowed_origin": session_origin or config_origin,
+        }
+
+    color = current_app.config.get("EMBED_PROVIDER_COLOR", "e50914")
+    auto_play = current_app.config.get("EMBED_PROVIDER_AUTOPLAY", False)
+
+    if media_type == "tv":
+        if season is None:
+            season = request.args.get("season", 1, type=int)
+        if episode is None:
+            episode = request.args.get("episode", 1, type=int)
+        progress = request.args.get("progress", None, type=int)
+        embed_url = build_tv_embed_url(
+            base_url=base_url,
+            tmdb_id=tmdb_id,
+            season=season,
+            episode=episode,
+            color=color,
+            auto_play=auto_play,
+            next_episode=True,
+            episode_selector=True,
+            progress=progress,
+        )
+        return {
+            "enabled": True,
+            "url": embed_url,
+            "media_type": "tv",
+            "season": max(season, 1),
+            "episode": max(episode, 1),
+            "base_url": base_url,
+            "allowed_origin": session_origin or config_origin,
+        }
+
+    progress = request.args.get("progress", None, type=int)
+    embed_url = build_movie_embed_url(
+        base_url=base_url,
+        tmdb_id=tmdb_id,
+        color=color,
+        auto_play=auto_play,
+        progress=progress,
+    )
+    return {
+        "enabled": True,
+        "url": embed_url,
+        "media_type": "movie",
+        "season": None,
+        "episode": None,
+        "base_url": base_url,
+        "allowed_origin": session_origin or config_origin,
+    }
+
+
+@movies_bp.route("/player-config", methods=["POST"])
+@login_required
+def set_player_config():
+    """Allow configuring embed provider at runtime (session-scoped) for local setup."""
+    is_production = current_app.config.get("ENV") == "production"
+    if is_production and getattr(current_user, "role", "user") != "admin":
+        flash("Only admins can change player configuration in production.", "error")
+        return redirect(request.referrer or url_for("main.home"))
+
+    base_url = normalize_provider_base_url(request.form.get("embed_provider_base_url") or "")
+    allowed_origin = (request.form.get("embed_provider_allowed_origin") or "").strip()
+
+    if not base_url:
+        flash("Embed provider URL must be a valid https URL", "error")
+        return redirect(request.referrer or url_for("main.home"))
+
+    if not _is_allowed_embed_origin(base_url):
+        flash("This provider origin is not in the allowlist.", "error")
+        return redirect(request.referrer or url_for("main.home"))
+
+    if allowed_origin:
+        if normalize_provider_base_url(allowed_origin) != allowed_origin.rstrip("/"):
+            flash("Allowed origin must be a valid https origin URL.", "error")
+            return redirect(request.referrer or url_for("main.home"))
+        if not _is_allowed_embed_origin(allowed_origin):
+            flash("Allowed origin is not in the configured allowlist.", "error")
+            return redirect(request.referrer or url_for("main.home"))
+
+    session["embed_provider_base_url"] = base_url.rstrip("/")
+    session["embed_provider_allowed_origin"] = allowed_origin.rstrip("/") if allowed_origin else base_url.rstrip("/")
+    session.modified = True
+
+    flash("Player provider configured for this browser session.", "success")
+    return redirect(request.referrer or url_for("main.home"))
 
 @movies_bp.route("/")
 def movie_list():
+    started_at = time.perf_counter()
     query = request.args.get("q", "")
     page = request.args.get("page", 1, type=int)
     
@@ -99,15 +297,19 @@ def movie_list():
     else:
         movies = TMDBService.get_popular_movies(page)
     
-    return render_template(
-        "movies/list.html",
-        movies=movies,
-        query=query,
-        page=page
-    )
+    try:
+        return render_template(
+            "movies/list.html",
+            movies=movies,
+            query=query,
+            page=page
+        )
+    finally:
+        _log_route_perf("movies.movie_list", started_at)
 
 @movies_bp.route("/<int:movie_id>")
 def movie_detail(movie_id):
+    started_at = time.perf_counter()
     try:
         movie = TMDBService.get_movie_details(movie_id)
         
@@ -136,6 +338,16 @@ def movie_detail(movie_id):
         
         # Build recommendations (lightweight, no extra API calls)
         smart_recs = build_ai_style_recommendations(movie, media_type="movie")
+        _track_recently_viewed(movie_id, 'movie')
+        player_embed = _build_player_context("movie", movie_id)
+
+        existing_progress = None
+        if current_user.is_authenticated:
+            existing_progress = WatchProgress.query.filter_by(
+                user_id=current_user.id,
+                tmdb_id=movie_id,
+                media_type='movie',
+            ).first()
 
         return render_template(
             "movies/detail.html",
@@ -144,15 +356,21 @@ def movie_detail(movie_id):
             in_watchlist=in_watchlist,
             user_review=user_review,
             media_type="movie",
-            smart_recs=smart_recs
+            smart_recs=smart_recs,
+            player_embed=player_embed,
+            saved_progress=existing_progress,
+            embed_allowed_origin=player_embed.get("allowed_origin", ""),
         )
     except Exception as e:
         print(f"Error loading movie {movie_id}: {e}")
         flash("Error loading movie details", "error")
         return redirect(url_for("movies.movie_list"))
+    finally:
+        _log_route_perf("movies.movie_detail", started_at)
 
 @movies_bp.route("/tv/<int:tv_id>")
 def tv_detail(tv_id):
+    started_at = time.perf_counter()
     try:
         show = TMDBService.get_tv_details(tv_id)
         
@@ -179,8 +397,63 @@ def tv_detail(tv_id):
                 tmdb_movie_id=tv_id
             ).first()
         
+        tv_seasons = []
+        for season in show.get("seasons") or []:
+            season_number = season.get("season_number")
+            episode_count = season.get("episode_count")
+            if not isinstance(season_number, int) or season_number < 1:
+                continue
+            if not isinstance(episode_count, int) or episode_count < 1:
+                continue
+            tv_seasons.append(
+                {
+                    "season_number": season_number,
+                    "episode_count": episode_count,
+                    "name": season.get("name") or "",
+                }
+            )
+
+        if not tv_seasons:
+            fallback_count = max(int(show.get("number_of_seasons") or 1), 1)
+            tv_seasons = [
+                {"season_number": season_number, "episode_count": 1, "name": ""}
+                for season_number in range(1, fallback_count + 1)
+            ]
+
+        tv_seasons.sort(key=lambda season: season["season_number"])
+        valid_season_numbers = {season["season_number"] for season in tv_seasons}
+
+        requested_season = request.args.get("season", type=int)
+        selected_season = requested_season if requested_season in valid_season_numbers else tv_seasons[0]["season_number"]
+
+        selected_season_meta = next(
+            (season for season in tv_seasons if season["season_number"] == selected_season),
+            tv_seasons[0],
+        )
+        max_episodes = max(int(selected_season_meta.get("episode_count") or 1), 1)
+
+        requested_episode = request.args.get("episode", type=int)
+        if isinstance(requested_episode, int):
+            selected_episode = min(max(requested_episode, 1), max_episodes)
+        else:
+            selected_episode = 1
+
+        tv_episode_options = list(range(1, max_episodes + 1))
+
         # Build recommendations (lightweight, no extra API calls)
         smart_recs = build_ai_style_recommendations(show, media_type="tv")
+        _track_recently_viewed(tv_id, 'tv')
+        player_embed = _build_player_context("tv", tv_id, season=selected_season, episode=selected_episode)
+
+        existing_progress = None
+        if current_user.is_authenticated:
+            existing_progress = WatchProgress.query.filter_by(
+                user_id=current_user.id,
+                tmdb_id=tv_id,
+                media_type='tv',
+                season=player_embed.get('season'),
+                episode=player_embed.get('episode'),
+            ).first()
 
         return render_template(
             "movies/detail.html",
@@ -189,12 +462,77 @@ def tv_detail(tv_id):
             in_watchlist=in_watchlist,
             user_review=user_review,
             media_type="tv",
-            smart_recs=smart_recs
+            smart_recs=smart_recs,
+            player_embed=player_embed,
+            tv_seasons=tv_seasons,
+            tv_episode_options=tv_episode_options,
+            saved_progress=existing_progress,
+            embed_allowed_origin=player_embed.get("allowed_origin", ""),
         )
     except Exception as e:
         print(f"Error loading TV show {tv_id}: {e}")
         flash("Error loading TV show details", "error")
         return redirect(url_for("main.series_section"))
+    finally:
+        _log_route_perf("movies.tv_detail", started_at)
+
+
+@movies_bp.route("/progress", methods=["POST"])
+@login_required
+def save_watch_progress():
+    payload = request.get_json(silent=True) or {}
+
+    media_type = (payload.get("mediaType") or payload.get("type") or "").strip().lower()
+    if media_type not in {"movie", "tv"}:
+        return jsonify({"success": False, "error": "Invalid media type"}), 400
+
+    try:
+        tmdb_id = int(payload.get("id") or payload.get("tmdb_id"))
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "error": "Invalid content id"}), 400
+
+    try:
+        current_time = max(int(float(payload.get("currentTime", 0))), 0)
+        duration = max(int(float(payload.get("duration", 0))), 0)
+        progress_percent = float(payload.get("progress", 0.0) or 0.0)
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "error": "Invalid progress payload"}), 400
+
+    season = payload.get("season")
+    episode = payload.get("episode")
+    try:
+        season = int(season) if season not in (None, "") else None
+        episode = int(episode) if episode not in (None, "") else None
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "error": "Invalid season/episode values"}), 400
+
+    last_event = (payload.get("event") or "").strip().lower()[:30]
+
+    record = WatchProgress.query.filter_by(
+        user_id=current_user.id,
+        tmdb_id=tmdb_id,
+        media_type=media_type,
+        season=season,
+        episode=episode,
+    ).first()
+
+    if not record:
+        record = WatchProgress(
+            user_id=current_user.id,
+            tmdb_id=tmdb_id,
+            media_type=media_type,
+            season=season,
+            episode=episode,
+        )
+        db.session.add(record)
+
+    record.current_time = current_time
+    record.duration = duration
+    record.progress_percent = max(min(progress_percent, 100.0), 0.0)
+    record.last_event = last_event
+
+    db.session.commit()
+    return jsonify({"success": True})
 
 @movies_bp.route("/<int:movie_id>/review", methods=["POST"])
 @login_required
@@ -325,10 +663,21 @@ def watchlist():
                     details = TMDBService.get_movie_details(entry.tmdb_movie_id)
                 else:
                     details = TMDBService.get_tv_details(entry.tmdb_movie_id)
+
+            if not details:
+                title = entry.movie_title or 'Unknown'
+                return {
+                    'id': entry.tmdb_movie_id,
+                    'title': title,
+                    'name': title,
+                    'poster_path': entry.poster_path,
+                    'poster_url': TMDBService.get_image_url(entry.poster_path),
+                    'media_type': media_type,
+                }
             
             return details
         except Exception as e:
-            print(f"Error resolving watchlist entry {entry.tmdb_movie_id}: {e}")
+            current_app.logger.warning("Error resolving watchlist entry %s: %s", entry.tmdb_movie_id, e)
             return None
 
     watchlist_items = []
@@ -357,17 +706,7 @@ def recommendations():
         flash("Add some movies to your watchlist first to get personalized recommendations!", "info")
         return redirect(url_for("users.profile"))
     
-    watchlist_titles = []
-    watchlist_genres = []
-    
-    for entry in watchlist_entries[:15]:
-        movie = TMDBService.get_movie_details(entry.tmdb_movie_id)
-        if not movie:
-            movie = TMDBService.get_tv_details(entry.tmdb_movie_id)
-        if movie:
-            watchlist_titles.append(movie.get('title', 'Unknown'))
-            if 'genres' in movie and movie['genres']:
-                watchlist_genres.extend([g['name'] for g in movie['genres']])
+    watchlist_titles, watchlist_genres = _get_watchlist_recommendation_seed(watchlist_entries)
     
     try:
         # Get 24 initial recommendations
@@ -377,7 +716,6 @@ def recommendations():
         recommended_items = get_fallback_recommendations(watchlist_genres, limit=24)
     
     # Store seen IDs in session to prevent duplicates on load-more
-    from flask import session
     session['seen_recommendation_ids'] = [item.get('id') for item in recommended_items]
     
     return render_template(
@@ -390,28 +728,15 @@ def recommendations():
 @movies_bp.route("/recommendations/load-more", methods=["POST"])
 @login_required
 def load_more_recommendations():
-    import json
-    from flask import session
-    
     data = request.get_json()
     items_per_batch = 16
     
     watchlist_entries = Watchlist.query.filter_by(user_id=current_user.id).limit(20).all()
     
     if not watchlist_entries:
-        return json.dumps({"items": [], "error": "No watchlist"}), 400
-    
-    watchlist_titles = []
-    watchlist_genres = []
-    
-    for entry in watchlist_entries[:15]:
-        movie = TMDBService.get_movie_details(entry.tmdb_movie_id)
-        if not movie:
-            movie = TMDBService.get_tv_details(entry.tmdb_movie_id)
-        if movie:
-            watchlist_titles.append(movie.get('title', 'Unknown'))
-            if 'genres' in movie and movie['genres']:
-                watchlist_genres.extend([g['name'] for g in movie['genres']])
+        return jsonify({"items": [], "error": "No watchlist"}), 400
+
+    watchlist_titles, watchlist_genres = _get_watchlist_recommendation_seed(watchlist_entries)
     
     # Get previously seen IDs from session
     seen_ids = set(session.get('seen_recommendation_ids', []))
@@ -445,7 +770,7 @@ def load_more_recommendations():
             'vote_average': item.get('vote_average', 0)
         })
     
-    return json.dumps({"items": items_data}), 200, {'Content-Type': 'application/json'}
+    return jsonify({"items": items_data}), 200
 
 def get_personalized_recommendations(watchlist_titles, watchlist_genres, batch=0, items_per_batch=24):
     if not watchlist_titles:
@@ -471,27 +796,9 @@ Return ONLY valid JSON array:
   ...
 ]"""
 
-        response = requests.post(
-            "https://api.anthropic.com/v1/messages",
-            headers={"Content-Type": "application/json"},
-            json={
-                "model": "claude-sonnet-4-20250514",
-                "max_tokens": 2000,
-                "messages": [{"role": "user", "content": prompt}]
-            },
-            timeout=30
-        )
-        
-        if response.status_code != 200:
+        recommendations = _call_anthropic_recommendation(prompt)
+        if not recommendations:
             return get_fallback_recommendations(watchlist_genres, limit=items_per_batch)
-        
-        data = response.json()
-        content = data['content'][0].get('text', '').strip()
-        
-        if '```' in content:
-            content = content.split('```')[1].split('```')[0].strip()
-        
-        recommendations = json.loads(content)
         
         results = []
         seen_ids = set()
@@ -516,7 +823,7 @@ Return ONLY valid JSON array:
         return results[:items_per_batch] if results else get_fallback_recommendations(watchlist_genres, limit=items_per_batch)
     
     except Exception as e:
-        print(f"AI recommendation error: {e}")
+        current_app.logger.warning("AI recommendation error: %s", e)
         return get_fallback_recommendations(watchlist_genres, limit=items_per_batch)
 
 
@@ -548,27 +855,9 @@ Return ONLY valid JSON array:
   ...
 ]"""
 
-        response = requests.post(
-            "https://api.anthropic.com/v1/messages",
-            headers={"Content-Type": "application/json"},
-            json={
-                "model": "claude-sonnet-4-20250514",
-                "max_tokens": 2000,
-                "messages": [{"role": "user", "content": prompt}]
-            },
-            timeout=30
-        )
-        
-        if response.status_code != 200:
+        recommendations = _call_anthropic_recommendation(prompt)
+        if not recommendations:
             return get_fallback_recommendations(watchlist_genres, limit=limit, exclude_ids=exclude_ids)
-        
-        data = response.json()
-        content = data['content'][0].get('text', '').strip()
-        
-        if '```' in content:
-            content = content.split('```')[1].split('```')[0].strip()
-        
-        recommendations = json.loads(content)
         
         results = []
         for rec in recommendations:
@@ -591,7 +880,7 @@ Return ONLY valid JSON array:
         return results[:limit] if results else get_fallback_recommendations(watchlist_genres, limit=limit, exclude_ids=exclude_ids)
     
     except Exception as e:
-        print(f"AI paginated recommendation error: {e}")
+        current_app.logger.warning("AI paginated recommendation error: %s", e)
         return get_fallback_recommendations(watchlist_genres, limit=limit, exclude_ids=exclude_ids)
 
 

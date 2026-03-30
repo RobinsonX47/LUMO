@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request
+from flask import Blueprint, render_template, request, session
 from tmdb_service import TMDBService
 
 main_bp = Blueprint("main", __name__)
@@ -8,10 +8,22 @@ def home():
     """Optimized home page - only load carousel to reduce API calls"""
     # Get hero carousel movies (5 random popular movies)
     hero_movies = TMDBService.get_random_hero_movies(5)
+
+    recently_viewed = []
+    for item in session.get('recently_viewed', [])[:8]:
+        item_id = item.get('id')
+        media_type = item.get('media_type', 'movie')
+        if not item_id:
+            continue
+
+        details = TMDBService.get_tv_details(item_id) if media_type == 'tv' else TMDBService.get_movie_details(item_id)
+        if details:
+            recently_viewed.append(details)
     
     return render_template(
         "index.html",
-        hero_movies=hero_movies
+        hero_movies=hero_movies,
+        recently_viewed=recently_viewed
     )
 
 @main_bp.route("/movies")

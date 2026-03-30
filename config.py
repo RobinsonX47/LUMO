@@ -25,6 +25,8 @@ class Config:
     
     # Security Headers
     SECURITY_HEADERS = True
+    SECURITY_HEADERS_ENABLED = os.environ.get("SECURITY_HEADERS_ENABLED", "true").lower() == "true"
+    ENFORCE_HTTPS = os.environ.get("ENFORCE_HTTPS", "false").lower() == "true"
     
     # ========================================
     # DATABASE CONFIGURATION
@@ -72,6 +74,27 @@ class Config:
     TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p"
     TMDB_POSTER_SIZE = "w500"  # Options: w92, w154, w185, w342, w500, w780, original
     TMDB_BACKDROP_SIZE = "w1280"  # Options: w300, w780, w1280, original
+
+    # LLM Recommendations
+    ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY") or ""
+    ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL") or "claude-sonnet-4-20250514"
+
+    # Embedded player provider (must be a licensed source you control/access)
+    EMBED_PROVIDER_BASE_URL = (os.environ.get("EMBED_PROVIDER_BASE_URL") or "https://www.vidking.net").strip()
+    _embed_enabled_raw = os.environ.get("EMBED_PROVIDER_ENABLED")
+    EMBED_PROVIDER_ENABLED = (
+        EMBED_PROVIDER_BASE_URL != ""
+        if _embed_enabled_raw is None
+        else _embed_enabled_raw.lower() == "true"
+    )
+    EMBED_PROVIDER_ALLOWED_ORIGIN = os.environ.get("EMBED_PROVIDER_ALLOWED_ORIGIN") or "https://www.vidking.net"
+    EMBED_PROVIDER_ALLOWED_ORIGINS = [
+        origin.strip() for origin in (os.environ.get("EMBED_PROVIDER_ALLOWED_ORIGINS") or EMBED_PROVIDER_ALLOWED_ORIGIN).split(",")
+        if origin.strip()
+    ]
+    EMBED_PROVIDER_COLOR = os.environ.get("EMBED_PROVIDER_COLOR") or "a855f7"
+    EMBED_PROVIDER_AUTOPLAY = os.environ.get("EMBED_PROVIDER_AUTOPLAY", "false").lower() == "true"
+    DEV_ALLOW_ANY_HTTPS_EMBED = os.environ.get("DEV_ALLOW_ANY_HTTPS_EMBED", "false").lower() == "true"
     
     # ========================================
     # GOOGLE OAUTH CONFIGURATION

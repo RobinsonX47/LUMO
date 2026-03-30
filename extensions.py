@@ -1,8 +1,16 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 from flask_wtf.csrf import CSRFProtect
+
+
+def get_rate_limit_key():
+    """Use the first forwarded IP when behind a trusted proxy, otherwise remote addr."""
+    from flask import request
+
+    if request.access_route:
+        return request.access_route[0]
+    return request.remote_addr or "127.0.0.1"
 
 db = SQLAlchemy()
 login_manager = LoginManager()
@@ -10,7 +18,7 @@ login_manager = LoginManager()
 # Initialize security extensions (will be configured in app.py)
 csrf = CSRFProtect()
 limiter = Limiter(
-    key_func=get_remote_address,
+    key_func=get_rate_limit_key,
     default_limits=["200 per hour"],
     strategy="fixed-window"
 )

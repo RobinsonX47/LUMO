@@ -12,13 +12,10 @@ import logging
 from logging.handlers import RotatingFileHandler
 from dotenv import load_dotenv
 from datetime import datetime
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Load environment variables from .env file
 load_dotenv()
-
-# === ONE-TIME DATABASE INITIALIZATION FLAG ===
-_first_request_done = False
-
 
 def datetime_difference(dt):
     """Calculate time difference between now and given datetime."""
@@ -49,6 +46,15 @@ def datetime_difference(dt):
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
+    # Fail fast on required secrets in production.
+    is_production = os.environ.get("FLASK_ENV") == "production"
+    if is_production:
+        if not os.environ.get("SECRET_KEY"):
+            raise RuntimeError("SECRET_KEY must be set in production")
+        if not app.config.get("TMDB_API_KEY") or app.config["TMDB_API_KEY"] == "YOUR_TMDB_API_KEY_HERE":
+            raise RuntimeError("TMDB_API_KEY must be configured in production")
 
     # Ensure instance folder exists (important on Render)
     os.makedirs(os.path.join(app.root_path, "instance"), exist_ok=True)
@@ -65,20 +71,58 @@ def create_app():
     limiter.init_app(app)
     
     # Security Headers (Talisman)
-    # Only enforce HTTPS in production
-    if os.environ.get("FLASK_ENV") == "production":
+    if app.config.get("SECURITY_HEADERS_ENABLED", True):
+        csp = {
+            'default-src': ["'self'"],
+            'script-src': [
+                "'self'",
+                "'unsafe-inline'",
+                "https://www.google.com",
+                "https://www.gstatic.com",
+                "https://www.youtube.com",
+                "https://www.youtube-nocookie.com",
+                "https://s.ytimg.com",
+                "https://*.ytimg.com",
+            ],
+            'style-src': ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            'img-src': ["'self'", "data:", "https:", "http:"],
+            'font-src': ["'self'", "https://fonts.gstatic.com"],
+            'connect-src': [
+                "'self'",
+                "https://api.themoviedb.org",
+                "https://www.youtube.com",
+                "https://www.youtube-nocookie.com",
+                "https://*.googlevideo.com",
+                "https://*.ytimg.com",
+            ],
+            'frame-src': ["'self'", "https://www.youtube.com", "https://www.youtube-nocookie.com"],
+            'child-src': ["'self'", "https://www.youtube.com", "https://www.youtube-nocookie.com"],
+            'media-src': ["'self'", "https://*.googlevideo.com", "https://*.youtube.com"],
+            'object-src': ["'none'"],
+        }
+
+        provider_origins = app.config.get("EMBED_PROVIDER_ALLOWED_ORIGINS", [])
+        if isinstance(provider_origins, str):
+            provider_origins = [provider_origins]
+
+        for origin in provider_origins:
+            safe_origin = (origin or "").strip()
+            if not safe_origin:
+                continue
+            csp['frame-src'].append(safe_origin)
+            csp['child-src'].append(safe_origin)
+            csp['connect-src'].append(safe_origin)
+
+        if (not provider_origins) and (not is_production) and app.config.get("DEV_ALLOW_ANY_HTTPS_EMBED", False):
+            # Optional local-dev override for rapid embed testing.
+            csp['frame-src'].append("https:")
+            csp['child-src'].append("https:")
+            csp['connect-src'].append("https:")
+
         Talisman(app, 
-            force_https=True,
-            strict_transport_security=True,
-            content_security_policy={
-                'default-src': ["'self'"],
-                'script-src': ["'self'", "'unsafe-inline'", "https://www.google.com", "https://www.gstatic.com"],
-                'style-src': ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-                'img-src': ["'self'", "data:", "https:", "http:"],
-                'font-src': ["'self'", "https://fonts.gstatic.com"],
-                'connect-src': ["'self'", "https://api.themoviedb.org"],
-            },
-            content_security_policy_nonce_in=['script-src']
+            force_https=(is_production or app.config.get("ENFORCE_HTTPS", False)),
+            strict_transport_security=is_production,
+            content_security_policy=csp,
         )
     
     # ========================================
@@ -213,25 +257,17 @@ def create_app():
         with app.app_context():
             TMDBService.warm_cache()
 
-    warming_thread = threading.Timer(2.0, warm_cache_async)
-    warming_thread.daemon = True
-    warming_thread.start()
+    should_warm_cache = os.environ.get("WARM_TMDB_CACHE", "true").lower() == "true"
+    if should_warm_cache:
+        warming_thread = threading.Timer(2.0, warm_cache_async)
+        warming_thread.daemon = True
+        warming_thread.start()
 
     return app
 
 
 # === APP INSTANCE CREATED HERE FOR GUNICORN ===
 app = create_app()
-
-
-# === FLASK 3 COMPATIBLE FIRST-RUN DATABASE INIT ===
-@app.before_request
-def initialize_database_once():
-    global _first_request_done
-    if not _first_request_done:
-        with app.app_context():
-            db.create_all()
-        _first_request_done = True
 
 
 # === LOCAL DEVELOPMENT ENTRY ===
