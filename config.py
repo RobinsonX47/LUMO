@@ -34,8 +34,13 @@ class Config:
     
     # Use PostgreSQL on Render (DATABASE_URL), fallback to SQLite locally
     if os.environ.get("DATABASE_URL"):
-        # Render PostgreSQL with connection pooling
-        SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL").replace("postgres://", "postgresql://", 1)
+        # Render PostgreSQL with connection pooling (psycopg v3 driver)
+        db_url = os.environ.get("DATABASE_URL")
+        if db_url.startswith("postgres://"):
+            db_url = db_url.replace("postgres://", "postgresql+psycopg://", 1)
+        elif db_url.startswith("postgresql://"):
+            db_url = db_url.replace("postgresql://", "postgresql+psycopg://", 1)
+        SQLALCHEMY_DATABASE_URI = db_url
         SQLALCHEMY_ENGINE_OPTIONS = {
             "pool_size": 10,
             "pool_recycle": 3600,
