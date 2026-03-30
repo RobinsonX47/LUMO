@@ -3,7 +3,6 @@ Gunicorn Production Configuration
 Optimized for multi-core servers with proper worker/thread settings
 """
 
-import multiprocessing
 import os
 
 # Server socket
@@ -11,8 +10,9 @@ bind = f"0.0.0.0:{os.getenv('PORT', '5000')}"
 backlog = 2048
 
 # Worker processes
-# Use 2-4 workers per core (CPU-bound: 2, I/O-bound: 4)
-workers = int(os.getenv('GUNICORN_WORKERS', multiprocessing.cpu_count() * 2 + 1))
+# Default low concurrency is safer for free-tier memory limits.
+default_workers = 2
+workers = int(os.getenv('WEB_CONCURRENCY', os.getenv('GUNICORN_WORKERS', default_workers)))
 worker_class = 'sync'  # or 'gevent' for async
 worker_connections = 1000
 max_requests = 1000  # Restart workers after X requests (prevent memory leaks)
@@ -21,7 +21,7 @@ timeout = 30  # Timeout for worker processes
 keepalive = 2
 
 # Threading
-threads = int(os.getenv('GUNICORN_THREADS', 2))  # Threads per worker
+threads = int(os.getenv('GUNICORN_THREADS', 1))  # Threads per worker
 
 # Logging
 accesslog = '-'  # Log to stdout

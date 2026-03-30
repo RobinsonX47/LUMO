@@ -215,8 +215,12 @@ def create_app():
     def get_unread_notifications_count():
         if current_user.is_authenticated:
             from models import Notification
-            count = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
-            return {'unread_notifications_count': count}
+            try:
+                count = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
+                return {'unread_notifications_count': count}
+            except Exception as exc:
+                app.logger.warning('Notification count unavailable: %s', exc)
+                return {'unread_notifications_count': 0}
         return {'unread_notifications_count': 0}
 
     # Error handlers for production
@@ -257,7 +261,8 @@ def create_app():
         with app.app_context():
             TMDBService.warm_cache()
 
-    should_warm_cache = os.environ.get("WARM_TMDB_CACHE", "true").lower() == "true"
+    warm_cache_default = "false" if is_production else "true"
+    should_warm_cache = os.environ.get("WARM_TMDB_CACHE", warm_cache_default).lower() == "true"
     if should_warm_cache:
         warming_thread = threading.Timer(2.0, warm_cache_async)
         warming_thread.daemon = True

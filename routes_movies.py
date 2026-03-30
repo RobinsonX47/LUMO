@@ -175,6 +175,19 @@ def _log_route_perf(route_name, started_at):
     current_app.logger.info("%s took %sms (tmdb_api_calls=%s)", route_name, duration_ms, tmdb_calls)
 
 
+def _safe_db_call(fn, default):
+    """Return fallback value when DB is unavailable so public pages can still render."""
+    try:
+        return fn()
+    except Exception as exc:
+        current_app.logger.warning("DB operation failed, using fallback: %s", exc)
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        return default
+
+
 def _track_recently_viewed(item_id, media_type):
     """Track recently viewed items in session for quick home-page retrieval."""
     recent = session.get('recently_viewed', [])
@@ -317,24 +330,36 @@ def movie_detail(movie_id):
             flash("Movie not found", "error")
             return redirect(url_for("movies.movie_list"))
         
-        reviews = Review.query.filter_by(tmdb_movie_id=movie_id).order_by(Review.created_at.desc()).all()
-        
-        local_avg = db.session.query(func.avg(Review.rating)).filter_by(tmdb_movie_id=movie_id).scalar()
+        reviews = _safe_db_call(
+            lambda: Review.query.filter_by(tmdb_movie_id=movie_id).order_by(Review.created_at.desc()).all(),
+            [],
+        )
+
+        local_avg = _safe_db_call(
+            lambda: db.session.query(func.avg(Review.rating)).filter_by(tmdb_movie_id=movie_id).scalar(),
+            None,
+        )
         movie['local_avg_rating'] = round(float(local_avg), 1) if local_avg else None
         movie['local_review_count'] = len(reviews)
         
         in_watchlist = False
         user_review = None
         if current_user.is_authenticated:
-            in_watchlist = Watchlist.query.filter_by(
-                user_id=current_user.id,
-                tmdb_movie_id=movie_id
-            ).first() is not None
-            
-            user_review = Review.query.filter_by(
-                user_id=current_user.id,
-                tmdb_movie_id=movie_id
-            ).first()
+            in_watchlist = _safe_db_call(
+                lambda: Watchlist.query.filter_by(
+                    user_id=current_user.id,
+                    tmdb_movie_id=movie_id
+                ).first() is not None,
+                False,
+            )
+
+            user_review = _safe_db_call(
+                lambda: Review.query.filter_by(
+                    user_id=current_user.id,
+                    tmdb_movie_id=movie_id
+                ).first(),
+                None,
+            )
         
         # Build recommendations (lightweight, no extra API calls)
         smart_recs = build_ai_style_recommendations(movie, media_type="movie")
@@ -343,11 +368,14 @@ def movie_detail(movie_id):
 
         existing_progress = None
         if current_user.is_authenticated:
-            existing_progress = WatchProgress.query.filter_by(
-                user_id=current_user.id,
-                tmdb_id=movie_id,
-                media_type='movie',
-            ).first()
+            existing_progress = _safe_db_call(
+                lambda: WatchProgress.query.filter_by(
+                    user_id=current_user.id,
+                    tmdb_id=movie_id,
+                    media_type='movie',
+                ).first(),
+                None,
+            )
 
         return render_template(
             "movies/detail.html",
@@ -378,24 +406,36 @@ def tv_detail(tv_id):
             flash("TV show not found", "error")
             return redirect(url_for("main.series_section"))
         
-        reviews = Review.query.filter_by(tmdb_movie_id=tv_id).order_by(Review.created_at.desc()).all()
-        
-        local_avg = db.session.query(func.avg(Review.rating)).filter_by(tmdb_movie_id=tv_id).scalar()
+        reviews = _safe_db_call(
+            lambda: Review.query.filter_by(tmdb_movie_id=tv_id).order_by(Review.created_at.desc()).all(),
+            [],
+        )
+
+        local_avg = _safe_db_call(
+            lambda: db.session.query(func.avg(Review.rating)).filter_by(tmdb_movie_id=tv_id).scalar(),
+            None,
+        )
         show['local_avg_rating'] = round(float(local_avg), 1) if local_avg else None
         show['local_review_count'] = len(reviews)
         
         in_watchlist = False
         user_review = None
         if current_user.is_authenticated:
-            in_watchlist = Watchlist.query.filter_by(
-                user_id=current_user.id,
-                tmdb_movie_id=tv_id
-            ).first() is not None
-            
-            user_review = Review.query.filter_by(
-                user_id=current_user.id,
-                tmdb_movie_id=tv_id
-            ).first()
+            in_watchlist = _safe_db_call(
+                lambda: Watchlist.query.filter_by(
+                    user_id=current_user.id,
+                    tmdb_movie_id=tv_id
+                ).first() is not None,
+                False,
+            )
+
+            user_review = _safe_db_call(
+                lambda: Review.query.filter_by(
+                    user_id=current_user.id,
+                    tmdb_movie_id=tv_id
+                ).first(),
+                None,
+            )
         
         tv_seasons = []
         for season in show.get("seasons") or []:
@@ -447,13 +487,16 @@ def tv_detail(tv_id):
 
         existing_progress = None
         if current_user.is_authenticated:
-            existing_progress = WatchProgress.query.filter_by(
-                user_id=current_user.id,
-                tmdb_id=tv_id,
-                media_type='tv',
-                season=player_embed.get('season'),
-                episode=player_embed.get('episode'),
-            ).first()
+            existing_progress = _safe_db_call(
+                lambda: WatchProgress.query.filter_by(
+                    user_id=current_user.id,
+                    tmdb_id=tv_id,
+                    media_type='tv',
+                    season=player_embed.get('season'),
+                    episode=player_embed.get('episode'),
+                ).first(),
+                None,
+            )
 
         return render_template(
             "movies/detail.html",
