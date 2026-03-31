@@ -151,7 +151,7 @@ class TMDBCache:
 class TMDBService:
     cache = None
     last_request_time = 0
-    min_request_interval = 0.26  # ~4 requests per second (well under 40/10s limit)
+    min_request_interval = 0.25  # 4 requests per second (well under 40/10s limit)
 
     @staticmethod
     def _select_best_trailer(videos):
@@ -262,7 +262,7 @@ class TMDBService:
         TMDBService.last_request_time = time.time()
     
     @staticmethod
-    def _make_request(endpoint, params=None, use_cache=True, retries=2):
+    def _make_request(endpoint, params=None, use_cache=True, retries=3):
         """Make a request to TMDB API with caching and retry logic"""
         # Initialize cache if not done yet
         if TMDBService.cache is None:
@@ -285,7 +285,7 @@ class TMDBService:
             if cached_data is not None:
                 return cached_data
         
-        # Try with retries
+        # Try with retries and exponential backoff
         for attempt in range(retries + 1):
             # Rate limit before making request
             TMDBService._rate_limit()
@@ -299,7 +299,8 @@ class TMDBService:
                 else:
                     logger.debug("TMDB API request: %s", endpoint)
                     
-                response = requests.get(f"{base_url}/{endpoint}", params=params, timeout=15)
+                response = requests.get(f"{base_url}/{endpoint}", params=params, timeout=25,
+                                       verify=True)
                 response.raise_for_status()
                 data = response.json()
                 
@@ -311,18 +312,48 @@ class TMDBService:
                 
             except requests.exceptions.Timeout:
                 if attempt < retries:
-                    logger.warning("TMDB API timeout, retrying (%s/%s): %s", attempt + 1, retries, endpoint)
-                    time.sleep(0.5)  # Brief pause before retry
+                    # Exponential backoff for timeouts
+                    backoff = min(2 ** attempt, 8)  # Cap at 8 seconds
+                    logger.warning("TMDB API timeout, retrying in %ss (%s/%s): %s", backoff, attempt + 1, retries, endpoint)
+                    time.sleep(backoff)
                     continue
                 logger.error("TMDB API timeout after %s retries: %s", retries, endpoint)
+                return None
+            
+            except requests.exceptions.HTTPError as e:
+                # Check for specific status codes that should be retried
+                status_code = e.response.status_code
+                if status_code in [429, 500, 502, 503, 504]:
+                    # Retry on rate limit and server errors
+                    if attempt < retries:
+                        # Longer backoff for rate limits (429) and server errors (5xx)
+                        backoff = min(2 ** (attempt + 1), 30)
+                        logger.warning("TMDB API HTTP %s, retrying in %ss (%s/%s): %s", 
+                                       status_code, backoff, attempt + 1, retries, endpoint)
+                        time.sleep(backoff)
+                        continue
+                
+                logger.error("TMDB API HTTP error %s for %s: %s", status_code, endpoint, e)
                 return None
                 
             except requests.exceptions.RequestException as e:
                 if attempt < retries:
-                    logger.warning("TMDB API error, retrying (%s/%s): %s", attempt + 1, retries, endpoint)
-                    time.sleep(0.5)
+                    backoff = min(2 ** attempt, 8)
+                    logger.warning("TMDB API error, retrying in %ss (%s/%s): %s", backoff, attempt + 1, retries, endpoint)
+                    time.sleep(backoff)
                     continue
                 logger.error("TMDB API error after %s retries: %s", retries, e)
+                return None
+            
+            except (ValueError, json.JSONDecodeError) as e:
+                # JSON parsing error - might be a transient issue
+                if attempt < retries:
+                    backoff = min(2 ** attempt, 8)
+                    logger.warning("TMDB API response parsing error, retrying in %ss (%s/%s): %s", 
+                                   backoff, attempt + 1, retries, endpoint)
+                    time.sleep(backoff)
+                    continue
+                logger.error("TMDB API response parsing error after %s retries: %s", retries, e)
                 return None
         
         return None
@@ -551,10 +582,11 @@ class TMDBService:
     @staticmethod
     def get_movie_details(movie_id):
         """Get detailed information about a movie"""
+        # Use 4 retries for detailed movie fetches (more critical)
         data = TMDBService._make_request(f'movie/{movie_id}', {
             'append_to_response': 'credits,videos,similar,images',
             'include_image_language': 'en,null'
-        })
+        }, retries=4)
         if data and 'id' in data:
             data['poster_url'] = TMDBService.get_image_url(data.get('poster_path'))
             data['backdrop_url'] = TMDBService.get_image_url(data.get('backdrop_path'), is_backdrop=True)
@@ -577,10 +609,11 @@ class TMDBService:
     @staticmethod
     def get_tv_details(tv_id):
         """Get detailed information about a TV show"""
+        # Use 4 retries for detailed TV fetches (more critical)
         data = TMDBService._make_request(f'tv/{tv_id}', {
             'append_to_response': 'credits,videos,similar,images',
             'include_image_language': 'en,null'
-        })
+        }, retries=4)
         if data and 'id' in data:
             data['title'] = data.get('name')
             data['poster_url'] = TMDBService.get_image_url(data.get('poster_path'))
@@ -612,7 +645,8 @@ class TMDBService:
             'query': query,
             'page': page
         }
-        data = TMDBService._make_request('search/movie', params)
+        # Use more retries for search to handle transient failures
+        data = TMDBService._make_request('search/movie', params, retries=3)
         if data and 'results' in data:
             movies = data['results']
             for movie in movies:
@@ -629,7 +663,8 @@ class TMDBService:
             'query': query,
             'page': page
         }
-        data = TMDBService._make_request('search/multi', params)
+        # Use more retries for search to handle transient failures
+        data = TMDBService._make_request('search/multi', params, retries=3)
         if data and 'results' in data:
             results = data['results']
             for item in results:

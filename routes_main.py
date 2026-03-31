@@ -32,8 +32,17 @@ def movies_section():
     trending_movies = TMDBService.get_trending_movies('week')
     top_rated_movies = TMDBService.get_top_rated_movies()
     popular_movies = TMDBService.get_popular_movies(1)
-    action_movies = TMDBService.get_movies_by_genre(28, 1)  # Action genre ID = 28
-    comedy_movies = TMDBService.get_movies_by_genre(35, 1)  # Comedy genre ID = 35
+    
+    # We dynamically find the genre IDs for Action and Comedy so we aren't hardcoded to TMDB keys
+    action_genre_id = 28
+    comedy_genre_id = 35
+    for genre in TMDBService.get_genres():
+        name = genre.get('name', '').lower()
+        if name == 'action': action_genre_id = genre.get('id')
+        elif name == 'comedy': comedy_genre_id = genre.get('id')
+        
+    action_movies = TMDBService.get_movies_by_genre(action_genre_id, 1)
+    comedy_movies = TMDBService.get_movies_by_genre(comedy_genre_id, 1)
     
     return render_template(
         "sections/movies.html",
@@ -102,6 +111,9 @@ def genres_page():
 def movies_by_genre(genre_id):
     """Movies filtered by genre"""
     page = request.args.get('page', 1, type=int)
+    # Cap pagination to prevent hitting downstream API errors
+    if page > 500:
+        page = 500
     movies = TMDBService.get_movies_by_genre(genre_id, page)
     genres = TMDBService.get_genres()
     

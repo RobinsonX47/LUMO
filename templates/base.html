@@ -67,6 +67,25 @@
     <!-- Navigation -->
     <nav class="nav-glass">
       <div class="nav-left">
+        <button
+          class="mobile-menu-btn"
+          onclick="toggleMobileMenu()"
+          aria-label="Toggle Navigation"
+        >
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+
         <a href="{{ url_for('main.home') }}" class="nav-logo-link">
           <img
             src="{{ url_for('static', filename='images/logo.svg') }}"
@@ -328,7 +347,9 @@
             {{ current_user.name[0]|upper }}
           </div>
           {% endif %}
-          <span style="margin-left: 6px; font-size: 0.9rem; line-height: 1"
+          <span
+            class="mobile-hide"
+            style="margin-left: 6px; font-size: 0.9rem; line-height: 1"
             >Profile</span
           >
         </a>
@@ -346,7 +367,7 @@
             <polyline points="16 17 21 12 16 7"></polyline>
             <line x1="21" y1="12" x2="9" y2="12"></line>
           </svg>
-          Logout
+          <span class="mobile-hide">Logout</span>
         </a>
         {% else %}
         <div class="auth-buttons-group">
@@ -392,6 +413,25 @@
     </div>
 
     <!-- Scripts -->
+    <script>
+      function toggleMobileMenu() {
+        const navCenter = document.querySelector(".nav-center");
+        navCenter.classList.toggle("mobile-active");
+      }
+
+      // Close mobile menu when a link is clicked
+      document.addEventListener("DOMContentLoaded", function () {
+        const navLinks = document.querySelectorAll(
+          ".nav-center .nav-link, .nav-center a",
+        );
+        navLinks.forEach((link) => {
+          link.addEventListener("click", function () {
+            const navCenter = document.querySelector(".nav-center");
+            navCenter.classList.remove("mobile-active");
+          });
+        });
+      });
+    </script>
     <script src="{{ url_for('static', filename='js/carousel.js') }}"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
   </body>

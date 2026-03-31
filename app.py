@@ -13,35 +13,19 @@ from logging.handlers import RotatingFileHandler
 from dotenv import load_dotenv
 from datetime import datetime
 from werkzeug.middleware.proxy_fix import ProxyFix
+import humanize
 
 # Load environment variables from .env file
 load_dotenv()
 
 def datetime_difference(dt):
-    """Calculate time difference between now and given datetime."""
+    """Calculate time difference between now and given datetime using humanize."""
     if not dt:
         return 'Just now'
     
+    # Use humanize for better natural time formatting
     now = datetime.utcnow()
-    diff = now - dt
-    
-    seconds = diff.total_seconds()
-    
-    if seconds < 60:
-        return 'Just now'
-    elif seconds < 3600:
-        minutes = int(seconds // 60)
-        return f'{minutes}m ago'
-    elif seconds < 86400:
-        hours = int(seconds // 3600)
-        return f'{hours}h ago'
-    elif seconds < 2592000:  # 30 days
-        days = int(seconds // 86400)
-        return f'{days}d ago'
-    else:
-        months = int(seconds // 2592000)
-        return f'{months}mo ago'
-
+    return humanize.naturaltime(now - dt)
 
 def create_app():
     app = Flask(__name__)
@@ -55,6 +39,9 @@ def create_app():
             raise RuntimeError("SECRET_KEY must be set in production")
         if not app.config.get("TMDB_API_KEY") or app.config["TMDB_API_KEY"] == "YOUR_TMDB_API_KEY_HERE":
             raise RuntimeError("TMDB_API_KEY must be configured in production")
+        # Ensure Google OAuth keys are set if they're used. Could just check if they are the default "YOUR_..."
+        if app.config.get("GOOGLE_CLIENT_ID") == "YOUR_GOOGLE_CLIENT_ID" or app.config.get("GOOGLE_CLIENT_SECRET") == "YOUR_GOOGLE_CLIENT_SECRET":
+            app.logger.warning("Google OAuth credentials are not fully configured in production. OAuth may fail.")
 
     # Ensure instance folder exists (important on Render)
     os.makedirs(os.path.join(app.root_path, "instance"), exist_ok=True)
@@ -256,17 +243,9 @@ def create_app():
         return render_template('errors/400.html', 
                              error_message="Security token expired. Please refresh and try again."), 400
 
-    # Background cache warming (non-blocking)
-    def warm_cache_async():
-        with app.app_context():
-            TMDBService.warm_cache()
-
-    warm_cache_default = "false" if is_production else "true"
-    should_warm_cache = os.environ.get("WARM_TMDB_CACHE", warm_cache_default).lower() == "true"
-    if should_warm_cache:
-        warming_thread = threading.Timer(2.0, warm_cache_async)
-        warming_thread.daemon = True
-        warming_thread.start()
+    # Removed background cache warming from app startup to prevent background thread
+    # duplication in multi-worker WSGI environments. Cache should be warmed via a 
+    # separate background job (e.g. Celery, clock process) if desired.
 
     return app
 
@@ -282,7 +261,6 @@ if __name__ == "__main__":
     print("=" * 60)
     print(f"✅ Database: {Config.SQLALCHEMY_DATABASE_URI}")
     print(f"✅ TMDB API: {'Configured' if Config.TMDB_API_KEY != 'YOUR_TMDB_API_KEY_HERE' else '⚠️ NOT CONFIGURED'}")
-    print(f"🔥 Cache warming will start in 2 seconds...")
     print(f"🌐 Running on: http://localhost:5000")
     print("=" * 60 + "\n")
 

@@ -20,7 +20,7 @@ class Config:
     # Session Security
     SESSION_COOKIE_SECURE = os.environ.get("FLASK_ENV") == "production"  # HTTPS only in production
     SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access
-    SESSION_COOKIE_SAMESITE = "Lax"  # CSRF protection
+    SESSION_COOKIE_SAMESITE = "Strict"  # CSRF protection - Use Strict unless OAuth flows break easily
     PERMANENT_SESSION_LIFETIME = 2592000  # 30 days in seconds
     
     # Security Headers
@@ -43,7 +43,7 @@ class Config:
         SQLALCHEMY_DATABASE_URI = db_url
         SQLALCHEMY_ENGINE_OPTIONS = {
             "pool_size": 10,
-            "pool_recycle": 3600,
+            "pool_recycle": 280,  # Avoid connection drops on aggressive cloud hosts
             "pool_pre_ping": True,
             "max_overflow": 20
         }
