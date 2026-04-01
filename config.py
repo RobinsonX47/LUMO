@@ -1,7 +1,56 @@
 import os
 import secrets
+from urllib.parse import urlsplit, urlunsplit
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+
+
+def _normalize_database_url(raw_url):
+    """Normalize DATABASE_URL for SQLAlchemy + psycopg and validate host format."""
+    db_url = (raw_url or "").strip()
+    if not db_url:
+        return ""
+
+    # Normalize driver prefix for SQLAlchemy 2 + psycopg3.
+    if db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
+    if db_url.startswith("postgresql://"):
+        db_url = db_url.replace("postgresql://", "postgresql+psycopg://", 1)
+
+    parsed = urlsplit(db_url)
+    host = parsed.hostname or ""
+
+    # Some deployments provide shortened Render hostnames like dpg-<id>-a
+    # without the region suffix. Attempt to complete these automatically.
+    if host.startswith("dpg-") and "." not in host:
+        host_suffix = (os.environ.get("RENDER_POSTGRES_HOST_SUFFIX") or "oregon-postgres.render.com").strip(". ")
+        if host_suffix:
+            username = parsed.username or ""
+            password = parsed.password
+            auth = ""
+            if username:
+                auth = username
+                if password is not None:
+                    auth = f"{auth}:{password}"
+                auth = f"{auth}@"
+
+            port = f":{parsed.port}" if parsed.port else ""
+            completed_host = f"{host}.{host_suffix}"
+            netloc = f"{auth}{completed_host}{port}"
+            db_url = urlunsplit((parsed.scheme, netloc, parsed.path, parsed.query, parsed.fragment))
+            parsed = urlsplit(db_url)
+            host = parsed.hostname or ""
+
+    if not host:
+        raise RuntimeError("DATABASE_URL is set but invalid: hostname is missing")
+
+    if host.startswith("dpg-") and "." not in host:
+        raise RuntimeError(
+            "DATABASE_URL hostname appears incomplete. Set full Render hostname "
+            "(for example dpg-...<region>-postgres.render.com) or set RENDER_POSTGRES_HOST_SUFFIX."
+        )
+
+    return db_url
 
 class Config:
     # ========================================
@@ -35,12 +84,7 @@ class Config:
     # Use PostgreSQL on Render (DATABASE_URL), fallback to SQLite locally
     if os.environ.get("DATABASE_URL"):
         # Render PostgreSQL with connection pooling (psycopg v3 driver)
-        db_url = os.environ.get("DATABASE_URL")
-        if db_url.startswith("postgres://"):
-            db_url = db_url.replace("postgres://", "postgresql+psycopg://", 1)
-        elif db_url.startswith("postgresql://"):
-            db_url = db_url.replace("postgresql://", "postgresql+psycopg://", 1)
-        SQLALCHEMY_DATABASE_URI = db_url
+        SQLALCHEMY_DATABASE_URI = _normalize_database_url(os.environ.get("DATABASE_URL"))
         SQLALCHEMY_ENGINE_OPTIONS = {
             "pool_size": 10,
             "pool_recycle": 280,  # Avoid connection drops on aggressive cloud hosts
