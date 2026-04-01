@@ -20,6 +20,34 @@ def _normalize_database_url(raw_url):
     parsed = urlsplit(db_url)
     host = parsed.hostname or ""
 
+    # If DATABASE_URL is incomplete but PG* variables are available (common on hosted
+    # platforms), rebuild using the explicit PGHOST/PGPORT/PGDATABASE values.
+    if host.startswith("dpg-") and "." not in host:
+        pg_host = (os.environ.get("PGHOST") or "").strip()
+        pg_port = (os.environ.get("PGPORT") or "").strip()
+        pg_db = (os.environ.get("PGDATABASE") or "").strip()
+        pg_user = (os.environ.get("PGUSER") or parsed.username or "").strip()
+        pg_password = os.environ.get("PGPASSWORD") or parsed.password
+        pg_sslmode = (os.environ.get("PGSSLMODE") or "require").strip()
+
+        if pg_host and pg_port and pg_db:
+            auth = ""
+            if pg_user:
+                auth = pg_user
+                if pg_password is not None:
+                    auth = f"{auth}:{pg_password}"
+                auth = f"{auth}@"
+
+            path = f"/{pg_db}"
+            query = parsed.query
+            if pg_sslmode and "sslmode=" not in query:
+                query = f"sslmode={pg_sslmode}" if not query else f"{query}&sslmode={pg_sslmode}"
+
+            rebuilt_netloc = f"{auth}{pg_host}:{pg_port}"
+            db_url = urlunsplit((parsed.scheme, rebuilt_netloc, path, query, parsed.fragment))
+            parsed = urlsplit(db_url)
+            host = parsed.hostname or ""
+
     # Some deployments provide shortened Render hostnames like dpg-<id>-a
     # without the region suffix. Attempt to complete these automatically.
     if host.startswith("dpg-") and "." not in host:
