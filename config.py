@@ -23,7 +23,7 @@ def _normalize_database_url(raw_url):
     # Some deployments provide shortened Render hostnames like dpg-<id>-a
     # without the region suffix. Attempt to complete these automatically.
     if host.startswith("dpg-") and "." not in host:
-        host_suffix = (os.environ.get("RENDER_POSTGRES_HOST_SUFFIX") or "oregon-postgres.render.com").strip(". ")
+        host_suffix = (os.environ.get("RENDER_POSTGRES_HOST_SUFFIX") or "").strip(". ")
         if host_suffix:
             username = parsed.username or ""
             password = parsed.password
