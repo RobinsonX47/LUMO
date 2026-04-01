@@ -1,5 +1,6 @@
 import os
 import secrets
+import socket
 from urllib.parse import urlsplit, urlunsplit
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -19,6 +20,14 @@ def _normalize_database_url(raw_url):
 
     parsed = urlsplit(db_url)
     host = parsed.hostname or ""
+
+    def _ensure_sslmode_require(url_value):
+        parts = urlsplit(url_value)
+        query = parts.query or ""
+        if "sslmode=" in query:
+            return url_value
+        query = "sslmode=require" if not query else f"{query}&sslmode=require"
+        return urlunsplit((parts.scheme, parts.netloc, parts.path, query, parts.fragment))
 
     # If DATABASE_URL is incomplete but PG* variables are available (common on hosted
     # platforms), rebuild using the explicit PGHOST/PGPORT/PGDATABASE values.
@@ -69,6 +78,38 @@ def _normalize_database_url(raw_url):
             parsed = urlsplit(db_url)
             host = parsed.hostname or ""
 
+    # Last-resort recovery for Render: probe known region suffixes.
+    if host.startswith("dpg-") and "." not in host:
+        region_suffix_candidates = [
+            "oregon-postgres.render.com",
+            "ohio-postgres.render.com",
+            "virginia-postgres.render.com",
+            "frankfurt-postgres.render.com",
+            "singapore-postgres.render.com",
+        ]
+        for candidate_suffix in region_suffix_candidates:
+            candidate_host = f"{host}.{candidate_suffix}"
+            try:
+                socket.getaddrinfo(candidate_host, parsed.port or 5432)
+            except socket.gaierror:
+                continue
+
+            username = parsed.username or ""
+            password = parsed.password
+            auth = ""
+            if username:
+                auth = username
+                if password is not None:
+                    auth = f"{auth}:{password}"
+                auth = f"{auth}@"
+
+            port = f":{parsed.port}" if parsed.port else ""
+            netloc = f"{auth}{candidate_host}{port}"
+            db_url = urlunsplit((parsed.scheme, netloc, parsed.path, parsed.query, parsed.fragment))
+            parsed = urlsplit(db_url)
+            host = parsed.hostname or ""
+            break
+
     if not host:
         raise RuntimeError("DATABASE_URL is set but invalid: hostname is missing")
 
@@ -77,6 +118,10 @@ def _normalize_database_url(raw_url):
             "DATABASE_URL hostname appears incomplete. Set full Render hostname "
             "(for example dpg-...<region>-postgres.render.com) or set RENDER_POSTGRES_HOST_SUFFIX."
         )
+
+    # Render-managed Postgres endpoints require TLS.
+    if host.endswith("render.com"):
+        db_url = _ensure_sslmode_require(db_url)
 
     return db_url
 
