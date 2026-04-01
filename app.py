@@ -138,6 +138,17 @@ def create_app():
 
     # Initialize database and login manager
     db.init_app(app)
+
+    # Bootstrap schema for fresh deployments (idempotent: only creates missing tables).
+    # This prevents runtime failures (e.g., OAuth callback) when a new managed DB is attached.
+    with app.app_context():
+        try:
+            db.create_all()
+            app.logger.info("Database schema ensured")
+        except Exception as exc:
+            app.logger.error("Failed to initialize database schema: %s", exc)
+            raise
+
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
     login_manager.login_message = "Please log in to access this page."
