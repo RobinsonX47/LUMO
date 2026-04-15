@@ -189,7 +189,7 @@ class Config:
     # Default rate limits
     RATELIMIT_DEFAULT = "200 per hour"
     RATELIMIT_LOGIN = "5 per minute"
-    RATELIMIT_REGISTER = "3 per hour"
+    RATELIMIT_REGISTER = "10 per hour"
     RATELIMIT_API = "100 per hour"
     
     # ========================================
@@ -229,6 +229,7 @@ class Config:
     
     GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID") or "YOUR_GOOGLE_CLIENT_ID"
     GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET") or "YOUR_GOOGLE_CLIENT_SECRET"
+    GOOGLE_REDIRECT_URI = os.environ.get("GOOGLE_REDIRECT_URI") or ""
     GOOGLE_DISCOVERY_URL = "https://accounts.google.com/.well-known/openid-configuration"
     
     # ========================================

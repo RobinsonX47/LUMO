@@ -35,6 +35,9 @@ class GoogleOAuth:
     def get_redirect_uri():
         """Get the redirect URI for OAuth callback"""
         from flask import url_for
+        configured_redirect = (current_app.config.get("GOOGLE_REDIRECT_URI") or "").strip()
+        if configured_redirect:
+            return configured_redirect
         return url_for("auth.google_callback", _external=True)
     
     @staticmethod

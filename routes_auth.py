@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app
 from flask_login import login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
-from extensions import db, limiter
+from extensions import db, limiter, get_rate_limit_key
 from models import User
 from oauth_handler import GoogleOAuth
 from forms import LoginForm, RegisterForm
@@ -9,6 +9,15 @@ import re
 import requests
 
 auth_bp = Blueprint("auth", __name__)
+
+
+def auth_register_rate_limit_key():
+    """Rate-limit registration by IP and email to reduce shared-IP false positives."""
+    ip_key = get_rate_limit_key()
+    email = (request.form.get("email") or "").strip().lower()
+    if not email:
+        return ip_key
+    return f"{ip_key}:{email}"
 
 def is_valid_username(username):
     """Validate username format (alphanumeric, underscores, hyphens, 3-30 chars)"""
@@ -35,7 +44,10 @@ def generate_unique_username(name):
         counter += 1
 
 @auth_bp.route("/login", methods=["GET", "POST"])
-@limiter.limit("10 per minute")  # Prevent brute force attacks
+@limiter.limit(
+    lambda: current_app.config.get("RATELIMIT_LOGIN", "5 per minute"),
+    methods=["POST"],
+)  # Prevent brute force attacks without throttling page loads
 def login():
     """Email/password login with WTForms validation and CSRF protection"""
     form = LoginForm()
@@ -63,7 +75,11 @@ def login():
 
 
 @auth_bp.route("/register", methods=["GET", "POST"])
-@limiter.limit("3 per hour")  # Prevent spam registrations
+@limiter.limit(
+    lambda: current_app.config.get("RATELIMIT_REGISTER", "3 per hour"),
+    methods=["POST"],
+    key_func=auth_register_rate_limit_key,
+)  # Prevent spam registrations without throttling page loads
 def register():
     """Registration with WTForms validation, CSRF protection, and strong password policy"""
     form = RegisterForm()

@@ -88,8 +88,9 @@ def create_app():
         if app.config.get("GOOGLE_CLIENT_ID") == "YOUR_GOOGLE_CLIENT_ID" or app.config.get("GOOGLE_CLIENT_SECRET") == "YOUR_GOOGLE_CLIENT_SECRET":
             app.logger.warning("Google OAuth credentials are not fully configured in production. OAuth may fail.")
 
-    # Ensure instance folder exists (important on Render)
-    os.makedirs(os.path.join(app.root_path, "instance"), exist_ok=True)
+    # Ensure instance folder exists and prefer desktop data directory when configured.
+    instance_base_dir = os.environ.get("LUMO_DESKTOP_DATA_DIR") or app.root_path
+    os.makedirs(os.path.join(instance_base_dir, "instance"), exist_ok=True)
 
     # ========================================
     # INITIALIZE SECURITY EXTENSIONS
@@ -162,13 +163,14 @@ def create_app():
     # ========================================
     
     if not app.debug:
-        # Create logs directory
-        if not os.path.exists('logs'):
-            os.mkdir('logs')
+        # Keep logs alongside desktop data when running packaged desktop app.
+        logs_base_dir = os.environ.get("LUMO_DESKTOP_DATA_DIR") or os.getcwd()
+        logs_dir = os.path.join(logs_base_dir, "logs")
+        os.makedirs(logs_dir, exist_ok=True)
         
         # File handler for errors
         file_handler = RotatingFileHandler(
-            'logs/lumo.log', 
+            os.path.join(logs_dir, 'lumo.log'), 
             maxBytes=10240000,  # 10MB
             backupCount=10
         )
@@ -293,8 +295,13 @@ def create_app():
     def ratelimit_handler(error):
         """Handle rate limit exceeded"""
         app.logger.warning(f'Rate limit exceeded: {get_remote_address()}')
-        return render_template('errors/429.html', 
-                             retry_after=error.description), 429
+        retry_after = getattr(error, "retry_after", None)
+        rate_limit_description = str(getattr(error, "description", "") or "")
+        return render_template(
+            'errors/429.html',
+            retry_after=retry_after,
+            rate_limit_description=rate_limit_description,
+        ), 429
     
     @app.errorhandler(CSRFError)
     def csrf_error(error):
