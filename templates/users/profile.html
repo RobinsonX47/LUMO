@@ -252,6 +252,50 @@ endblock %} {% block content %}
 </section>
 {% endif %}
 
+<!-- Continue Watching -->
+{% if continue_watching %}
+<section style="margin-bottom: 48px">
+  <div
+    style="
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    "
+  >
+    <h2 style="margin: 0">Continue Watching</h2>
+    <a href="{{ url_for('users.continue_watching') }}" class="btn-secondary">View all</a>
+  </div>
+
+  <div class="movie-grid">
+    {% for item in continue_watching[:4] %}
+    <a
+      href="{{ url_for('movies.tv_detail', tv_id=item.id, season=item.saved_progress.season or 1, episode=item.saved_progress.episode or 1) if item.media_type == 'tv' else url_for('movies.movie_detail', movie_id=item.id) }}"
+      style="text-decoration: none; color: inherit"
+    >
+      <div class="card-glass">
+        {% if item.poster_url %}
+        <img
+          src="{{ item.poster_url }}"
+          alt="{{ item.title or item.name }}"
+          class="movie-poster"
+          loading="lazy"
+          decoding="async"
+        />
+        {% endif %}
+        <div class="movie-title">{{ item.title or item.name }}</div>
+        <div class="movie-meta">
+          {{ item.resume_label }} • {{ item.progress_percent|round(0) }}%
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
 <!-- Watchlist -->
 <section style="margin-bottom: 48px">
   <div

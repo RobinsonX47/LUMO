@@ -4,6 +4,9 @@ import socket
 from urllib.parse import urlsplit, urlunsplit
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+DESKTOP_DATA_DIR = os.environ.get("LUMO_DESKTOP_DATA_DIR")
+DESKTOP_MODE = os.environ.get("LUMO_DESKTOP_MODE") == "1"
+USE_LOCAL_DB = os.environ.get("LUMO_USE_LOCAL_DB") == "1"
 
 
 def _normalize_database_url(raw_url):
@@ -155,7 +158,7 @@ class Config:
     # ========================================
     
     # Use PostgreSQL on Render (DATABASE_URL), fallback to SQLite locally
-    if os.environ.get("DATABASE_URL"):
+    if os.environ.get("DATABASE_URL") and not (DESKTOP_MODE or USE_LOCAL_DB):
         # Render PostgreSQL with connection pooling (psycopg v3 driver)
         SQLALCHEMY_DATABASE_URI = _normalize_database_url(os.environ.get("DATABASE_URL"))
         SQLALCHEMY_ENGINE_OPTIONS = {
@@ -166,7 +169,9 @@ class Config:
         }
     else:
         # Local SQLite (WARNING: NOT for production at scale)
-        SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(BASE_DIR, "instance", "cine_sphere.db")
+        sqlite_base_dir = DESKTOP_DATA_DIR or BASE_DIR
+        os.makedirs(os.path.join(sqlite_base_dir, "instance"), exist_ok=True)
+        SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(sqlite_base_dir, "instance", "cine_sphere.db")
         SQLALCHEMY_ENGINE_OPTIONS = {}
     
     SQLALCHEMY_TRACK_MODIFICATIONS = False

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Continue Watching – LUMO{% endblock %}
+{% block content %}
+
+<div style="max-width: 1200px; margin: 40px auto; padding: 0 20px">
+  <div style="display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: end; margin-bottom: 32px;">
+    <div>
+      <h1 style="margin-bottom: 8px">Continue Watching</h1>
+      <p style="color: var(--muted); margin: 0">Pick up where you left off</p>
+    </div>
+    <a href="{{ url_for('users.profile') }}" class="btn-secondary">Back to Profile</a>
+  </div>
+
+  {% if continue_watching %}
+  <div class="movie-grid">
+    {% for item in continue_watching %}
+    <a href="{{ url_for('movies.tv_detail', tv_id=item.id, season=item.saved_progress.season or 1, episode=item.saved_progress.episode or 1) if item.media_type == 'tv' else url_for('movies.movie_detail', movie_id=item.id) }}" style="text-decoration: none; color: inherit;">
+      <div class="card-glass" style="height: 100%; display: flex; flex-direction: column;">
+        {% if item.poster_url %}
+        <img src="{{ item.poster_url }}" alt="{{ item.title or item.name }}" class="movie-poster" loading="lazy" decoding="async" />
+        {% endif %}
+        <div class="movie-title">{{ item.title or item.name }}</div>
+        <div class="movie-meta" style="display: flex; justify-content: space-between; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <span>{{ item.resume_label }}</span>
+          <span>{{ item.progress_percent|round(0) }}%</span>
+        </div>
+        <div style="height: 8px; border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden; margin-top: 12px;">
+          <div style="width: {{ item.progress_percent|round(0) }}%; height: 100%; background: linear-gradient(90deg, #7b5cff, #ec5fa0);"></div>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="card-glass" style="padding: 40px; text-align: center;">
+    <h2 style="margin-bottom: 8px;">Nothing to resume yet</h2>
+    <p style="color: var(--muted); margin-bottom: 24px;">Start a movie or series and we’ll keep track of where you left off.</p>
+    <a href="{{ url_for('movies.movie_list') }}" class="btn-primary">Browse Content</a>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

@@ -84,6 +84,32 @@ Series{% endblock %} {% block content %}
 </section>
 {% endif %}
 
+{% if current_user.is_authenticated and continue_watching %}
+<section style="margin-bottom: 64px">
+  <div style="display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: end; margin-bottom: 20px;">
+    <div>
+      <h2 style="margin-bottom: 8px">Continue Watching</h2>
+      <p style="color: var(--muted); margin: 0">Resume what you started</p>
+    </div>
+    <a href="{{ url_for('users.continue_watching') }}" class="btn-secondary">View All</a>
+  </div>
+
+  <div class="movie-grid">
+    {% for item in continue_watching[:4] %}
+    <a href="{{ url_for('movies.tv_detail', tv_id=item.id, season=item.saved_progress.season or 1, episode=item.saved_progress.episode or 1) if item.media_type == 'tv' else url_for('movies.movie_detail', movie_id=item.id) }}" style="text-decoration: none; color: inherit;">
+      <div class="card-glass">
+        {% if item.poster_url %}
+        <img src="{{ item.poster_url }}" alt="{{ item.title or item.name }}" class="movie-poster" loading="lazy" decoding="async" />
+        {% endif %}
+        <div class="movie-title">{{ item.title or item.name }}</div>
+        <div class="movie-meta">{{ item.resume_label }} • {{ item.progress_percent|round(0) }}%</div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
 <!-- Quick Access Section Cards -->
 <section style="margin-bottom: 80px">
   <h2 style="margin-bottom: 32px; text-align: center; font-size: 2rem">
@@ -185,7 +211,7 @@ Series{% endblock %} {% block content %}
 </section>
 
 <!-- AI Recommendations Card - CENTERED -->
-{% if current_user.is_authenticated %}
+{% if current_user.is_authenticated and not config.get('DESKTOP_MODE', false) %}
 <section style="margin-bottom: 80px">
   <div style="max-width: 900px; margin: 0 auto">
     <a

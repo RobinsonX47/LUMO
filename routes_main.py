@@ -1,5 +1,7 @@
 from flask import Blueprint, render_template, request, session
+from flask_login import current_user
 from tmdb_service import TMDBService
+from models import WatchProgress
 
 main_bp = Blueprint("main", __name__)
 
@@ -19,11 +21,34 @@ def home():
         details = TMDBService.get_tv_details(item_id) if media_type == 'tv' else TMDBService.get_movie_details(item_id)
         if details:
             recently_viewed.append(details)
+
+    continue_watching = []
+    if current_user.is_authenticated:
+        progress_entries = (
+            WatchProgress.query
+            .filter_by(user_id=current_user.id)
+            .order_by(WatchProgress.updated_at.desc())
+            .limit(4)
+            .all()
+        )
+        for progress in progress_entries:
+            if float(progress.progress_percent or 0.0) >= 95.0 and (progress.last_event or "") in {"ended", "complete", "finished"}:
+                continue
+
+            details = TMDBService.get_tv_details(progress.tmdb_id) if progress.media_type == 'tv' else TMDBService.get_movie_details(progress.tmdb_id)
+            if not details:
+                continue
+
+            details['media_type'] = progress.media_type
+            details['progress_percent'] = float(progress.progress_percent or 0.0)
+            details['saved_progress'] = progress
+            continue_watching.append(details)
     
     return render_template(
         "index.html",
         hero_movies=hero_movies,
-        recently_viewed=recently_viewed
+        recently_viewed=recently_viewed,
+        continue_watching=continue_watching,
     )
 
 @main_bp.route("/movies")

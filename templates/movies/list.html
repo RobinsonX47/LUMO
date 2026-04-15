@@ -1,50 +1,66 @@
 {% extends "base.html" %} {% block title %}{% if query %}Search: {{ query }}{%
-else %}Browse Movies{% endif %} – CineSphere{% endblock %} {% block content %}
+else %}Browse Content{% endif %} – LUMO{% endblock %} {% block content %}
 
 <section class="movies-search-head">
   <h1 class="movies-search-title">
-    {% if query %} Search Results for "{{ query }}" {% else %} Popular Movies {%
-    endif %}
+    {% if query %} Search Results for "{{ query }}" {% else %} Browse movies and TV {% endif %}
   </h1>
+  <p class="movies-search-meta">
+    {% if query %}
+      {% if movies %} Found {{ movies|length }} result(s) {% else %} No results found {% endif %}
+    {% else %}
+      Search across movies and TV shows, then narrow by type, year, and sort order.
+    {% endif %}
+  </p>
 
-  <form
-    method="GET"
-    action="{{ url_for('movies.movie_list') }}"
-    class="movies-search-form"
-  >
-    <div class="movies-search-box">
+  <form method="GET" action="{{ url_for('movies.movie_list') }}" class="movies-search-form" style="display: grid; gap: 14px;">
+    <div class="movies-search-box" style="display: grid; grid-template-columns: 1.6fr repeat(3, minmax(120px, 1fr)) auto; gap: 10px; align-items: center;">
       <input
-        type="text"
+        type="search"
         name="q"
-        placeholder="Search movies by title..."
+        placeholder="Search titles, actors, or keywords..."
         value="{{ query }}"
         class="movies-search-input"
       />
-      <span class="movies-search-icon">🔎</span>
+      <select name="media_type" class="movies-search-input">
+        <option value="movie" {% if filters.media_type == 'movie' %}selected{% endif %}>Movies</option>
+        <option value="tv" {% if filters.media_type == 'tv' %}selected{% endif %}>TV Shows</option>
+        <option value="all" {% if filters.media_type == 'all' %}selected{% endif %}>All</option>
+      </select>
+      <input
+        type="text"
+        name="year"
+        placeholder="Year"
+        value="{{ filters.year }}"
+        class="movies-search-input"
+        inputmode="numeric"
+        pattern="[0-9]{4}"
+      />
+      <select name="sort" class="movies-search-input">
+        <option value="popularity" {% if filters.sort == 'popularity' %}selected{% endif %}>Popular</option>
+        <option value="rating" {% if filters.sort == 'rating' %}selected{% endif %}>Top Rated</option>
+        <option value="latest" {% if filters.sort == 'latest' %}selected{% endif %}>Latest</option>
+        <option value="title" {% if filters.sort == 'title' %}selected{% endif %}>Title</option>
+      </select>
       <button type="submit" class="movies-search-btn">Search</button>
     </div>
   </form>
-
-  {% if query %}
-  <p class="movies-search-meta">
-    {% if movies %} Found {{ movies|length }} result(s) {% else %} No results
-    found {% endif %}
-  </p>
-  {% endif %}
 </section>
 
 <div class="movie-grid">
   {% for movie in movies %}
   <a
-    href="{{ url_for('movies.movie_detail', movie_id=movie.id) }}"
+    href="{{ url_for('movies.tv_detail', tv_id=movie.id) if movie.media_type == 'tv' else url_for('movies.movie_detail', movie_id=movie.id) }}"
     style="text-decoration: none; color: inherit"
   >
     <div class="card-glass">
       {% if movie.poster_url %}
       <img
         src="{{ movie.poster_url }}"
-        alt="{{ movie.title }}"
+        alt="{{ movie.title or movie.name }}"
         class="movie-poster"
+        loading="lazy"
+        decoding="async"
       />
       {% else %}
       <div
@@ -57,13 +73,13 @@ else %}Browse Movies{% endif %} – CineSphere{% endblock %} {% block content %}
           font-size: 3rem;
         "
       >
-        Movie
+        {{ 'TV' if movie.media_type == 'tv' else 'Movie' }}
       </div>
       {% endif %}
-      <div class="movie-title">{{ movie.title }}</div>
+      <div class="movie-title">{{ movie.title or movie.name }}</div>
       <div class="movie-meta">
         {% if movie.release_date %}{{ movie.release_date[:4] }} • {% endif %}
-        Rating: {{ movie.vote_average|round(1) }}/10
+        {{ movie.vote_average|round(1) }}/10 • {{ movie.media_type|upper }}
       </div>
     </div>
   </a>
@@ -71,8 +87,7 @@ else %}Browse Movies{% endif %} – CineSphere{% endblock %} {% block content %}
   <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px">
     <div style="font-size: 4rem; margin-bottom: 16px">Movie</div>
     <p style="color: var(--muted); font-size: 1.1rem; margin-bottom: 24px">
-      {% if query %} No movies found matching your search. {% else %} No movies
-      available. {% endif %}
+      {% if query %} No results found for your filters. {% else %} Enter a title to start browsing. {% endif %}
     </p>
     {% if query %}
     <a
@@ -88,7 +103,7 @@ else %}Browse Movies{% endif %} – CineSphere{% endblock %} {% block content %}
         font-weight: 600;
       "
     >
-      Browse All Movies
+      Clear Search
     </a>
     {% endif %}
   </div>
@@ -102,7 +117,7 @@ else %}Browse Movies{% endif %} – CineSphere{% endblock %} {% block content %}
 >
   {% if page > 1 %}
   <a
-    href="{{ url_for('movies.movie_list', q=query, page=page-1) }}"
+    href="{{ url_for('movies.movie_list', q=query, page=page-1, media_type=filters.media_type, sort=filters.sort, year=filters.year) }}"
     class="btn-secondary"
     style="
       padding: 12px 24px;
@@ -129,7 +144,7 @@ else %}Browse Movies{% endif %} – CineSphere{% endblock %} {% block content %}
   </span>
 
   <a
-    href="{{ url_for('movies.movie_list', q=query, page=page+1) }}"
+    href="{{ url_for('movies.movie_list', q=query, page=page+1, media_type=filters.media_type, sort=filters.sort, year=filters.year) }}"
     class="btn-secondary"
     style="
       padding: 12px 24px;
@@ -146,13 +161,14 @@ else %}Browse Movies{% endif %} – CineSphere{% endblock %} {% block content %}
 {% endif %}
 
 <style>
-  input:focus {
+  input:focus,
+  select:focus {
     outline: none;
     border-color: var(--accent);
   }
 
   button[type="submit"]:hover {
-    transform: translateY(-50%) scale(1.05);
+    transform: translateY(-2px) scale(1.03);
     box-shadow: 0 8px 16px rgba(123, 92, 255, 0.4);
   }
 

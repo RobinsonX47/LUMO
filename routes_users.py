@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from werkzeug.security import generate_password_hash
 from werkzeug.utils import secure_filename
 from extensions import db
-from models import User, Review, Watchlist, Notification, user_followers
+from models import User, Review, Watchlist, Notification, WatchProgress, user_followers
 from tmdb_service import TMDBService
 from sqlalchemy import or_, and_, func
 import os
@@ -31,6 +31,22 @@ def fetch_tmdb_details(entry):
         return details or TMDBService.get_movie_details(entry.tmdb_movie_id)
     details = TMDBService.get_movie_details(entry.tmdb_movie_id)
     return details or TMDBService.get_tv_details(entry.tmdb_movie_id)
+
+
+def build_progress_item(progress):
+    """Resolve a watch-progress row into a renderable content card."""
+    details = TMDBService.get_tv_details(progress.tmdb_id) if progress.media_type == 'tv' else TMDBService.get_movie_details(progress.tmdb_id)
+    if not details:
+        return None
+
+    details['media_type'] = progress.media_type
+    details['saved_progress'] = progress
+    details['progress_percent'] = float(progress.progress_percent or 0.0)
+    details['current_time'] = progress.current_time or 0
+    details['duration'] = progress.duration or 0
+    details['resume_label'] = f"S{progress.season or 1} • E{progress.episode or 1}" if progress.media_type == 'tv' else "Resume Watching"
+    return details
+
 
 # ============= OWN PROFILE =============
 
@@ -99,15 +115,57 @@ def profile():
     # Get unread notifications count
     unread_notifications = Notification.query.filter_by(user_id=user.id, is_read=False).count()
     
+    continue_watching = []
+    progress_entries = (
+        WatchProgress.query
+        .filter_by(user_id=user.id)
+        .order_by(WatchProgress.updated_at.desc())
+        .limit(8)
+        .all()
+    )
+    for progress in progress_entries:
+        if float(progress.progress_percent or 0.0) >= 95.0 and (progress.last_event or "") in {"ended", "complete", "finished"}:
+            continue
+        item = build_progress_item(progress)
+        if item:
+            continue_watching.append(item)
+
     return render_template(
         "users/profile.html",
         user=user,
         reviewed_movies=reviewed_movies,
         watchlist=watchlist_movies,
+        continue_watching=continue_watching,
         followers_count=followers_count,
         following_count=following_count,
         is_own_profile=True,
         unread_notifications=unread_notifications
+    )
+
+
+@users_bp.route("/continue-watching")
+@login_required
+def continue_watching():
+    """Show the user's in-progress movies and episodes."""
+    entries = (
+        WatchProgress.query
+        .filter_by(user_id=current_user.id)
+        .order_by(WatchProgress.updated_at.desc())
+        .limit(24)
+        .all()
+    )
+
+    items = []
+    for progress in entries:
+        if float(progress.progress_percent or 0.0) >= 95.0 and (progress.last_event or "") in {"ended", "complete", "finished"}:
+            continue
+        item = build_progress_item(progress)
+        if item:
+            items.append(item)
+
+    return render_template(
+        "users/continue_watching.html",
+        continue_watching=items,
     )
 
 @users_bp.route("/profile/edit", methods=["GET", "POST"])
@@ -445,6 +503,47 @@ def directory():
         users=users,
         sort_by=sort_by,
         following_ids=following_ids
+    )
+
+
+@users_bp.route("/feed")
+@login_required
+def activity_feed():
+    """Show recent activity from followed users."""
+    followed_users = current_user.following.all()
+    followed_ids = [user.id for user in followed_users]
+
+    activities = []
+    if followed_ids:
+        recent_reviews = (
+            Review.query
+            .filter(Review.user_id.in_(followed_ids))
+            .order_by(Review.created_at.desc())
+            .limit(30)
+            .all()
+        )
+
+        for review in recent_reviews:
+            movie = TMDBService.get_movie_details(review.tmdb_movie_id)
+            media_type = "movie"
+            if not movie:
+                movie = TMDBService.get_tv_details(review.tmdb_movie_id)
+                media_type = "tv"
+            if not movie:
+                continue
+
+            movie["media_type"] = media_type
+            activities.append({
+                "type": "review",
+                "actor": review.user,
+                "movie": movie,
+                "review": review,
+            })
+
+    return render_template(
+        "users/feed.html",
+        activities=activities,
+        followed_count=len(followed_users),
     )
 
 # ============= NOTIFICATIONS =============

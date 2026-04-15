@@ -8,6 +8,7 @@ from sqlalchemy import func
 import requests
 import json
 import time
+from datetime import datetime, timedelta
 
 
 def build_ai_style_recommendations(base_item, media_type):
@@ -302,20 +303,75 @@ def set_player_config():
 @movies_bp.route("/")
 def movie_list():
     started_at = time.perf_counter()
-    query = request.args.get("q", "")
+    query = request.args.get("q", "", type=str).strip()
     page = request.args.get("page", 1, type=int)
-    
+    media_type = request.args.get("media_type", "movie", type=str).strip().lower()
+    sort_by = request.args.get("sort", "popularity", type=str).strip().lower()
+    year = request.args.get("year", "", type=str).strip()
+
+    if media_type not in {"movie", "tv", "all"}:
+        media_type = "movie"
+
+    def _matches_year(item):
+        if not year:
+            return True
+        release_value = item.get("release_date") or item.get("first_air_date") or ""
+        return release_value.startswith(year)
+
+    def _normalise_items(items):
+        normalised = []
+        for item in items:
+            item_type = item.get("media_type") or ("tv" if item.get("name") and not item.get("title") else "movie")
+            if media_type != "all" and item_type != media_type:
+                continue
+            if not _matches_year(item):
+                continue
+
+            item["media_type"] = item_type
+            if item_type == "tv":
+                item["title"] = item.get("title") or item.get("name")
+                item["release_date"] = item.get("release_date") or item.get("first_air_date")
+            elif not item.get("title"):
+                item["title"] = item.get("name") or "Untitled"
+            normalised.append(item)
+
+        if sort_by == "rating":
+            normalised.sort(key=lambda item: item.get("vote_average") or 0, reverse=True)
+        elif sort_by == "latest":
+            normalised.sort(key=lambda item: item.get("release_date") or item.get("first_air_date") or "", reverse=True)
+        elif sort_by == "title":
+            normalised.sort(key=lambda item: (item.get("title") or item.get("name") or "").lower())
+        return normalised
+
     if query:
-        movies = TMDBService.search_all(query, page)
+        if media_type == "movie":
+            movies = TMDBService.search_movies(query, page)
+        else:
+            movies = TMDBService.search_all(query, page)
+        movies = _normalise_items(movies)
     else:
-        movies = TMDBService.get_popular_movies(page)
-    
+        if media_type == "tv":
+            movies = TMDBService.get_popular_tv(page)
+        elif media_type == "all":
+            movies = TMDBService.get_popular_movies(page) + TMDBService.get_popular_tv(page)
+            movies = _normalise_items(movies)
+        else:
+            movies = TMDBService.get_popular_movies(page)
+            movies = _normalise_items(movies)
+
+    filters = {
+        "media_type": media_type,
+        "sort": sort_by,
+        "year": year,
+    }
+
     try:
         return render_template(
             "movies/list.html",
             movies=movies,
             query=query,
-            page=page
+            page=page,
+            filters=filters,
         )
     finally:
         _log_route_perf("movies.movie_list", started_at)
@@ -327,8 +383,12 @@ def movie_detail(movie_id):
         movie = TMDBService.get_movie_details(movie_id)
         
         if not movie:
-            flash("Movie not found", "error")
-            return redirect(url_for("movies.movie_list"))
+            tv_fallback = TMDBService.get_tv_details(movie_id)
+            if tv_fallback:
+                return redirect(url_for("movies.tv_detail", tv_id=movie_id))
+
+            current_app.logger.warning("Movie not found: %s", movie_id)
+            return render_template("errors/404.html"), 404
         
         reviews = _safe_db_call(
             lambda: Review.query.filter_by(tmdb_movie_id=movie_id).order_by(Review.created_at.desc()).all(),
@@ -390,9 +450,8 @@ def movie_detail(movie_id):
             embed_allowed_origin=player_embed.get("allowed_origin", ""),
         )
     except Exception as e:
-        print(f"Error loading movie {movie_id}: {e}")
-        flash("Error loading movie details", "error")
-        return redirect(url_for("movies.movie_list"))
+        current_app.logger.exception("Error loading movie details for %s", movie_id)
+        return render_template("errors/500.html"), 500
     finally:
         _log_route_perf("movies.movie_detail", started_at)
 
@@ -403,8 +462,12 @@ def tv_detail(tv_id):
         show = TMDBService.get_tv_details(tv_id)
         
         if not show:
-            flash("TV show not found", "error")
-            return redirect(url_for("main.series_section"))
+            movie_fallback = TMDBService.get_movie_details(tv_id)
+            if movie_fallback:
+                return redirect(url_for("movies.movie_detail", movie_id=tv_id))
+
+            current_app.logger.warning("TV show not found: %s", tv_id)
+            return render_template("errors/404.html"), 404
         
         reviews = _safe_db_call(
             lambda: Review.query.filter_by(tmdb_movie_id=tv_id).order_by(Review.created_at.desc()).all(),
@@ -513,9 +576,8 @@ def tv_detail(tv_id):
             embed_allowed_origin=player_embed.get("allowed_origin", ""),
         )
     except Exception as e:
-        print(f"Error loading TV show {tv_id}: {e}")
-        flash("Error loading TV show details", "error")
-        return redirect(url_for("main.series_section"))
+        current_app.logger.exception("Error loading TV show details for %s", tv_id)
+        return render_template("errors/500.html"), 500
     finally:
         _log_route_perf("movies.tv_detail", started_at)
 
@@ -568,6 +630,15 @@ def save_watch_progress():
             episode=episode,
         )
         db.session.add(record)
+    else:
+        # Throttle high-frequency player heartbeats to avoid frequent DB commits that can lag desktop mode.
+        same_event = (record.last_event or "") == last_event
+        if last_event == "timeupdate" and same_event:
+            recently_updated = bool(record.updated_at and (datetime.utcnow() - record.updated_at) < timedelta(seconds=8))
+            small_time_delta = abs((record.current_time or 0) - current_time) < 3
+            small_progress_delta = abs(float(record.progress_percent or 0.0) - float(progress_percent)) < 0.4
+            if recently_updated and small_time_delta and small_progress_delta:
+                return jsonify({"success": True, "throttled": True})
 
     record.current_time = current_time
     record.duration = duration
@@ -743,6 +814,9 @@ def watchlist():
 @movies_bp.route("/recommendations")
 @login_required
 def recommendations():
+    if current_app.config.get("DESKTOP_MODE", False):
+        return redirect(url_for("main.home"))
+
     watchlist_entries = Watchlist.query.filter_by(user_id=current_user.id).limit(20).all()
     
     if not watchlist_entries:
@@ -771,6 +845,9 @@ def recommendations():
 @movies_bp.route("/recommendations/load-more", methods=["POST"])
 @login_required
 def load_more_recommendations():
+    if current_app.config.get("DESKTOP_MODE", False):
+        return jsonify({"items": [], "error": "Recommendations unavailable in desktop mode"}), 404
+
     data = request.get_json()
     items_per_batch = 16
     
