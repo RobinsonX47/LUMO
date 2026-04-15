@@ -1,5 +1,4 @@
 from flask import Flask, render_template, jsonify
-from config import Config
 from extensions import db, login_manager, csrf, limiter
 from tmdb_service import TMDBService
 from flask_login import current_user
@@ -7,6 +6,7 @@ from flask_talisman import Talisman
 from flask_wtf.csrf import CSRFError
 from flask_limiter.util import get_remote_address
 import os
+import sys
 import threading
 import logging
 from logging.handlers import RotatingFileHandler
@@ -14,9 +14,42 @@ from dotenv import load_dotenv
 from datetime import datetime
 from werkzeug.middleware.proxy_fix import ProxyFix
 import humanize
+from pathlib import Path
 
-# Load environment variables from .env file
-load_dotenv()
+def _load_environment_variables() -> None:
+    """Load .env from deterministic locations for source and frozen desktop builds."""
+    env_candidates = []
+
+    runtime_root = os.environ.get("LUMO_RUNTIME_ROOT")
+    if runtime_root:
+        env_candidates.append(Path(runtime_root) / ".env")
+
+    if getattr(sys, "frozen", False):
+        env_candidates.append(Path(sys.executable).resolve().parent / ".env")
+
+    # Local development fallback.
+    env_candidates.append(Path(__file__).resolve().parent / ".env")
+
+    loaded_any = False
+    seen = set()
+    for candidate in env_candidates:
+        candidate_str = str(candidate)
+        if candidate_str in seen:
+            continue
+        seen.add(candidate_str)
+        if candidate.is_file():
+            load_dotenv(dotenv_path=candidate, override=False)
+            loaded_any = True
+
+    if not loaded_any:
+        # Keep default behavior as a last resort.
+        load_dotenv(override=False)
+
+
+# Load environment variables before configuration is imported.
+_load_environment_variables()
+
+from config import Config
 
 def datetime_difference(dt):
     """Calculate time difference between now and given datetime using humanize."""
@@ -28,8 +61,20 @@ def datetime_difference(dt):
     return humanize.naturaltime(now - dt)
 
 def create_app():
-    app = Flask(__name__)
+    runtime_root = os.environ.get("LUMO_RUNTIME_ROOT")
+    flask_kwargs = {}
+
+    if runtime_root:
+        candidate_templates = os.path.join(runtime_root, "templates")
+        candidate_static = os.path.join(runtime_root, "static")
+        if os.path.isdir(candidate_templates):
+            flask_kwargs["template_folder"] = candidate_templates
+        if os.path.isdir(candidate_static):
+            flask_kwargs["static_folder"] = candidate_static
+
+    app = Flask(__name__, **flask_kwargs)
     app.config.from_object(Config)
+    app.config["DESKTOP_MODE"] = os.environ.get("LUMO_DESKTOP_MODE") == "1"
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
     # Fail fast on required secrets in production.
@@ -138,6 +183,10 @@ def create_app():
 
     # Initialize database and login manager
     db.init_app(app)
+
+    # Import models before create_all so SQLAlchemy metadata is populated.
+    # Without this, fresh deployments can miss tables like `users`.
+    import models  # noqa: F401
 
     # Bootstrap schema for fresh deployments (idempotent: only creates missing tables).
     # This prevents runtime failures (e.g., OAuth callback) when a new managed DB is attached.
