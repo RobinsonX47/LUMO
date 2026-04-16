@@ -1,86 +1,106 @@
-# LUMO
+# 🎬 LUMO
 
-A Flask-based movie and TV tracking platform with social features, watch progress, and desktop packaging support.
+<p align="center">
+  <strong>A Flask movie and TV platform with watchlists, reviews, social profiles, recommendations, and desktop support.</strong>
+</p>
 
-## Highlights
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python" alt="Python 3.10+" />
+  <img src="https://img.shields.io/badge/Flask-3-black?style=for-the-badge&logo=flask" alt="Flask 3" />
+  <img src="https://img.shields.io/badge/SQLAlchemy-ORM-orange?style=for-the-badge" alt="SQLAlchemy" />
+  <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="MIT License" />
+</p>
 
-- Content discovery: trending, top-rated, genres, anime, and TV sections
-- Detailed title pages with reviews, watchlist actions, and trailer/player support
-- Personalized recommendations from watchlist seeds with fallback logic
-- User social layer: public profiles, follow/unfollow, search, directory, and notifications
-- Continue watching with per-user progress tracking
-- Security defaults: CSRF, rate limiting, security headers, and production checks
-- Health endpoints for deployment: /health and /ready
-- Optional Windows desktop launcher and installer scripts
+## ✨ What LUMO Does
 
-## Tech Stack
+LUMO is a content discovery and tracking app built around real usage flows, not just a static catalog.
 
-- Python 3.10+
-- Flask 3, SQLAlchemy, Flask-Login, Flask-WTF
-- SQLite (default) or PostgreSQL via DATABASE_URL
-- Redis-backed rate limiting in production (memory fallback in local dev)
+- 🎥 Browse movies, TV series, anime, genres, trending titles, and top-rated picks
+- 📝 Read and write reviews on title detail pages
+- 📌 Save movies and series to a watchlist with media-type aware handling
+- ⏯️ Track continue-watching progress per user
+- 👥 Build public profiles, follow other users, and discover people through search and directory pages
+- 🤖 Generate recommendations from watchlist seeds with fallback logic
+- 🔒 Use CSRF protection, rate limiting, security headers, and production checks
+- 🖥️ Run as a local desktop app with Windows packaging support
+- ❤️ Expose /health and /ready endpoints for deployment monitoring
 
-## Quick Start (Windows PowerShell)
+## 🔍 Feature Map
+
+| Area | What you get |
+| --- | --- |
+| 🎞️ Discovery | Home hero carousel, trending movies, top-rated pages, genre browsing, anime, and TV sections |
+| 🧾 Title Pages | Movie and TV detail pages, trailers/player integration, reviews, related actions |
+| 📚 Library | Watchlist page, continue-watching page, watch progress persistence |
+| 👤 Accounts | Email/password auth, Google OAuth, profile editing, avatars |
+| 🌐 Social | Public profiles, follow/unfollow, followers/following lists, user search, notifications, directory |
+| 🤖 Recommendations | Personalized recommendation pages with fallback to TMDB-derived suggestions |
+| 🛡️ Operations | Health checks, readiness checks, logging, rate limits, security headers |
+| 🖥️ Desktop | Local launcher, native window support, PyInstaller build scripts, installer scripts |
+
+## 🚀 Quick Start
+
+### 🪟 Windows PowerShell
 
 ```powershell
-git clone https://github.com/RobinsonX47/lumo.git
-cd lumo
+git clone https://github.com/RobinsonX47/LUMO.git
+cd LUMO
 
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 
 Copy-Item .env.example .env
-# Edit .env and set at least TMDB_API_KEY and SECRET_KEY
+# Edit .env and set at least SECRET_KEY and TMDB_API_KEY
 
 python app.py
 ```
 
 Open http://localhost:5000
 
-## Quick Start (macOS/Linux)
+### 🐧 macOS / Linux
 
 ```bash
-git clone https://github.com/RobinsonX47/lumo.git
-cd lumo
+git clone https://github.com/RobinsonX47/LUMO.git
+cd LUMO
 
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
 cp .env.example .env
-# Edit .env and set at least TMDB_API_KEY and SECRET_KEY
+# Edit .env and set at least SECRET_KEY and TMDB_API_KEY
 
 python app.py
 ```
 
-## Configuration
+## ⚙️ Configuration
 
-Required:
+### Required
 
-- SECRET_KEY
-- TMDB_API_KEY
+- 🔑 `SECRET_KEY`
+- 🎬 `TMDB_API_KEY`
 
-Optional:
+### Optional
 
-- DATABASE_URL (PostgreSQL in production)
-- REDIS_URL (recommended in production for rate-limit storage)
-- GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET (Google OAuth)
-- ANTHROPIC_API_KEY (LLM-assisted recommendation ranking)
-- EMBED_PROVIDER_* (licensed embed provider integration)
+- 🗃️ `DATABASE_URL` for PostgreSQL in production
+- 🧠 `REDIS_URL` for rate-limit storage in production
+- 🔐 `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` for Google OAuth
+- 🤖 `ANTHROPIC_API_KEY` for recommendation ranking support
+- 🎛️ `EMBED_PROVIDER_*` for licensed embed provider integration
 
-The app automatically normalizes DATABASE_URL values and has recovery logic for incomplete Render-style hostnames.
+The app also normalizes some production database URLs automatically, including incomplete Render-style hostnames.
 
-## Common Commands
+## 🧪 Useful Commands
 
 ```bash
-# Run tests
+# Run the test suite
 pytest
 
-# Create admin user
+# Create an admin user for local content management
 python scripts/make_admin.py --create --email admin@example.com --name "Admin" --password "change-me"
 
-# Optional migrations for older databases
+# Migrations for older databases
 python scripts/migrate_add_oauth.py
 python scripts/migrate_add_username.py
 python scripts/migrate_add_watch_progress.py
@@ -89,42 +109,64 @@ python scripts/migrate_add_tmdb_id.py
 python scripts/migrate_add_performance_indexes.py
 ```
 
-## Desktop Build (Optional)
+## 🖥️ Desktop App
+
+LUMO also ships with a desktop launcher for Windows.
 
 ```powershell
 pip install -r desktop/requirements.txt
 powershell -ExecutionPolicy Bypass -File desktop/build_desktop.ps1
 ```
 
-Full details: docs/DESKTOP_APP.md
+- `desktop/launcher.py` runs the local desktop experience
+- `desktop/build_desktop.ps1` packages the app with PyInstaller
+- `desktop/build_installer.ps1` builds a simple Windows installer wrapper
+- Full desktop notes live in [docs/DESKTOP_APP.md](docs/DESKTOP_APP.md)
 
-## Documentation
+## 🔐 Production Notes
 
-- docs/START_HERE.md
-- docs/QUICK_SETUP.md
-- docs/PRODUCTION_DEPLOYMENT_GUIDE.md
-- docs/GOOGLE_OAUTH_SETUP.md
-- docs/SOCIAL_FEATURES.md
-- docs/TESTING_GUIDE.md
-- docs/ARCHITECTURE.md
+LUMO includes production-oriented defaults, but you still need to configure your own deployment correctly.
 
-## Project Layout
+- 🔒 Set a strong `SECRET_KEY`
+- 🗃️ Use PostgreSQL in production
+- 🧠 Use Redis for rate limiting in production
+- 🌍 Put Google OAuth redirect URIs in the Google Cloud console
+- 🧰 Keep `FLASK_ENV=production` for production deployments
+- ✅ Verify `/health` and `/ready` after deploying
+
+For full deployment steps, see [docs/PRODUCTION_DEPLOYMENT_GUIDE.md](docs/PRODUCTION_DEPLOYMENT_GUIDE.md).
+
+## 📚 Documentation
+
+- [docs/START_HERE.md](docs/START_HERE.md) - best entry point for the docs
+- [docs/QUICK_SETUP.md](docs/QUICK_SETUP.md) - fast local and Render setup
+- [docs/PRODUCTION_DEPLOYMENT_GUIDE.md](docs/PRODUCTION_DEPLOYMENT_GUIDE.md) - production checklist and hosting notes
+- [docs/GOOGLE_OAUTH_SETUP.md](docs/GOOGLE_OAUTH_SETUP.md) - Google login setup
+- [docs/SOCIAL_FEATURES.md](docs/SOCIAL_FEATURES.md) - social features overview
+- [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md) - auth and OAuth validation flows
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) - app structure and runtime flow
+- [docs/DESKTOP_APP.md](docs/DESKTOP_APP.md) - desktop packaging and launcher details
+
+## 🧱 Project Layout
 
 ```text
-app.py                # App factory, security setup, blueprint registration
-config.py             # Environment-driven configuration
+app.py                # Flask app factory, security setup, health endpoints
+config.py             # Environment-aware configuration
 models.py             # SQLAlchemy models
-routes_*.py           # Feature blueprints
-tmdb_service.py       # TMDB API and caching helpers
-desktop/              # Desktop launcher and installer scripts
-docs/                 # Deployment and architecture documentation
-tests/                # Test suite
+routes_*.py           # Blueprints for auth, movies, users, legal, admin
+services/             # API integrations and helper services
+static/               # CSS, JS, images, uploads
+templates/            # Jinja2 templates
+scripts/              # Migrations and admin helpers
+desktop/              # Desktop launcher and packaging scripts
+docs/                # Setup, deployment, testing, and architecture docs
+tests/               # Automated tests
 ```
 
-## Contributing
+## 🤝 Contributing
 
-See CONTRIBUTING.md for development workflow and PR guidance.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines, development setup, and pull request expectations.
 
-## License
+## 📄 License
 
-MIT. See LICENSE.
+MIT. See [LICENSE](LICENSE).
