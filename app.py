@@ -60,6 +60,22 @@ def datetime_difference(dt):
     now = datetime.utcnow()
     return humanize.naturaltime(now - dt)
 
+
+def truncate_words(value, max_words=6):
+    """Truncate text by word count and append ellipsis for long titles."""
+    if value is None:
+        return ""
+
+    text = str(value).strip()
+    if not text:
+        return ""
+
+    words = text.split()
+    if len(words) <= max_words:
+        return text
+
+    return " ".join(words[:max_words]) + "..."
+
 def create_app():
     runtime_root = os.environ.get("LUMO_RUNTIME_ROOT")
     flask_kwargs = {}
@@ -258,6 +274,7 @@ def create_app():
 
     # Register Jinja2 filters
     app.jinja_env.filters['datetime_difference'] = datetime_difference
+    app.jinja_env.filters['truncate_words'] = truncate_words
 
     # Context processor for notifications
     @app.context_processor

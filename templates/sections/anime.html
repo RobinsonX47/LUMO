@@ -42,7 +42,7 @@ content %}
           Anime
         </div>
         {% endif %}
-        <div class="movie-title">{{ anime.title }}</div>
+        <div class="movie-title">{{ anime.title|truncate_words(6) }}</div>
         <div class="movie-meta">
           {% if anime.release_date %}{{ anime.release_date[:4] }} • {% endif %}
           {{ anime.vote_average|round(1) }}/10
@@ -82,7 +82,7 @@ content %}
           Anime
         </div>
         {% endif %}
-        <div class="movie-title">{{ anime.title }}</div>
+        <div class="movie-title">{{ anime.title|truncate_words(6) }}</div>
         <div class="movie-meta">
           {% if anime.release_date %}{{ anime.release_date[:4] }} • {% endif %}
           {{ anime.vote_average|round(1) }}/10

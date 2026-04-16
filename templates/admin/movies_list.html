@@ -20,7 +20,7 @@
           src="{{ movie.poster_path or '/static/images/posters/default.jpg' }}"
           class="movie-poster"
         />
-        <div class="movie-title">{{ movie.title }}</div>
+        <div class="movie-title">{{ movie.title|truncate_words(6) }}</div>
         <div class="movie-meta">
           {{ movie.release_year or '' }} · {{ movie.duration_minutes or '' }}
           min

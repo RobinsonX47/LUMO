@@ -72,7 +72,7 @@ Series{% endblock %} {% block content %}
           decoding="async"
         />
         {% endif %}
-        <div class="movie-title">{{ item.title or item.name }}</div>
+        <div class="movie-title">{{ (item.title or item.name)|truncate_words(6) }}</div>
         <div class="movie-meta">
           {% if item.release_date %}{{ item.release_date[:4] }} • {% endif %} {{
           item.vote_average|round(1) }}/10
@@ -101,7 +101,7 @@ Series{% endblock %} {% block content %}
         {% if item.poster_url %}
         <img src="{{ item.poster_url }}" alt="{{ item.title or item.name }}" class="movie-poster" loading="lazy" decoding="async" />
         {% endif %}
-        <div class="movie-title">{{ item.title or item.name }}</div>
+        <div class="movie-title">{{ (item.title or item.name)|truncate_words(6) }}</div>
         <div class="movie-meta">{{ item.resume_label }} • {{ item.progress_percent|round(0) }}%</div>
       </div>
     </a>

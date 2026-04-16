@@ -19,7 +19,7 @@
         {% if item.poster_url %}
         <img src="{{ item.poster_url }}" alt="{{ item.title or item.name }}" class="movie-poster" loading="lazy" decoding="async" />
         {% endif %}
-        <div class="movie-title">{{ item.title or item.name }}</div>
+        <div class="movie-title">{{ (item.title or item.name)|truncate_words(6) }}</div>
         <div class="movie-meta" style="display: flex; justify-content: space-between; gap: 8px; align-items: center; flex-wrap: wrap;">
           <span>{{ item.resume_label }}</span>
           <span>{{ item.progress_percent|round(0) }}%</span>

@@ -233,7 +233,7 @@ endblock %} {% block content %}
           Movie
         </div>
         {% endif %}
-        <div class="movie-title">{{ item.movie.title }}</div>
+        <div class="movie-title">{{ item.movie.title|truncate_words(6) }}</div>
         <div
           style="
             display: flex;
@@ -285,7 +285,7 @@ endblock %} {% block content %}
           decoding="async"
         />
         {% endif %}
-        <div class="movie-title">{{ item.title or item.name }}</div>
+        <div class="movie-title">{{ (item.title or item.name)|truncate_words(6) }}</div>
         <div class="movie-meta">
           {{ item.resume_label }} • {{ item.progress_percent|round(0) }}%
         </div>
@@ -342,7 +342,7 @@ endblock %} {% block content %}
           Movie
         </div>
         {% endif %}
-        <div class="movie-title">{{ movie.title or movie.name }}</div>
+        <div class="movie-title">{{ (movie.title or movie.name)|truncate_words(6) }}</div>
         <div class="movie-meta">
           {% if movie.release_date or movie.first_air_date %} {{
           (movie.release_date or movie.first_air_date)[:4] }} • {% endif %}

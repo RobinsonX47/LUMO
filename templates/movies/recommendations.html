@@ -72,7 +72,7 @@
         </div>
         {% endif %}
 
-        <div class="movie-title">{{ item.title }}</div>
+        <div class="movie-title">{{ item.title|truncate_words(6) }}</div>
 
         <div class="media-type-badge">
           {% if item.media_type == 'tv' %} Series {% elif item.media_type ==
@@ -444,6 +444,10 @@
             ? item.release_date.substring(0, 4)
             : "";
           const rating = parseFloat(item.vote_average).toFixed(1);
+          const truncatedTitle = item.title
+            ? item.title.trim().split(/\s+/).slice(0, 6).join(" ") +
+              (item.title.trim().split(/\s+/).length > 6 ? "..." : "")
+            : "Untitled";
 
           const cardHTML = `
             <a href="${movieUrl}" class="card-link">
@@ -455,7 +459,7 @@
                   AI Pick
                 </div>
                 ${posterHtml}
-                <div class="movie-title">${item.title}</div>
+                <div class="movie-title">${truncatedTitle}</div>
                 <div class="media-type-badge">${mediaType}</div>
                 <div class="movie-meta">${releaseYear ? releaseYear + " • " : ""}Rating: ${rating}/10</div>
               </div>

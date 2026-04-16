@@ -56,7 +56,7 @@
         </svg>
       </div>
       {% endif %}
-      <div class="movie-title">{{ movie.title }}</div>
+      <div class="movie-title">{{ movie.title|truncate_words(6) }}</div>
       <div class="movie-meta">
         {% if movie.release_date %}{{ movie.release_date[:4] }} • Rating: {%
         endif %} {{ movie.vote_average|round(1) }}/10
