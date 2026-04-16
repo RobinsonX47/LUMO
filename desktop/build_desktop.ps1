@@ -1,7 +1,7 @@
 param(
     [string]$Python = "f:/LUMO/.venv/Scripts/python.exe",
     [string]$IconPath = "static/images/logo.ico",
-    [string]$Launcher = "desktop/launcher_qt.py",
+    [string]$Launcher = "desktop/launcher.py",
     [switch]$OneFile
 )
 
@@ -13,6 +13,10 @@ if (-not (Test-Path $Python)) {
 
 if (-not (Test-Path $Launcher)) {
     throw "Launcher script not found at: $Launcher"
+}
+
+if ($Launcher -like "*launcher_qt.py") {
+    Write-Warning "Qt launcher selected. If embeds fail to play, rebuild with -Launcher desktop/launcher.py"
 }
 
 Remove-Item -Recurse -Force "build\LUMO-Desktop" -ErrorAction SilentlyContinue
@@ -59,6 +63,7 @@ if ($OneFile) {
         throw "Build incomplete: dist/LUMO-Desktop.exe not found"
     }
     Write-Host "Build complete. Check dist/LUMO-Desktop.exe"
+    Write-Host "Share this single EXE only when using -OneFile build."
 } else {
     if (-not (Test-Path "dist\LUMO-Desktop\LUMO-Desktop.exe")) {
         throw "Build incomplete: dist/LUMO-Desktop/LUMO-Desktop.exe not found"
@@ -72,5 +77,12 @@ if ($OneFile) {
         Write-Host "Copied .env into dist/LUMO-Desktop/.env"
     }
 
+    $portableZip = "dist\LUMO-Desktop-portable.zip"
+    Remove-Item -Force $portableZip -ErrorAction SilentlyContinue
+    Compress-Archive -Path "dist\LUMO-Desktop\*" -DestinationPath $portableZip -Force
+    Write-Host "Portable package created: $portableZip"
+
     Write-Host "Build complete. Check dist/LUMO-Desktop/LUMO-Desktop.exe"
+    Write-Host "IMPORTANT: Do not share only the EXE from onedir build."
+    Write-Host "Share either dist/LUMO-Desktop-portable.zip or the full dist/LUMO-Desktop folder."
 }

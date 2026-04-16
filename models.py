@@ -63,7 +63,7 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=True)  # Nullable for OAuth users
     bio = db.Column(db.Text)
-    avatar = db.Column(db.String(255))
+    avatar = db.Column(db.Text)
     role = db.Column(db.String(10), default="user")
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

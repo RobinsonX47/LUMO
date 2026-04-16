@@ -7,12 +7,14 @@ from models import User, Review, Watchlist, Notification, WatchProgress, user_fo
 from tmdb_service import TMDBService
 from sqlalchemy import or_, and_, func
 import os
-import uuid
 import re
+import base64
+import mimetypes
 
 users_bp = Blueprint("users", __name__)
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+MAX_AVATAR_BYTES = 2 * 1024 * 1024
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -211,14 +213,23 @@ def edit_profile():
         avatar_file = request.files.get('avatar')
         if avatar_file and avatar_file.filename:
             if allowed_file(avatar_file.filename):
-                upload_folder = os.path.join(current_app.root_path, 'static', 'uploads', 'avatars')
-                os.makedirs(upload_folder, exist_ok=True)
-                
                 filename = secure_filename(avatar_file.filename)
-                unique_filename = f"avatar_{current_user.id}_{uuid.uuid4().hex}_{filename}"
-                filepath = os.path.join(upload_folder, unique_filename)
-                
-                avatar_file.save(filepath)
+                avatar_bytes = avatar_file.read()
+
+                if not avatar_bytes:
+                    flash("Uploaded avatar file is empty.", "error")
+                    return redirect(url_for("users.edit_profile"))
+
+                if len(avatar_bytes) > MAX_AVATAR_BYTES:
+                    flash("Avatar image is too large. Please upload an image smaller than 2MB.", "error")
+                    return redirect(url_for("users.edit_profile"))
+
+                mime_type, _ = mimetypes.guess_type(filename)
+                if not mime_type or not mime_type.startswith("image/"):
+                    mime_type = "image/jpeg"
+
+                encoded_avatar = base64.b64encode(avatar_bytes).decode("ascii")
+                avatar_data_url = f"data:{mime_type};base64,{encoded_avatar}"
                 
                 # Delete old avatar if exists
                 if current_user.avatar and current_user.avatar.startswith('/static/uploads'):
@@ -229,7 +240,7 @@ def edit_profile():
                         except:
                             pass
                 
-                current_user.avatar = f"/static/uploads/avatars/{unique_filename}"
+                current_user.avatar = avatar_data_url
             else:
                 flash("Invalid file type. Please upload an image (PNG, JPG, JPEG, GIF, WEBP)", "error")
                 return redirect(url_for("users.edit_profile"))
