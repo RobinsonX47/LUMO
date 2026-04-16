@@ -34,6 +34,18 @@ python desktop/launcher.py
 
 This starts your Flask app on a random localhost port and opens a desktop window.
 
+### Use the same database as your website (optional)
+
+By default desktop mode uses a local SQLite database. To make desktop use the same remote database as your website, set:
+
+```powershell
+$env:LUMO_DESKTOP_USE_REMOTE_DB="1"
+$env:DATABASE_URL="your_postgres_url"
+python desktop/launcher.py
+```
+
+Without this flag, desktop and website users/profiles will be different because they are stored in different databases.
+
 ### Windows requirement for native window mode
 
 Install **Microsoft Edge WebView2 Runtime**. Without it, launcher will fall back to opening in your browser.

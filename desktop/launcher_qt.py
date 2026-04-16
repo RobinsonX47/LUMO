@@ -72,7 +72,11 @@ def _configure_logging(data_dir: Path) -> None:
 def main() -> None:
     os.environ.setdefault("FLASK_ENV", "desktop")
     os.environ.pop("LUMO_DESKTOP_MODE", None)
-    os.environ.setdefault("LUMO_USE_LOCAL_DB", "1")
+    use_remote_db = os.environ.get("LUMO_DESKTOP_USE_REMOTE_DB", "0").strip().lower() in {"1", "true", "yes", "on"}
+    if use_remote_db:
+        os.environ["LUMO_USE_LOCAL_DB"] = "0"
+    else:
+        os.environ.setdefault("LUMO_USE_LOCAL_DB", "1")
 
     if getattr(sys, "frozen", False):
         exe_dir = Path(sys.executable).resolve().parent
