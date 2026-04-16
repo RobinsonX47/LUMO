@@ -25,12 +25,32 @@ def is_valid_username(username):
 
 def fetch_tmdb_details(entry):
     """Fetch TMDB details using known media type first, then fallback once."""
+    if not getattr(entry, 'tmdb_movie_id', None):
+        return None
+
     media_type = getattr(entry, 'media_type', 'movie')
     if media_type == 'tv':
         details = TMDBService.get_tv_details(entry.tmdb_movie_id)
         return details or TMDBService.get_movie_details(entry.tmdb_movie_id)
     details = TMDBService.get_movie_details(entry.tmdb_movie_id)
     return details or TMDBService.get_tv_details(entry.tmdb_movie_id)
+
+
+def build_watchlist_card(entry):
+    """Build a renderable watchlist card from local DB-cached fields."""
+    title = (entry.movie_title or '').strip() or 'Unknown'
+    media_type = getattr(entry, 'media_type', 'movie') or 'movie'
+    return {
+        'id': entry.tmdb_movie_id,
+        'title': title,
+        'name': title,
+        'poster_path': entry.poster_path,
+        'poster_url': TMDBService.get_image_url(entry.poster_path),
+        'media_type': media_type,
+        'release_date': '',
+        'first_air_date': '',
+        'vote_average': 0.0,
+    }
 
 
 def build_progress_item(progress):
@@ -77,36 +97,23 @@ def profile():
         .all()
     )
 
-    def resolve_entry(entry):
-        """Get movie/TV details using stored media_type for better performance."""
-        try:
-            details = fetch_tmdb_details(entry)
-            if details:
-                return details
-
-            # Fallback to cached watchlist data when TMDB details fail.
-            title = entry.movie_title or 'Unknown'
-            media_type = getattr(entry, 'media_type', 'movie')
-            return {
-                'id': entry.tmdb_movie_id,
-                'title': title,
-                'name': title,
-                'poster_path': entry.poster_path,
-                'poster_url': TMDBService.get_image_url(entry.poster_path),
-                'media_type': media_type,
-            }
-        except Exception as e:
-            print(f"Error resolving watchlist entry {entry.tmdb_movie_id}: {e}")
-            return None
-
     watchlist_movies = []
-    for entry in watchlist_entries:
-        movie = resolve_entry(entry)
-        if movie:
-            # Ensure media_type is set
-            if 'media_type' not in movie:
-                movie['media_type'] = getattr(entry, 'media_type', 'movie')
-            watchlist_movies.append(movie)
+    enrich_limit = 6
+    for idx, entry in enumerate(watchlist_entries):
+        card = build_watchlist_card(entry)
+
+        # Enrich only top cards with TMDB detail calls to avoid N remote requests.
+        if idx < enrich_limit:
+            try:
+                details = fetch_tmdb_details(entry)
+                if details:
+                    details['media_type'] = details.get('media_type') or card['media_type']
+                    watchlist_movies.append(details)
+                    continue
+            except Exception as e:
+                print(f"Error resolving watchlist entry {entry.tmdb_movie_id}: {e}")
+
+        watchlist_movies.append(card)
     
     # Get followers and following counts
     followers_count = user.followers.count()
@@ -270,31 +277,19 @@ def public_profile(username):
     # Get user's watchlist (public)
     watchlist_entries = Watchlist.query.filter_by(user_id=user.id).order_by(Watchlist.added_at.desc()).limit(8).all()
 
-    def resolve_entry_public(entry):
-        """Use media type aware lookup and fallback to cached entry fields."""
-        details = fetch_tmdb_details(entry)
-        if details:
-            return details
-
-        title = entry.movie_title or 'Unknown'
-        media_type = getattr(entry, 'media_type', 'movie')
-        return {
-            'id': entry.tmdb_movie_id,
-            'title': title,
-            'name': title,
-            'poster_path': entry.poster_path,
-            'poster_url': TMDBService.get_image_url(entry.poster_path),
-            'media_type': media_type,
-        }
-
     watchlist_movies = []
-    for entry in watchlist_entries:
-        movie = resolve_entry_public(entry)
-        if movie:
-            movie['media_type'] = movie.get('media_type') or (
-                'tv' if (movie.get('name') and not movie.get('title')) else 'movie'
-            )
-            watchlist_movies.append(movie)
+    enrich_limit = 4
+    for idx, entry in enumerate(watchlist_entries):
+        card = build_watchlist_card(entry)
+
+        if idx < enrich_limit:
+            details = fetch_tmdb_details(entry)
+            if details:
+                details['media_type'] = details.get('media_type') or card['media_type']
+                watchlist_movies.append(details)
+                continue
+
+        watchlist_movies.append(card)
     
     # Get followers and following counts
     followers_count = user.followers.count()

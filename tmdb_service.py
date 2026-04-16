@@ -11,6 +11,7 @@ import os
 import time
 import math
 import logging
+import threading
 from datetime import datetime, timedelta
 from pathlib import Path
 import hashlib
@@ -33,6 +34,9 @@ class TMDBCache:
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.cache_duration = timedelta(hours=6)  # Cache for 6 hours
         self.cache_duration_seconds = int(self.cache_duration.total_seconds())
+        self.memory_cache = {}
+        self.memory_cache_max_entries = 2000
+        self.memory_lock = threading.Lock()
 
         redis_url = current_app.config.get('REDIS_URL') if has_app_context() else None
         if redis_url and redis is not None:
@@ -58,6 +62,15 @@ class TMDBCache:
     
     def get(self, key):
         """Get cached data if it exists and is not expired"""
+        now_ts = time.time()
+        with self.memory_lock:
+            entry = self.memory_cache.get(key)
+            if entry:
+                expires_at, value = entry
+                if expires_at > now_ts:
+                    return value
+                self.memory_cache.pop(key, None)
+
         if self.redis_client:
             redis_key = self.get_redis_key(key)
             try:
@@ -66,7 +79,12 @@ class TMDBCache:
                     return None
                 cache_data = json.loads(raw)
                 logger.debug("TMDB redis cache hit: %s", key[:50])
-                return cache_data.get('data')
+                value = cache_data.get('data')
+                with self.memory_lock:
+                    if len(self.memory_cache) >= self.memory_cache_max_entries:
+                        self.memory_cache.pop(next(iter(self.memory_cache)), None)
+                    self.memory_cache[key] = (now_ts + self.cache_duration_seconds, value)
+                return value
             except Exception as exc:
                 logger.warning("TMDB redis cache read error: %s", exc)
                 return None
@@ -91,7 +109,12 @@ class TMDBCache:
                 return None
             
             logger.debug("TMDB cache hit: %s", key[:50])
-            return cache_data['data']
+            value = cache_data['data']
+            with self.memory_lock:
+                if len(self.memory_cache) >= self.memory_cache_max_entries:
+                    self.memory_cache.pop(next(iter(self.memory_cache)), None)
+                self.memory_cache[key] = (now_ts + self.cache_duration_seconds, value)
+            return value
         except Exception as e:
             logger.warning("TMDB cache read error: %s", e)
             # Delete corrupted cache file
@@ -103,6 +126,12 @@ class TMDBCache:
     
     def set(self, key, data):
         """Cache data with timestamp"""
+        now_ts = time.time()
+        with self.memory_lock:
+            if len(self.memory_cache) >= self.memory_cache_max_entries:
+                self.memory_cache.pop(next(iter(self.memory_cache)), None)
+            self.memory_cache[key] = (now_ts + self.cache_duration_seconds, data)
+
         if self.redis_client:
             redis_key = self.get_redis_key(key)
             try:
@@ -133,6 +162,9 @@ class TMDBCache:
     
     def clear(self):
         """Clear all cache files"""
+        with self.memory_lock:
+            self.memory_cache.clear()
+
         if self.redis_client:
             try:
                 for key in self.redis_client.scan_iter(f"{self.redis_prefix}*"):
@@ -278,11 +310,22 @@ class TMDBService:
         # Create cache key from endpoint and params (excluding api_key)
         cache_params = {k: v for k, v in params.items() if k != 'api_key'}
         cache_key = f"{endpoint}_{json.dumps(cache_params, sort_keys=True)}"
+
+        request_cache = None
+        if has_request_context():
+            request_cache = getattr(g, 'tmdb_request_cache', None)
+            if request_cache is None:
+                request_cache = {}
+                g.tmdb_request_cache = request_cache
+            if use_cache and cache_key in request_cache:
+                return request_cache[cache_key]
         
         # Check cache first
         if use_cache:
             cached_data = TMDBService.cache.get(cache_key)
             if cached_data is not None:
+                if request_cache is not None:
+                    request_cache[cache_key] = cached_data
                 return cached_data
         
         # Try with retries and exponential backoff
@@ -307,6 +350,8 @@ class TMDBService:
                 # Cache the response
                 if use_cache:
                     TMDBService.cache.set(cache_key, data)
+                if request_cache is not None:
+                    request_cache[cache_key] = data
                 
                 return data
                 

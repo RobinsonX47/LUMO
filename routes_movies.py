@@ -760,50 +760,49 @@ def watchlist():
         .all()
     )
 
+    def build_watchlist_card(entry):
+        title = (entry.movie_title or '').strip() or 'Unknown'
+        media_type = getattr(entry, 'media_type', 'movie') or 'movie'
+        return {
+            'id': entry.tmdb_movie_id,
+            'title': title,
+            'name': title,
+            'poster_path': entry.poster_path,
+            'poster_url': TMDBService.get_image_url(entry.poster_path),
+            'media_type': media_type,
+            'release_date': '',
+            'first_air_date': '',
+            'vote_average': 0.0,
+        }
+
     def resolve_entry(entry):
         """Get movie/TV details using stored media_type for better performance."""
-        try:
-            # Use stored media_type if available (new entries have it)
-            media_type = getattr(entry, 'media_type', 'movie')
-            
-            if media_type == 'tv':
-                details = TMDBService.get_tv_details(entry.tmdb_movie_id)
-            else:
-                details = TMDBService.get_movie_details(entry.tmdb_movie_id)
-            
-            # If first attempt fails, try the other type (for old entries without media_type)
-            if not details:
-                if media_type == 'tv':
-                    details = TMDBService.get_movie_details(entry.tmdb_movie_id)
-                else:
-                    details = TMDBService.get_tv_details(entry.tmdb_movie_id)
-
-            if not details:
-                title = entry.movie_title or 'Unknown'
-                return {
-                    'id': entry.tmdb_movie_id,
-                    'title': title,
-                    'name': title,
-                    'poster_path': entry.poster_path,
-                    'poster_url': TMDBService.get_image_url(entry.poster_path),
-                    'media_type': media_type,
-                }
-            
-            return details
-        except Exception as e:
-            current_app.logger.warning("Error resolving watchlist entry %s: %s", entry.tmdb_movie_id, e)
+        if not getattr(entry, 'tmdb_movie_id', None):
             return None
 
-    watchlist_items = []
-    for entry in entries:
-        item = resolve_entry(entry)
-        if not item:
-            continue
+        media_type = getattr(entry, 'media_type', 'movie')
+        if media_type == 'tv':
+            details = TMDBService.get_tv_details(entry.tmdb_movie_id)
+            return details or TMDBService.get_movie_details(entry.tmdb_movie_id)
+        details = TMDBService.get_movie_details(entry.tmdb_movie_id)
+        return details or TMDBService.get_tv_details(entry.tmdb_movie_id)
 
-        # Ensure media_type is set
-        if 'media_type' not in item:
-            item['media_type'] = getattr(entry, 'media_type', 'movie')
-        watchlist_items.append(item)
+    watchlist_items = []
+    enrich_limit = 8
+    for idx, entry in enumerate(entries):
+        base_item = build_watchlist_card(entry)
+
+        if idx < enrich_limit:
+            try:
+                item = resolve_entry(entry)
+                if item:
+                    item['media_type'] = item.get('media_type') or base_item['media_type']
+                    watchlist_items.append(item)
+                    continue
+            except Exception as e:
+                current_app.logger.warning("Error resolving watchlist entry %s: %s", entry.tmdb_movie_id, e)
+
+        watchlist_items.append(base_item)
 
     return render_template(
         "movies/watchlist.html",
