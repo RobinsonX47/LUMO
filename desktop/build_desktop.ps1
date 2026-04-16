@@ -19,6 +19,13 @@ if ($Launcher -like "*launcher_qt.py") {
     Write-Warning "Qt launcher selected. If embeds fail to play, rebuild with -Launcher desktop/launcher.py"
 }
 
+# Prevent cleanup failures when a previous desktop app instance still has the EXE locked.
+$runningDesktop = Get-Process -Name "LUMO-Desktop" -ErrorAction SilentlyContinue
+if ($runningDesktop) {
+    Write-Host "Stopping running LUMO-Desktop process(es) before build cleanup..."
+    $runningDesktop | Stop-Process -Force -ErrorAction SilentlyContinue
+}
+
 Remove-Item -Recurse -Force "build\LUMO-Desktop" -ErrorAction SilentlyContinue
 Remove-Item -Recurse -Force "dist\LUMO-Desktop" -ErrorAction SilentlyContinue
 Remove-Item -Force "dist\LUMO-Desktop.exe" -ErrorAction SilentlyContinue
