@@ -701,7 +701,8 @@ body {
   height: 260px;
   object-fit: cover;
   margin-bottom: 12px;
-  padding-right: 14px;
+  padding: 0;
+  display: block;
   flex-shrink: 0;
 }
 
@@ -709,19 +710,20 @@ body {
   filter: brightness(1.05);
   transition-delay: 0s;
 }
-  padding: 14px 14px;
+
 .movie-title {
   font-size: 0.95rem;
   font-weight: 600;
-  padding: 8px 14px;
+  padding: 8px 14px 10px;
   color: var(--text-primary);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  line-height: 1.3;
-  height: 2.6em;
+  line-height: 1.35;
+  min-height: 2.9em;
+  overflow-wrap: anywhere;
 }
 
 .movie-meta {
@@ -1243,11 +1245,12 @@ html {
   }
 
   .movie-poster {
-     padding: 14px 16px; /* Updated padding to match grid layout */
+     padding: 0;
   }
 
   .movie-title {
-     padding: 8px 20px; /* Updated padding to match grid layout */
+      padding: 8px 12px 10px;
+      min-height: 3.1em;
   }
 
   .hero-carousel {
