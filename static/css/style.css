@@ -177,7 +177,6 @@ body {
   width: 18px;
   height: 18px;
   transition: var(--transition);
-  vertical-align: middle;
 }
 
 .nav-ai-btn,
@@ -716,6 +715,8 @@ body {
   font-weight: 600;
   padding: 8px 14px 10px;
   color: var(--text-primary);
+  text-align: left;
+  align-self: stretch;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
@@ -1251,6 +1252,7 @@ html {
   .movie-title {
       padding: 8px 12px 10px;
       min-height: 3.1em;
+      text-align: left;
   }
 
   .hero-carousel {
