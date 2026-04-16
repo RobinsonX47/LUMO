@@ -1,4 +1,3 @@
-````markdown
 # Google OAuth Testing Guide
 
 ## Pre-Testing Setup
@@ -417,4 +416,3 @@ After functional testing works, consider:
 ---
 
 **Ready to Test!** Follow the checklist above and verify all scenarios. 🚀
-````

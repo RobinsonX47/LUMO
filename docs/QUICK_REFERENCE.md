@@ -1,342 +1,103 @@
-````markdown
-# 📋 Quick Reference Card
+# LUMO Quick Reference
 
-## Setup in 5 Minutes
-
-### 1️⃣ Get Credentials (5 mins)
+## Local Setup
 
 ```bash
-# Go to: https://console.cloud.google.com/
-# Create OAuth 2.0 Client ID (Web app)
-# Authorized redirect URI:
-#   http://localhost:5000/auth/callback/google
-# Copy: Client ID and Secret
-```
+python -m venv .venv
+# Windows: .\.venv\Scripts\Activate.ps1
+# macOS/Linux: source .venv/bin/activate
 
-### 2️⃣ Configure (.env)
-
-```bash
-GOOGLE_CLIENT_ID=your-id-here
-GOOGLE_CLIENT_SECRET=your-secret-here
-SECRET_KEY=your-key-here
-TMDB_API_KEY=your-key-here
-```
-
-### 3️⃣ Install Packages
-
-```bash
 pip install -r requirements.txt
-```
-
-### 4️⃣ Migrate Database
-
-```bash
-# If you have existing users:
-python scripts/migrate_add_oauth.py
-```
-
-### 5️⃣ Run & Test
-
-```bash
+cp .env.example .env  # Windows: Copy-Item .env.example .env
 python app.py
-# Visit: http://localhost:5000/auth/login
 ```
 
----
+Open: http://localhost:5000
 
-## Auth Routes
-
-| Route                   | Method    | Purpose               |
-| ----------------------- | --------- | --------------------- |
-| `/auth/login`           | GET, POST | Email/password login  |
-| `/auth/register`        | GET, POST | Email/password signup |
-| `/auth/logout`          | GET       | Logout (protected)    |
-| `/auth/login/google`    | GET       | Initiate Google OAuth |
-| `/auth/callback/google` | GET       | Handle OAuth callback |
-
----
-
-## Environment Variables
+## Required Environment Variables
 
 ```bash
-GOOGLE_CLIENT_ID=                 # From Google Cloud
-GOOGLE_CLIENT_SECRET=             # From Google Cloud
-SECRET_KEY=                       # Random string for Flask
-TMDB_API_KEY=                     # Your TMDB key
+SECRET_KEY=your-random-secret
+TMDB_API_KEY=your-tmdb-key
 ```
 
----
+Optional:
 
-## Database Fields (User Model)
-
-| Field            | Type         | Nullable    | Purpose               |
-| ---------------- | ------------ | ----------- | --------------------- |
-| `google_id`      | VARCHAR(255) | Yes         | Google's user ID      |
-| `oauth_provider` | VARCHAR(50)  | Yes         | "google" or other     |
-| `password_hash`  | VARCHAR(255) | **Now YES** | Can be NULL for OAuth |
-
----
-
-## OAuth Flow
-
-```
-User Click "Google"
-         ↓
-Redirect to Google Login
-         ↓
-User Authenticates
-         ↓
-Redirect to /auth/callback/google?code=XXX
-         ↓
-Exchange code for token
-         ↓
-Fetch user info from Google
-         ↓
-Create/find user in database
-         ↓
-Auto-login
-         ↓
-Redirect to home page
+```bash
+DATABASE_URL=postgresql://...
+REDIS_URL=redis://...
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+ANTHROPIC_API_KEY=...
+EMBED_PROVIDER_BASE_URL=https://...
 ```
 
----
+## Core Routes
 
-## Code Files Reference
+Main:
 
-### oauth_handler.py
+- GET /
+- GET /movies
+- GET /movies/trending
+- GET /movies/top-rated
+- GET /anime
+- GET /series
+- GET /genres
 
-```python
-GoogleOAuth.get_authorization_url()      # Get auth URL
-GoogleOAuth.exchange_code_for_token()    # Get access token
-GoogleOAuth.get_user_info()              # Get user data
+Auth:
+
+- GET,POST /auth/login
+- GET,POST /auth/register
+- GET /auth/logout
+- GET /auth/login/google
+- GET /auth/callback/google
+
+Movies:
+
+- GET /movies/
+- GET /movies/<id>
+- GET /movies/tv/<id>
+- POST /movies/<id>/review
+- POST /movies/<id>/watchlist
+- GET /movies/watchlist
+- GET /movies/recommendations
+
+Users/Social:
+
+- GET /users/profile
+- GET /users/profile/edit
+- GET /users/u/<username>
+- GET /users/directory
+- GET /users/search
+- POST /users/<user_id>/follow
+- GET /users/notifications
+
+Operations:
+
+- GET /health
+- GET /ready
+
+## Useful Commands
+
+```bash
+# Test suite
+pytest
+
+# Create admin account
+python scripts/make_admin.py --create --email admin@example.com --name "Admin" --password "change-me"
+
+# Optional migration scripts for older databases
+python scripts/migrate_add_oauth.py
+python scripts/migrate_add_username.py
+python scripts/migrate_add_watch_progress.py
+python scripts/migrate_add_media_type.py
+python scripts/migrate_add_tmdb_id.py
+python scripts/migrate_add_performance_indexes.py
 ```
-
-### routes_auth.py
-
-```python
-/login                  # Traditional login
-/register               # Traditional signup
-/login/google           # Start OAuth flow
-/callback/google        # Handle OAuth callback
-/logout                 # Logout
-```
-
-### models.py
-
-```python
-User.google_id          # Google's unique ID
-User.oauth_provider     # "google"
-User.password_hash      # Can be NULL for OAuth
-```
-
----
-
-## Testing Checklist
-
-- [ ] Install dependencies
-- [ ] Set environment variables
-- [ ] Migrate database
-- [ ] Test email login
-- [ ] Test Google login
-- [ ] Test email signup
-- [ ] Test Google signup
-- [ ] Test account linking
-- [ ] Test logout
-- [ ] Test mobile view
-- [ ] Check database records
-
----
 
 ## Troubleshooting
 
-### "Invalid Client ID"
-
-```bash
-# Check:
-1. GOOGLE_CLIENT_ID in .env is correct
-2. Google Cloud credentials are right type
-3. Not using API Key instead of Client ID
-```
-
-### "Redirect URI mismatch"
-
-```bash
-# Check:
-1. Authorized redirect URI in Google Cloud:
-   http://localhost:5000/auth/callback/google
-2. No trailing slash
-3. Protocol matches (http vs https)
-```
-
-### "Failed to create account"
-
-```bash
-# Check:
-1. Database migration ran: python scripts/migrate_add_oauth.py
-2. users table has new columns
-3. Database connection working
-```
-
-### "Profile picture not showing"
-
-```bash
-# Check:
-1. avatar column has URL
-2. Image URL is accessible
-3. Profile template displays avatar
-```
-
----
-
-## Google Cloud Console Checklist
-
-✅ OAuth 2.0 Consent Screen configured
-✅ Scopes include: openid, email, profile
-✅ Authorized JavaScript origins set
-✅ Authorized redirect URIs set (exact match!)
-✅ Client ID copied to .env
-✅ Client Secret copied to .env
-✅ Credentials are OAuth 2.0 Client ID type
-
----
-
-## File Locations
-
-```
-LUMO/
-├── oauth_handler.py              # OAuth implementation
-├── routes_auth.py                # Auth routes
-├── config.py                     # Configuration
-├── models.py                     # Database models
-├── requirements.txt              # Dependencies
-├── .env                          # Environment (not in git!)
-├── .env.example                  # Template
-├── scripts/
-│   └── migrate_add_oauth.py      # Database migration
-├── templates/auth/
-│   ├── login.html               # Login page
-│   └── register.html            # Sign-up page
-└── docs/
-    ├── GOOGLE_OAUTH_SETUP.md    # Full setup
-    ├── TESTING_GUIDE.md         # Testing
-    ├── WHATS_NEW.md             # What changed
-    └── ...                      # More docs
-```
-
----
-
-## Quick Commands
-
-```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Migrate database
-python scripts/migrate_add_oauth.py
-
-# Run the app
-python app.py
-
-# Check Google config
-python -c "from app import create_app; app = create_app(); print(app.config['GOOGLE_CLIENT_ID'])"
-
-# Test database connection
-python -c "from app import create_app; app = create_app(); from extensions import db; with app.app_context(): print(db.engine)"
-```
-
----
-
-## Key Features
-
-✅ **Google OAuth Login**
-✅ **Google OAuth Sign-Up** (NEW!)
-✅ **Account Linking**
-✅ **Auto Profile Picture**
-✅ **Modern UI**
-✅ **Mobile Responsive**
-✅ **Keyboard Accessible**
-✅ **Error Handling**
-
----
-
-## User Types in Database
-
-| Type        | Password | Google ID | Login Methods   |
-| ----------- | -------- | --------- | --------------- |
-| Email User  | ✓        | ✗         | Email only      |
-| OAuth User  | ✗        | ✓         | Google only     |
-| Hybrid User | ✓        | ✓         | Email OR Google |
-
----
-
-## Common Errors & Fixes
-
-```
-Error: "No GOOGLE_CLIENT_ID"
-Fix: Add GOOGLE_CLIENT_ID to .env
-
-Error: "Unauthorized client"
-Fix: Check Client ID matches Google Cloud
-
-Error: "User table has no column google_id"
-Fix: Run: python scripts/migrate_add_oauth.py
-
-Error: "Failed during Google auth"
-Fix: Check internet connection, Google Console settings
-
-Error: "Invalid token"
-Fix: Check CLIENT_SECRET is correct
-```
-
----
-
-## Production Deployment
-
-Before deploying:
-
-1. [ ] Update GOOGLE_CLIENT_ID (production)
-2. [ ] Update GOOGLE_CLIENT_SECRET (production)
-3. [ ] Update Google Console authorized origins
-4. [ ] Update redirect URIs (use HTTPS + domain)
-5. [ ] Set strong SECRET_KEY
-6. [ ] Use HTTPS only
-7. [ ] Set DEBUG=False
-8. [ ] Configure database
-9. [ ] Run migration on production DB
-10. [ ] Test all flows
-
----
-
-## Resources
-
-📖 **Setup Guide**: GOOGLE_OAUTH_SETUP.md
-🧪 **Testing**: TESTING_GUIDE.md
-📝 **What's New**: WHATS_NEW.md
-✅ **Verification**: FINAL_CHECKLIST.md
-📚 **Complete Info**: OAUTH_COMPLETE_SUMMARY.md
-
----
-
-## Support
-
-If something doesn't work:
-
-1. Check troubleshooting section above
-2. Read GOOGLE_OAUTH_SETUP.md
-3. Review TESTING_GUIDE.md
-4. Check error messages in Flask logs
-5. Verify environment variables
-
----
-
-## Status
-
-✅ **Implementation**: COMPLETE
-✅ **Testing**: READY
-✅ **Documentation**: COMPREHENSIVE
-✅ **Production**: READY
-
----
-
-**You're all set!** 🚀 Proceed with testing and deployment.
-````
+- OAuth redirect mismatch: verify Google callback URL exactly matches /auth/callback/google
+- DB connection issues: check DATABASE_URL and app logs
+- Rate-limit persistence in production: set REDIS_URL
+- Missing posters/details: verify TMDB_API_KEY and outbound network access

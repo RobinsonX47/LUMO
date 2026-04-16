@@ -1,4 +1,3 @@
-````markdown
 # Google OAuth Setup Guide
 
 This guide will help you set up Google OAuth for your LUMO application.
@@ -124,4 +123,3 @@ python app.py
 - Access tokens are obtained but not stored (stateless)
 - User profile data is fetched fresh each time during callback
 - OAuth users have `oauth_provider='google'` in the database
-````

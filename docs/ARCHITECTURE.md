@@ -1,218 +1,51 @@
-````markdown
-# 🎨 Implementation Overview
+# LUMO Architecture
 
-## Architecture Diagram
+## Runtime Overview
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                   USER INTERFACE                         │
-├────────────────────┬────────────────────────────────────┤
-│  Login Page        │  Sign-Up Page (NEW!)               │
-│  ├─ Email Form     │  ├─ Name/Email/Password Form       │
-│  ├─ Google Button  │  ├─ Google Button (NEW!)           │
-│  └─ Sign-up Link   │  └─ Login Link                     │
-└────────────────────┴────────────────────────────────────┘
-         ↓                         ↓
-┌─────────────────────────────────────────────────────────┐
-│                  AUTHENTICATION LAYER                    │
-├─────────────────────────────────────────────────────────┤
-│  routes_auth.py (5 endpoints)                           │
-│  ├─ /login (POST) - Email authentication                │
-│  ├─ /register (POST) - Email registration               │
-│  ├─ /login/google (GET) - OAuth initiation              │
-│  ├─ /callback/google (GET) - OAuth callback             │
-│  └─ /logout (POST) - Session cleanup                    │
-└─────────────────────────────────────────────────────────┘
-         ↓
-┌─────────────────────────────────────────────────────────┐
-│                  OAUTH HANDLER LAYER                     │
-├─────────────────────────────────────────────────────────┤
-│  oauth_handler.py                                        │
-│  ├─ get_authorization_url() → Google Auth Page          │
-│  ├─ exchange_code_for_token() → Access Token            │
-│  ├─ get_user_info() → User Profile Data                 │
-│  └─ get_redirect_uri() → Callback URL                   │
-└─────────────────────────────────────────────────────────┘
-         ↓
-┌─────────────────────────────────────────────────────────┐
-│              GOOGLE OAUTH 2.0 SERVICE                    │
-├─────────────────────────────────────────────────────────┤
-│  https://accounts.google.com/                            │
-│  ├─ Authorization endpoint                              │
-│  ├─ Token endpoint                                      │
-│  └─ User info endpoint                                  │
-└─────────────────────────────────────────────────────────┘
-         ↓
-┌─────────────────────────────────────────────────────────┐
-│                   DATABASE LAYER                         │
-├─────────────────────────────────────────────────────────┤
-│  SQLite (models.py - User model)                         │
-│  ├─ id (PK)                                             │
-│  ├─ name                                                │
-│  ├─ email (UNIQUE)                                      │
-│  ├─ password_hash (NULLABLE - NEW!)                     │
-│  ├─ avatar                                              │
-│  ├─ google_id (UNIQUE) - NEW!                           │
-│  ├─ oauth_provider - NEW!                               │
-│  └─ created_at                                          │
-└─────────────────────────────────────────────────────────┘
-```
+LUMO is a Flask monolith organized with blueprints and service modules.
 
----
+1. app.py initializes configuration, security middleware, database, and blueprints.
+2. config.py builds environment-aware settings (SQLite local, PostgreSQL in production).
+3. routes_*.py modules expose feature routes by domain.
+4. tmdb_service.py encapsulates TMDB API access and caching.
+5. models.py defines users, reviews, watchlist, social relations, notifications, and watch progress.
 
-## Data Flow Diagram
+## Blueprint Map
 
-### Traditional Login Flow
+- main (routes_main.py): home, discovery sections, genre browsing
+- auth (routes_auth.py): login/register, logout, Google OAuth callbacks
+- movies (routes_movies.py): details, reviews, watchlist, player config, recommendations, progress updates
+- users (routes_users.py): profile, public profile, edit profile, search, directory, follow graph, notifications, continue watching
+- legal (routes_legal.py): privacy, terms, cookies
+- admin (routes_admin.py): optional admin pages (registered when available)
 
-```
-User Form Input (email + password)
-         ↓
-routes_auth.py::login()
-         ↓
-Query User.email
-         ↓
-Verify password_hash
-         ↓
-login_user() ← Flask-Login
-         ↓
-Create Session
-         ↓
-Redirect to home
-```
+## Security and Reliability Layer
 
-### Google OAuth Flow
+- CSRF protection enabled through Flask-WTF
+- Rate limiting through Flask-Limiter (Redis in production, memory locally)
+- Security headers and CSP through Flask-Talisman
+- ProxyFix enabled for reverse-proxy deployments
+- Health endpoints:
+  - GET /health (database connectivity)
+  - GET /ready (readiness signal)
 
-```
-User Clicks "Google"
-         ↓
-routes_auth.py::google_login()
-         ↓
-Redirect to Google Auth URL
-         ↓
-User Authenticates @ Google
-         ↓
-Google Redirects: /callback/google?code=XXX
-         ↓
-routes_auth.py::google_callback()
-         ↓
-oauth_handler.exchange_code_for_token()
-         ↓
-oauth_handler.get_user_info()
-         ↓
-Query User.google_id
-         ├─ Found? → Use existing user
-         └─ Not found? → Create new user
-         ↓
-login_user() ← Flask-Login
-         ↓
-Create Session
-         ↓
-Redirect to home
-```
+## Data and Storage
 
----
+- Local development default: SQLite at instance/cine_sphere.db
+- Production default: PostgreSQL when DATABASE_URL is present
+- DATABASE_URL normalization and hostname recovery are handled in config.py
+- Runtime cache files live under instance/cache
+- Uploaded avatars are stored in static/uploads/avatars
 
-## Database Schema Visualization
+## Recommendation Pipeline
 
-```
-USERS TABLE
-┌────────────┬──────────────┬────────────────┐
-│ Column     │ Type         │ Notes          │
-├────────────┼──────────────┼────────────────┤
-│ id (PK)    │ INTEGER      │ Auto-increment │
-│ name       │ VARCHAR(100) │ Required       │
-│ email      │ VARCHAR(120) │ UNIQUE         │
-│ password_  │ VARCHAR(255) │ NULLABLE *NEW* │
-│   hash     │              │                │
-│ bio        │ TEXT         │ Optional       │
-│ avatar     │ VARCHAR(255) │ Optional       │
-│ role       │ VARCHAR(10)  │ default:user   │
-│ created_at │ DATETIME     │ Timestamp      │
-│ google_id  │ VARCHAR(255) │ UNIQUE *NEW*   │
-│ oauth_     │ VARCHAR(50)  │ "google" *NEW* │
-│   provider │              │                │
-└────────────┴──────────────┴────────────────┘
+1. Pull watchlist seed titles/genres for current user.
+2. Attempt LLM-assisted recommendation title generation when ANTHROPIC_API_KEY is set.
+3. Resolve candidate titles through TMDB.
+4. Fall back to genre-driven TMDB recommendations when needed.
 
-* NULLABLE password_hash allows OAuth-only users
-* UNIQUE google_id prevents duplicate OAuth IDs
-* oauth_provider allows future OAuth providers
-```
+## Desktop Mode
 
----
-
-## Request/Response Lifecycle
-
-```
-Google OAuth Login Flow (Detailed)
-
-1. Client: GET /auth/login/google
-   ▼
-2. Server: Generates authorization URL
-   ▼
-3. Client: Redirects to Google auth endpoint
-   ▼
-4. Google: Prompts user to authenticate
-   ▼
-5. Google: Asks for permissions (email, profile)
-   ▼
-6. User: Approves permissions
-   ▼
-7. Google: Redirects to callback URL with code
-   └─ GET /auth/callback/google?code=ABC123&state=XYZ
-   ▼
-8. Server: Validates code & state
-   ▼
-9. Server: POSTs code + client_secret to Google
-   ▼
-10. Google: Returns access_token
-    ▼
-11. Server: GETs user info from Google using token
-    ▼
-12. Server: Creates/updates user in database
-    ▼
-13. Server: Creates session
-    ▼
-14. Server: Redirects to home page
-    ▼
-15. Client: User now logged in!
-```
-
----
-
-## Configuration Flow
-
-```
-.env file
-│
-├─ GOOGLE_CLIENT_ID ──────┐
-├─ GOOGLE_CLIENT_SECRET ──┤
-├─ SECRET_KEY ────────────┼──→ config.py
-├─ TMDB_API_KEY ──────────┤
-│                          ├──→ app.py
-│                          │
-└─────────────────────────┘
-                          │
-                          ▼
-                    Flask Config
-                          │
-          ┌───────────────┼───────────────┐
-          ▼               ▼               ▼
-     oauth_handler   routes_auth      models
-      (reads)         (reads)         (reads)
-```
-
----
-
-## Summary
-
-✅ **Architecture**: Modular, with separation of concerns
-✅ **Security**: OAuth 2.0 backend token exchange
-✅ **Database**: Extended User model with OAuth fields
-✅ **UI**: Modern, responsive login and sign-up
-✅ **Documentation**: Comprehensive guides included
-✅ **Ready**: For immediate testing and deployment
-
----
-
-**Everything is connected and working together!** 🎯
-````
+- desktop/launcher.py and desktop/launcher_qt.py run the Flask app locally and open a desktop shell.
+- Desktop runtime uses LUMO_RUNTIME_ROOT and LUMO_DESKTOP_DATA_DIR to separate packaged data from source tree.
+- Desktop mode disables routes/features that depend on external browser behavior where applicable.
