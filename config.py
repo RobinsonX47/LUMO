@@ -8,7 +8,7 @@ DESKTOP_DATA_DIR = os.environ.get("LUMO_DESKTOP_DATA_DIR")
 DESKTOP_MODE = os.environ.get("LUMO_DESKTOP_MODE") == "1"
 USE_LOCAL_DB = os.environ.get("LUMO_USE_LOCAL_DB") == "1"
 FORCE_LOCAL_DB = os.environ.get("LUMO_FORCE_LOCAL_DB", "0").lower() in {"1", "true", "yes", "on"}
-REQUIRE_REMOTE_DB = os.environ.get("LUMO_REQUIRE_REMOTE_DB", "true").lower() in {"1", "true", "yes", "on"}
+REQUIRE_REMOTE_DB = os.environ.get("LUMO_REQUIRE_REMOTE_DB", "0").lower() in {"1", "true", "yes", "on"}
 
 
 def _normalize_database_url(raw_url):
