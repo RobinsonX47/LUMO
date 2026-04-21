@@ -72,11 +72,20 @@ def _configure_logging(data_dir: Path) -> None:
 def main() -> None:
     os.environ.setdefault("FLASK_ENV", "desktop")
     os.environ.pop("LUMO_DESKTOP_MODE", None)
-    use_remote_db = os.environ.get("LUMO_DESKTOP_USE_REMOTE_DB", "0").strip().lower() in {"1", "true", "yes", "on"}
-    if use_remote_db:
+    os.environ.setdefault("LUMO_DESKTOP_PRIVATE_SESSION", "1")
+    os.environ.setdefault("LUMO_REQUIRE_REMOTE_DB", "1")
+    truthy_values = {"1", "true", "yes", "on"}
+    use_remote_db = os.environ.get("LUMO_DESKTOP_USE_REMOTE_DB", "0").strip().lower() in truthy_values
+    force_local_db = os.environ.get("LUMO_DESKTOP_FORCE_LOCAL_DB", "0").strip().lower() in truthy_values
+    local_db_requested = os.environ.get("LUMO_USE_LOCAL_DB", "0").strip().lower() in truthy_values
+    has_database_url = bool((os.environ.get("DATABASE_URL") or "").strip())
+
+    if force_local_db or local_db_requested:
+        os.environ["LUMO_USE_LOCAL_DB"] = "1"
+    elif use_remote_db or has_database_url:
         os.environ["LUMO_USE_LOCAL_DB"] = "0"
     else:
-        os.environ.setdefault("LUMO_USE_LOCAL_DB", "1")
+        os.environ["LUMO_USE_LOCAL_DB"] = "0"
 
     if getattr(sys, "frozen", False):
         exe_dir = Path(sys.executable).resolve().parent
@@ -89,7 +98,8 @@ def main() -> None:
         runtime_root = PROJECT_ROOT
     os.environ["LUMO_RUNTIME_ROOT"] = str(runtime_root)
 
-    data_dir = Path(os.environ.get("LUMO_DESKTOP_DATA_DIR") or (Path.home() / "AppData" / "Local" / "LUMO"))
+    default_data_dir = runtime_root if not getattr(sys, "frozen", False) else (Path.home() / "AppData" / "Local" / "LUMO")
+    data_dir = Path(os.environ.get("LUMO_DESKTOP_DATA_DIR") or default_data_dir)
     os.environ["LUMO_DESKTOP_DATA_DIR"] = str(data_dir)
     _configure_logging(data_dir)
     logging.info("LUMO Qt desktop launcher starting")
@@ -117,8 +127,14 @@ def main() -> None:
         app.setWindowIcon(QIcon(str(icon_path)))
 
     profile = QWebEngineProfile.defaultProfile()
-    profile.setPersistentStoragePath(str(data_dir / "qtwebengine" / "storage"))
-    profile.setCachePath(str(data_dir / "qtwebengine" / "cache"))
+    private_session = os.environ.get("LUMO_DESKTOP_PRIVATE_SESSION", "1").strip().lower() in truthy_values
+    if private_session:
+        profile.setPersistentCookiesPolicy(QWebEngineProfile.PersistentCookiesPolicy.NoPersistentCookies)
+        profile.cookieStore().deleteAllCookies()
+        profile.clearHttpCache()
+    else:
+        profile.setPersistentStoragePath(str(data_dir / "qtwebengine" / "storage"))
+        profile.setCachePath(str(data_dir / "qtwebengine" / "cache"))
 
     view = QWebEngineView()
     view.setWindowTitle("LUMO")

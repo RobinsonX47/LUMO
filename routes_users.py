@@ -6,6 +6,7 @@ from extensions import db
 from models import User, Review, Watchlist, Notification, WatchProgress, user_followers
 from tmdb_service import TMDBService
 from sqlalchemy import or_, and_, func
+from sqlalchemy.exc import SQLAlchemyError
 import os
 import re
 import base64
@@ -253,7 +254,14 @@ def edit_profile():
                 return redirect(url_for("users.edit_profile"))
             current_user.password_hash = generate_password_hash(new_password, method='pbkdf2:sha256')
         
-        db.session.commit()
+        try:
+            db.session.commit()
+        except SQLAlchemyError as exc:
+            db.session.rollback()
+            current_app.logger.error("Profile update failed for user %s: %s", current_user.id, exc)
+            flash("Could not save profile changes. Please try again.", "error")
+            return redirect(url_for("users.edit_profile"))
+
         flash("Profile updated successfully!", "success")
         return redirect(url_for("users.profile"))
     

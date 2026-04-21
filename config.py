@@ -7,6 +7,8 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 DESKTOP_DATA_DIR = os.environ.get("LUMO_DESKTOP_DATA_DIR")
 DESKTOP_MODE = os.environ.get("LUMO_DESKTOP_MODE") == "1"
 USE_LOCAL_DB = os.environ.get("LUMO_USE_LOCAL_DB") == "1"
+FORCE_LOCAL_DB = os.environ.get("LUMO_FORCE_LOCAL_DB", "0").lower() in {"1", "true", "yes", "on"}
+REQUIRE_REMOTE_DB = os.environ.get("LUMO_REQUIRE_REMOTE_DB", "true").lower() in {"1", "true", "yes", "on"}
 
 
 def _normalize_database_url(raw_url):
@@ -157,16 +159,24 @@ class Config:
     # DATABASE CONFIGURATION
     # ========================================
     
-    # Use PostgreSQL on Render (DATABASE_URL), fallback to SQLite locally
-    if os.environ.get("DATABASE_URL") and not (DESKTOP_MODE or USE_LOCAL_DB):
+    # Use PostgreSQL everywhere by default; local DB only via explicit force flags.
+    database_url = (os.environ.get("DATABASE_URL") or "").strip()
+    local_db_forced = USE_LOCAL_DB or FORCE_LOCAL_DB
+
+    if database_url and not local_db_forced:
         # Render PostgreSQL with connection pooling (psycopg v3 driver)
-        SQLALCHEMY_DATABASE_URI = _normalize_database_url(os.environ.get("DATABASE_URL"))
+        SQLALCHEMY_DATABASE_URI = _normalize_database_url(database_url)
         SQLALCHEMY_ENGINE_OPTIONS = {
             "pool_size": 10,
             "pool_recycle": 280,  # Avoid connection drops on aggressive cloud hosts
             "pool_pre_ping": True,
             "max_overflow": 20
         }
+    elif REQUIRE_REMOTE_DB and not local_db_forced:
+        raise RuntimeError(
+            "DATABASE_URL is required because LUMO_REQUIRE_REMOTE_DB is enabled. "
+            "Set DATABASE_URL to your Railway Postgres URL or explicitly force local DB."
+        )
     else:
         # Local SQLite (WARNING: NOT for production at scale)
         sqlite_base_dir = DESKTOP_DATA_DIR or BASE_DIR

@@ -51,6 +51,7 @@ def generate_unique_username(name):
 def login():
     """Email/password login with WTForms validation and CSRF protection"""
     form = LoginForm()
+    desktop_private_session = current_app.config.get("DESKTOP_PRIVATE_SESSION", False)
     
     if form.validate_on_submit():
         email = form.email.data.strip().lower()
@@ -64,7 +65,8 @@ def login():
             return render_template("auth/login.html", form=form)
 
         if user and user.password_hash and check_password_hash(user.password_hash, password):
-            login_user(user, remember=form.remember.data)
+            remember_login = False if desktop_private_session else form.remember.data
+            login_user(user, remember=remember_login)
             next_url = request.args.get("next")
             return redirect(next_url or url_for("main.home"))
 
@@ -83,6 +85,7 @@ def login():
 def register():
     """Registration with WTForms validation, CSRF protection, and strong password policy"""
     form = RegisterForm()
+    desktop_private_session = current_app.config.get("DESKTOP_PRIVATE_SESSION", False)
     
     if form.validate_on_submit():
         # Create user
@@ -95,7 +98,7 @@ def register():
         db.session.add(user)
         db.session.commit()
         
-        login_user(user, remember=True)
+        login_user(user, remember=not desktop_private_session)
         flash("Account created! Welcome to LUMO.", "success")
         return redirect(url_for("main.home"))
 

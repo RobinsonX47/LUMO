@@ -76,6 +76,38 @@ def truncate_words(value, max_words=6):
 
     return " ".join(words[:max_words]) + "..."
 
+
+def _ensure_avatar_column_capacity(app):
+    """Ensure Postgres users.avatar can store DB-backed image payloads."""
+    if db.engine.dialect.name != "postgresql":
+        return
+
+    try:
+        result = db.session.execute(
+            db.text(
+                """
+                SELECT data_type, character_maximum_length
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name = 'users'
+                  AND column_name = 'avatar'
+                """
+            )
+        ).mappings().first()
+
+        if not result:
+            return
+
+        data_type = (result.get("data_type") or "").lower()
+        max_length = result.get("character_maximum_length")
+        if data_type in {"character varying", "varchar"} and (max_length or 0) <= 255:
+            db.session.execute(db.text("ALTER TABLE users ALTER COLUMN avatar TYPE TEXT"))
+            db.session.commit()
+            app.logger.info("Expanded users.avatar column to TEXT")
+    except Exception as exc:
+        db.session.rollback()
+        app.logger.warning("Could not auto-upgrade users.avatar column: %s", exc)
+
 def create_app():
     runtime_root = os.environ.get("LUMO_RUNTIME_ROOT")
     flask_kwargs = {}
@@ -91,6 +123,7 @@ def create_app():
     app = Flask(__name__, **flask_kwargs)
     app.config.from_object(Config)
     app.config["DESKTOP_MODE"] = os.environ.get("LUMO_DESKTOP_MODE") == "1"
+    app.config["DESKTOP_PRIVATE_SESSION"] = os.environ.get("LUMO_DESKTOP_PRIVATE_SESSION", "0").lower() in {"1", "true", "yes", "on"}
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
     # Fail fast on required secrets in production.
@@ -211,6 +244,7 @@ def create_app():
     with app.app_context():
         try:
             db.create_all()
+            _ensure_avatar_column_capacity(app)
             app.logger.info("Database schema ensured")
         except Exception as exc:
             app.logger.error("Failed to initialize database schema: %s", exc)

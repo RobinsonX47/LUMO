@@ -142,9 +142,10 @@ def _run_server(port: int, server_errors: Queue) -> None:
 
 
 def _launch_native_window(app_url: str) -> None:
-    window = webview.create_window(
-        title="LUMO",
-        html="""
+    private_session = os.environ.get("LUMO_DESKTOP_PRIVATE_SESSION", "1").strip().lower() in {"1", "true", "yes", "on"}
+    window_options = {
+        "title": "LUMO",
+        "html": """
         <!doctype html>
         <html>
         <head>
@@ -161,10 +162,19 @@ def _launch_native_window(app_url: str) -> None:
         </body>
         </html>
         """,
-        min_size=(1024, 680),
-        width=1280,
-        height=820,
-    )
+        "min_size": (1024, 680),
+        "width": 1280,
+        "height": 820,
+    }
+    if private_session:
+        window_options["private_mode"] = True
+
+    try:
+        window = webview.create_window(**window_options)
+    except TypeError:
+        # Fallback for pywebview runtimes that do not support private_mode.
+        window_options.pop("private_mode", None)
+        window = webview.create_window(**window_options)
 
     def _attach_url(target_window, target_url: str) -> None:
         target_window.load_url(target_url)
@@ -177,11 +187,20 @@ def _launch_native_window(app_url: str) -> None:
 def main() -> None:
     os.environ.setdefault("FLASK_ENV", "desktop")
     os.environ.pop("LUMO_DESKTOP_MODE", None)
-    use_remote_db = os.environ.get("LUMO_DESKTOP_USE_REMOTE_DB", "0").strip().lower() in {"1", "true", "yes", "on"}
-    if use_remote_db:
+    os.environ.setdefault("LUMO_DESKTOP_PRIVATE_SESSION", "1")
+    os.environ.setdefault("LUMO_REQUIRE_REMOTE_DB", "1")
+    truthy_values = {"1", "true", "yes", "on"}
+    use_remote_db = os.environ.get("LUMO_DESKTOP_USE_REMOTE_DB", "0").strip().lower() in truthy_values
+    force_local_db = os.environ.get("LUMO_DESKTOP_FORCE_LOCAL_DB", "0").strip().lower() in truthy_values
+    local_db_requested = os.environ.get("LUMO_USE_LOCAL_DB", "0").strip().lower() in truthy_values
+    has_database_url = bool((os.environ.get("DATABASE_URL") or "").strip())
+
+    if force_local_db or local_db_requested:
+        os.environ["LUMO_USE_LOCAL_DB"] = "1"
+    elif use_remote_db or has_database_url:
         os.environ["LUMO_USE_LOCAL_DB"] = "0"
     else:
-        os.environ.setdefault("LUMO_USE_LOCAL_DB", "1")
+        os.environ["LUMO_USE_LOCAL_DB"] = "0"
 
     if getattr(sys, "frozen", False):
         exe_dir = Path(sys.executable).resolve().parent
@@ -194,9 +213,10 @@ def main() -> None:
         runtime_root = PROJECT_ROOT
     os.environ["LUMO_RUNTIME_ROOT"] = str(runtime_root)
 
+    default_data_dir = runtime_root if not getattr(sys, "frozen", False) else (Path.home() / "AppData" / "Local" / "LUMO")
     os.environ.setdefault(
         "LUMO_DESKTOP_DATA_DIR",
-        str(Path.home() / "AppData" / "Local" / "LUMO"),
+        str(default_data_dir),
     )
 
     desktop_data_dir = Path(os.environ["LUMO_DESKTOP_DATA_DIR"])
