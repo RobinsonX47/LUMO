@@ -1,12 +1,13 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, jsonify, g
 from flask_login import login_required, current_user
 from werkzeug.security import generate_password_hash
 from werkzeug.utils import secure_filename
-from extensions import db
-from models import User, Review, Watchlist, Notification, WatchProgress, user_followers
-from tmdb_service import TMDBService
+from ...core.extensions import db
+from ...core.models import User, Review, Watchlist, Notification, WatchProgress, user_followers
+from ...services.tmdb_service import TMDBService
 from sqlalchemy import or_, and_, func
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import selectinload
 import os
 import re
 import base64
@@ -26,17 +27,87 @@ def is_valid_username(username):
     return re.match(pattern, username) is not None
 
 
+def _get_request_cache(cache_name):
+    cache = getattr(g, cache_name, None)
+    if cache is None:
+        cache = {}
+        setattr(g, cache_name, cache)
+    return cache
+
+
+def _get_following_ids():
+    if not current_user.is_authenticated:
+        return set()
+
+    cache = _get_request_cache('following_ids_cache')
+    cache_key = current_user.id
+    if cache_key not in cache:
+        cache[cache_key] = {
+            row.id
+            for row in current_user.following.with_entities(User.id).all()
+        }
+    return cache[cache_key]
+
+
+def _get_tmdb_details_cached(tmdb_id, preferred_media_type=None):
+    if not tmdb_id:
+        return None
+
+    cache = _get_request_cache('tmdb_details_cache')
+    media_types = []
+    if preferred_media_type in {'movie', 'tv'}:
+        media_types.extend([preferred_media_type, 'tv' if preferred_media_type == 'movie' else 'movie'])
+    else:
+        media_types.extend(['movie', 'tv'])
+
+    for media_type in media_types:
+        cache_key = (tmdb_id, media_type)
+        if cache_key in cache:
+            return cache[cache_key]
+
+        fetch_details = TMDBService.get_tv_details if media_type == 'tv' else TMDBService.get_movie_details
+        details = fetch_details(tmdb_id)
+        if details:
+            details['media_type'] = details.get('media_type') or media_type
+            cache[cache_key] = details
+            return details
+
+    return None
+
+
+def _attach_directory_counts(user_page):
+    user_ids = [user.id for user in user_page.items]
+    if not user_ids:
+        return
+
+    follower_counts = {
+        row.user_id: row.follower_count
+        for row in db.session.query(
+            user_followers.c.user_id.label('user_id'),
+            func.count(user_followers.c.follower_id).label('follower_count')
+        ).filter(user_followers.c.user_id.in_(user_ids)).group_by(user_followers.c.user_id).all()
+    }
+
+    review_counts = {
+        row.user_id: row.review_count
+        for row in db.session.query(
+            Review.user_id.label('user_id'),
+            func.count(Review.id).label('review_count')
+        ).filter(Review.user_id.in_(user_ids)).group_by(Review.user_id).all()
+    }
+
+    for user in user_page.items:
+        user.follower_count = follower_counts.get(user.id, 0)
+        user.review_count = review_counts.get(user.id, 0)
+
+
 def fetch_tmdb_details(entry):
     """Fetch TMDB details using known media type first, then fallback once."""
     if not getattr(entry, 'tmdb_movie_id', None):
         return None
 
     media_type = getattr(entry, 'media_type', 'movie')
-    if media_type == 'tv':
-        details = TMDBService.get_tv_details(entry.tmdb_movie_id)
-        return details or TMDBService.get_movie_details(entry.tmdb_movie_id)
-    details = TMDBService.get_movie_details(entry.tmdb_movie_id)
-    return details or TMDBService.get_tv_details(entry.tmdb_movie_id)
+    return _get_tmdb_details_cached(entry.tmdb_movie_id, media_type)
 
 
 def build_watchlist_card(entry):
@@ -58,7 +129,7 @@ def build_watchlist_card(entry):
 
 def build_progress_item(progress):
     """Resolve a watch-progress row into a renderable content card."""
-    details = TMDBService.get_tv_details(progress.tmdb_id) if progress.media_type == 'tv' else TMDBService.get_movie_details(progress.tmdb_id)
+    details = _get_tmdb_details_cached(progress.tmdb_id, progress.media_type)
     if not details:
         return None
 
@@ -81,11 +152,10 @@ def profile():
     
     # Get user's reviews with movie details from TMDB
     reviews = Review.query.filter_by(user_id=user.id).order_by(Review.created_at.desc()).limit(6).all()
+    reviewed_count = Review.query.filter_by(user_id=user.id).count()
     reviewed_movies = []
     for review in reviews:
-        movie = TMDBService.get_movie_details(review.tmdb_movie_id)
-        if not movie:
-            movie = TMDBService.get_tv_details(review.tmdb_movie_id)
+        movie = _get_tmdb_details_cached(review.tmdb_movie_id)
         if movie:
             reviewed_movies.append({
                 'movie': movie,
@@ -97,8 +167,10 @@ def profile():
         Watchlist.query
         .filter_by(user_id=user.id)
         .order_by(Watchlist.added_at.desc())
+        .limit(8)
         .all()
     )
+    watchlist_count = Watchlist.query.filter_by(user_id=user.id).count()
 
     watchlist_movies = []
     enrich_limit = 6
@@ -144,7 +216,9 @@ def profile():
         "users/profile.html",
         user=user,
         reviewed_movies=reviewed_movies,
+        reviewed_count=reviewed_count,
         watchlist=watchlist_movies,
+        watchlist_count=watchlist_count,
         continue_watching=continue_watching,
         followers_count=followers_count,
         following_count=following_count,
@@ -282,11 +356,10 @@ def public_profile(username):
     
     # Get user's reviews (public)
     reviews = Review.query.filter_by(user_id=user.id).order_by(Review.created_at.desc()).limit(6).all()
+    reviewed_count = Review.query.filter_by(user_id=user.id).count()
     reviewed_movies = []
     for review in reviews:
-        movie = TMDBService.get_movie_details(review.tmdb_movie_id)
-        if not movie:
-            movie = TMDBService.get_tv_details(review.tmdb_movie_id)
+        movie = _get_tmdb_details_cached(review.tmdb_movie_id)
         if movie:
             reviewed_movies.append({
                 'movie': movie,
@@ -295,6 +368,7 @@ def public_profile(username):
     
     # Get user's watchlist (public)
     watchlist_entries = Watchlist.query.filter_by(user_id=user.id).order_by(Watchlist.added_at.desc()).limit(8).all()
+    watchlist_count = Watchlist.query.filter_by(user_id=user.id).count()
 
     watchlist_movies = []
     enrich_limit = 4
@@ -325,7 +399,9 @@ def public_profile(username):
         "users/public_profile.html",
         user=user,
         reviewed_movies=reviewed_movies,
+        reviewed_count=reviewed_count,
         watchlist=watchlist_movies,
+        watchlist_count=watchlist_count,
         followers_count=followers_count,
         following_count=following_count,
         is_following=is_following,
@@ -399,9 +475,7 @@ def followers_list(username):
     followers = query.paginate(page=page, per_page=12)
     
     # Check which followers current user is following
-    following_ids = set()
-    if current_user.is_authenticated:
-        following_ids = set([u.id for u in current_user.following])
+    following_ids = _get_following_ids()
     
     return render_template(
         "users/followers_list.html",
@@ -433,9 +507,7 @@ def following_list(username):
     following = query.paginate(page=page, per_page=12)
     
     # Check which users current user is following
-    following_ids = set()
-    if current_user.is_authenticated:
-        following_ids = set([u.id for u in current_user.following])
+    following_ids = _get_following_ids()
     
     return render_template(
         "users/following_list.html",
@@ -467,9 +539,7 @@ def search_users():
             ).paginate(page=page, per_page=12)
             
             # Check which users current user is following
-            following_ids = set()
-            if current_user.is_authenticated:
-                following_ids = set([u.id for u in current_user.following])
+            following_ids = _get_following_ids()
     
     return render_template(
         "users/search_results.html",
@@ -506,11 +576,10 @@ def directory():
         ).order_by(db.func.coalesce(subquery.c.follower_count, 0).desc())
     
     users = query.paginate(page=page, per_page=12)
+    _attach_directory_counts(users)
     
     # Check which users current user is following
-    following_ids = set()
-    if current_user.is_authenticated:
-        following_ids = set([u.id for u in current_user.following])
+    following_ids = _get_following_ids()
     
     return render_template(
         "users/directory.html",
@@ -524,13 +593,13 @@ def directory():
 @login_required
 def activity_feed():
     """Show recent activity from followed users."""
-    followed_users = current_user.following.all()
-    followed_ids = [user.id for user in followed_users]
+    followed_ids = list(_get_following_ids())
 
     activities = []
     if followed_ids:
         recent_reviews = (
             Review.query
+            .options(selectinload(Review.user))
             .filter(Review.user_id.in_(followed_ids))
             .order_by(Review.created_at.desc())
             .limit(30)
@@ -538,15 +607,10 @@ def activity_feed():
         )
 
         for review in recent_reviews:
-            movie = TMDBService.get_movie_details(review.tmdb_movie_id)
-            media_type = "movie"
-            if not movie:
-                movie = TMDBService.get_tv_details(review.tmdb_movie_id)
-                media_type = "tv"
+            movie = _get_tmdb_details_cached(review.tmdb_movie_id, "movie")
             if not movie:
                 continue
 
-            movie["media_type"] = media_type
             activities.append({
                 "type": "review",
                 "actor": review.user,
@@ -557,7 +621,7 @@ def activity_feed():
     return render_template(
         "users/feed.html",
         activities=activities,
-        followed_count=len(followed_users),
+        followed_count=len(followed_ids),
     )
 
 # ============= NOTIFICATIONS =============

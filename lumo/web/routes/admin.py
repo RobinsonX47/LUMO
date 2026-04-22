@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, abort
 from flask_login import login_required, current_user
-from extensions import db
-from models import Movie
+from ...core.extensions import db
+from ...core.models import Movie
 from werkzeug.utils import secure_filename
 import os
 import uuid

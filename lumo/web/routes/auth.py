@@ -1,10 +1,10 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app
 from flask_login import login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
-from extensions import db, limiter, get_rate_limit_key
-from models import User
-from oauth_handler import GoogleOAuth
-from forms import LoginForm, RegisterForm
+from ...core.extensions import db, limiter, get_rate_limit_key
+from ...core.models import User
+from ...services.oauth_handler import GoogleOAuth
+from ...core.forms import LoginForm, RegisterForm
 import re
 import requests
 

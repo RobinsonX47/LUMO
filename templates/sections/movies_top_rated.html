@@ -29,6 +29,8 @@ block content %}
         src="{{ item.poster_url }}"
         alt="{{ item.title }}"
         class="movie-poster"
+        loading="lazy"
+        decoding="async"
       />
       {% else %}
       <div
@@ -69,5 +71,17 @@ block content %}
   </div>
   {% endfor %}
 </div>
+
+{% if items %}
+<div style="display: flex; justify-content: center; gap: 12px; margin-top: 44px; flex-wrap: wrap;">
+  {% if page > 1 %}
+  <a href="{{ url_for('main.movies_top_rated', page=page-1) }}" class="btn-secondary">← Previous</a>
+  {% endif %}
+  <span class="btn-tertiary" style="cursor: default;">Page {{ page }}</span>
+  {% if items|length >= 20 %}
+  <a href="{{ url_for('main.movies_top_rated', page=page+1) }}" class="btn-secondary">Next →</a>
+  {% endif %}
+</div>
+{% endif %}
 
 {% endblock %}

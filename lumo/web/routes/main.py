@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, session
 from flask_login import current_user
-from tmdb_service import TMDBService
-from models import WatchProgress
+from ...services.tmdb_service import TMDBService
+from ...core.models import WatchProgress
 
 main_bp = Blueprint("main", __name__)
 
@@ -16,6 +16,25 @@ def home():
         item_id = item.get('id')
         media_type = item.get('media_type', 'movie')
         if not item_id:
+            continue
+
+        # Prefer the compact session snapshot to avoid a fresh TMDB request.
+        title = (item.get('title') or item.get('name') or '').strip()
+        poster_path = item.get('poster_path')
+        release_date = item.get('release_date') or item.get('first_air_date') or ''
+        vote_average = item.get('vote_average')
+
+        if title and (poster_path or release_date or vote_average is not None):
+            recently_viewed.append({
+                'id': item_id,
+                'media_type': media_type,
+                'title': title,
+                'name': title,
+                'poster_path': poster_path,
+                'poster_url': TMDBService.get_image_url(poster_path) if poster_path else None,
+                'release_date': release_date,
+                'vote_average': vote_average if vote_average is not None else 0.0,
+            })
             continue
 
         details = TMDBService.get_tv_details(item_id) if media_type == 'tv' else TMDBService.get_movie_details(item_id)
@@ -81,21 +100,35 @@ def movies_section():
 @main_bp.route("/movies/trending")
 def movies_trending():
     """Trending movies page"""
-    trending_movies = TMDBService.get_trending_movies('week', limit=56)
+    page = request.args.get('page', 1, type=int)
+    if page < 1:
+        page = 1
+    if page > 500:
+        page = 500
+
+    trending_movies = TMDBService.get_trending_movies('week', page=page, limit=20)
 
     return render_template(
         "sections/movies_trending.html",
-        movies=trending_movies
+        movies=trending_movies,
+        page=page,
     )
 
 @main_bp.route("/movies/top-rated")
 def movies_top_rated():
     """Top rated movies and shows page"""
-    top_rated_items = TMDBService.get_top_rated_all(limit=104)
+    page = request.args.get('page', 1, type=int)
+    if page < 1:
+        page = 1
+    if page > 500:
+        page = 500
+
+    top_rated_items = TMDBService.get_top_rated_all(limit=20, page=page)
 
     return render_template(
         "sections/movies_top_rated.html",
-        items=top_rated_items
+        items=top_rated_items,
+        page=page,
     )
 
 @main_bp.route("/anime")

@@ -1,4 +1,3 @@
-from lumo.services.tmdb_service import *  # noqa: F401,F403
 """
 TMDB API Service - Enhanced with Working Caching and Rate Limiting
 Handles all interactions with The Movie Database API with intelligent caching
@@ -774,9 +773,3 @@ class TMDBService:
             logger.exception("TMDB cache warming error: %s", e)
             import traceback
             traceback.print_exc()
-
-
-# Keep the legacy top-level import path aligned with the package implementation.
-from lumo.services.tmdb_service import TMDBService as _PackageTMDBService
-
-TMDBService = _PackageTMDBService
