@@ -412,6 +412,32 @@
       <p class="no-reviews-msg">No reviews yet. Be the first to review!</p>
       {% endfor %}
     </div>
+
+    {% if reviews_pagination and reviews_pagination.pages > 1 %}
+    <div style="display: flex; justify-content: center; gap: 12px; margin-top: 24px; flex-wrap: wrap;">
+      {% if reviews_pagination.has_prev %}
+      <a
+        href="{% if media_type == 'tv' %}{{ url_for('movies.tv_detail', tv_id=movie.id, season=player_embed.season or 1, episode=player_embed.episode or 1, review_page=reviews_pagination.prev_num) }}{% else %}{{ url_for('movies.movie_detail', movie_id=movie.id, review_page=reviews_pagination.prev_num) }}{% endif %}"
+        class="btn-secondary"
+      >
+        ← Previous Reviews
+      </a>
+      {% endif %}
+
+      <span class="btn-tertiary" style="cursor: default;">
+        Reviews Page {{ reviews_pagination.page }} / {{ reviews_pagination.pages }}
+      </span>
+
+      {% if reviews_pagination.has_next %}
+      <a
+        href="{% if media_type == 'tv' %}{{ url_for('movies.tv_detail', tv_id=movie.id, season=player_embed.season or 1, episode=player_embed.episode or 1, review_page=reviews_pagination.next_num) }}{% else %}{{ url_for('movies.movie_detail', movie_id=movie.id, review_page=reviews_pagination.next_num) }}{% endif %}"
+        class="btn-secondary"
+      >
+        Next Reviews →
+      </a>
+      {% endif %}
+    </div>
+    {% endif %}
   </section>
   {% endif %}
 
