@@ -209,6 +209,7 @@ class Config:
     TMDB_API_KEY = os.environ.get("TMDB_API_KEY") or "YOUR_TMDB_API_KEY_HERE"
     TMDB_BASE_URL = "https://api.themoviedb.org/3"
     TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p"
+    TMDB_REQUEST_TIMEOUT = max(3, int(os.environ.get("TMDB_REQUEST_TIMEOUT", "10")))
     TMDB_POSTER_SIZE = "w500"  # Options: w92, w154, w185, w342, w500, w780, original
     TMDB_BACKDROP_SIZE = "w1280"  # Options: w300, w780, w1280, original
     TMDB_WARMUP_ON_STARTUP = os.environ.get("TMDB_WARMUP_ON_STARTUP", "true").lower() == "true"

@@ -124,7 +124,7 @@ def _startup_tmdb_warmup(app):
     if app.debug and os.environ.get("WERKZEUG_RUN_MAIN") != "true":
         return
 
-    instance_base_dir = os.environ.get("LUMO_DESKTOP_DATA_DIR") or app.root_path
+    instance_base_dir = os.environ.get("LUMO_DESKTOP_DATA_DIR") or str(Path(__file__).resolve().parents[2])
     instance_dir = Path(instance_base_dir) / "instance"
     instance_dir.mkdir(parents=True, exist_ok=True)
 

@@ -294,7 +294,7 @@ class TMDBService:
         TMDBService.last_request_time = time.time()
     
     @staticmethod
-    def _make_request(endpoint, params=None, use_cache=True, retries=3):
+    def _make_request(endpoint, params=None, use_cache=True, retries=3, timeout=None):
         """Make a request to TMDB API with caching and retry logic"""
         # Initialize cache if not done yet
         if TMDBService.cache is None:
@@ -328,6 +328,8 @@ class TMDBService:
                     request_cache[cache_key] = cached_data
                 return cached_data
         
+        request_timeout = timeout or current_app.config.get('TMDB_REQUEST_TIMEOUT', 10)
+
         # Try with retries and exponential backoff
         for attempt in range(retries + 1):
             # Rate limit before making request
@@ -342,7 +344,7 @@ class TMDBService:
                 else:
                     logger.debug("TMDB API request: %s", endpoint)
                     
-                response = requests.get(f"{base_url}/{endpoint}", params=params, timeout=25,
+                response = requests.get(f"{base_url}/{endpoint}", params=params, timeout=request_timeout,
                                        verify=True)
                 response.raise_for_status()
                 data = response.json()
@@ -634,15 +636,40 @@ class TMDBService:
         return []
     
     # ===== DETAILS =====
+
+    @staticmethod
+    def get_movie_card_details(movie_id):
+        """Get lightweight movie details for grid/cards without heavy append payloads."""
+        data = TMDBService._make_request(f'movie/{movie_id}', retries=1, timeout=8)
+        if data and 'id' in data:
+            data['poster_url'] = TMDBService.get_image_url(data.get('poster_path'))
+            data['backdrop_url'] = TMDBService.get_image_url(data.get('backdrop_path'), is_backdrop=True)
+            data['media_type'] = 'movie'
+            return data
+        return None
+
+    @staticmethod
+    def get_tv_card_details(tv_id):
+        """Get lightweight TV details for grid/cards without heavy append payloads."""
+        data = TMDBService._make_request(f'tv/{tv_id}', retries=1, timeout=8)
+        if data and 'id' in data:
+            data['title'] = data.get('name')
+            data['poster_url'] = TMDBService.get_image_url(data.get('poster_path'))
+            data['backdrop_url'] = TMDBService.get_image_url(data.get('backdrop_path'), is_backdrop=True)
+            data['release_date'] = data.get('first_air_date')
+            data['runtime'] = data.get('episode_run_time', [45])[0] if data.get('episode_run_time') else 45
+            data['media_type'] = 'tv'
+            return data
+        return None
     
     @staticmethod
     def get_movie_details(movie_id):
         """Get detailed information about a movie"""
-        # Use 4 retries for detailed movie fetches (more critical)
+        # Keep detail pages responsive under hosted-worker timeouts.
         data = TMDBService._make_request(f'movie/{movie_id}', {
             'append_to_response': 'credits,videos,similar,images',
             'include_image_language': 'en,null'
-        }, retries=4)
+        }, retries=2, timeout=10)
         if data and 'id' in data:
             data['poster_url'] = TMDBService.get_image_url(data.get('poster_path'))
             data['backdrop_url'] = TMDBService.get_image_url(data.get('backdrop_path'), is_backdrop=True)
@@ -665,11 +692,11 @@ class TMDBService:
     @staticmethod
     def get_tv_details(tv_id):
         """Get detailed information about a TV show"""
-        # Use 4 retries for detailed TV fetches (more critical)
+        # Keep detail pages responsive under hosted-worker timeouts.
         data = TMDBService._make_request(f'tv/{tv_id}', {
             'append_to_response': 'credits,videos,similar,images',
             'include_image_language': 'en,null'
-        }, retries=4)
+        }, retries=2, timeout=10)
         if data and 'id' in data:
             data['title'] = data.get('name')
             data['poster_url'] = TMDBService.get_image_url(data.get('poster_path'))

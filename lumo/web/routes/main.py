@@ -37,7 +37,7 @@ def home():
             })
             continue
 
-        details = TMDBService.get_tv_details(item_id) if media_type == 'tv' else TMDBService.get_movie_details(item_id)
+        details = TMDBService.get_tv_card_details(item_id) if media_type == 'tv' else TMDBService.get_movie_card_details(item_id)
         if details:
             recently_viewed.append(details)
 
@@ -54,7 +54,7 @@ def home():
             if float(progress.progress_percent or 0.0) >= 95.0 and (progress.last_event or "") in {"ended", "complete", "finished"}:
                 continue
 
-            details = TMDBService.get_tv_details(progress.tmdb_id) if progress.media_type == 'tv' else TMDBService.get_movie_details(progress.tmdb_id)
+            details = TMDBService.get_tv_card_details(progress.tmdb_id) if progress.media_type == 'tv' else TMDBService.get_movie_card_details(progress.tmdb_id)
             if not details:
                 continue
 
