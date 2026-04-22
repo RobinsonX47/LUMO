@@ -29,7 +29,7 @@
   <div class="movie-grid" id="recommendations-grid">
     {% for item in recommendations %}
     <a
-      href="{% if item.media_type == 'tv' %}{{ url_for('movies.tv_detail', tv_id=item.id) }}{% else %}{{ url_for('movies.movie_detail', movie_id=item.id) }}{% endif %}"
+      href="{% if item.media_type in ['tv', 'anime'] %}{{ url_for('movies.tv_detail', tv_id=item.id) }}{% else %}{{ url_for('movies.movie_detail', movie_id=item.id) }}{% endif %}"
       class="card-link"
     >
       <div class="card-glass recommendation-card">
@@ -426,7 +426,7 @@
       if (data.items && data.items.length > 0) {
         data.items.forEach((item) => {
           const movieUrl =
-            item.media_type === "tv"
+            item.media_type === "tv" || item.media_type === "anime"
               ? `/movies/tv/${item.id}`
               : `/movies/${item.id}`;
 

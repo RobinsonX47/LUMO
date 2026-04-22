@@ -6,6 +6,7 @@ from ...services.tmdb_service import TMDBService
 from ...services.embed_provider_service import build_movie_embed_url, build_tv_embed_url, normalize_provider_base_url
 from sqlalchemy import func
 from sqlalchemy.orm import selectinload
+from collections import Counter
 import requests
 import json
 import time
@@ -13,17 +14,17 @@ from datetime import datetime, timedelta
 
 
 def build_ai_style_recommendations(base_item, media_type):
-    """Lightweight recommendations using TMDB similar data only - no extra API calls."""
+    """Rank high-quality related titles using TMDB similar + recommendations data."""
     if not base_item:
         return []
     
     try:
-        # Use TMDB's similar results directly - they're already good
         similar_block = base_item.get('similar', {})
-        if not similar_block or not isinstance(similar_block, dict):
-            return []
-        
-        candidates = similar_block.get('results', []) or []
+        recommended_block = base_item.get('recommendations', {})
+
+        similar_candidates = similar_block.get('results', []) if isinstance(similar_block, dict) else []
+        recommended_candidates = recommended_block.get('results', []) if isinstance(recommended_block, dict) else []
+        candidates = list(similar_candidates) + list(recommended_candidates)
         if not candidates:
             return []
         
@@ -38,10 +39,18 @@ def build_ai_style_recommendations(base_item, media_type):
         
         base_genre_ids = set(g.get('id') for g in base_item.get('genres', []) if g.get('id'))
         
-        # Score candidates using only data already available
-        scored = []
-        for cand in candidates[:12]:  # Only process first 12 similar items
+        scored_by_id = {}
+        for cand in candidates[:30]:
             if not cand.get('id') or cand.get('id') == base_item.get('id'):
+                continue
+
+            cand_media_type = cand.get('media_type') or ('tv' if (cand.get('name') and not cand.get('title')) else 'movie')
+            if cand_media_type != media_type:
+                continue
+
+            vote = float(cand.get('vote_average') or 0)
+            vote_count = int(cand.get('vote_count') or 0)
+            if vote < 5.5 or vote_count < 40:
                 continue
             
             # Calculate year proximity
@@ -62,21 +71,20 @@ def build_ai_style_recommendations(base_item, media_type):
             cand_genre_ids = set(cand.get('genre_ids', []))
             genre_overlap = len(base_genre_ids & cand_genre_ids) if cand_genre_ids else 0
             
-            vote = cand.get('vote_average', 0)
-            
-            # Simple scoring: genre match + era + rating
-            score = genre_overlap * 3 + era_score * 2 + (vote / 10)
-            
-            # Set media type
-            cand['media_type'] = cand.get('media_type') or (
-                'tv' if (cand.get('name') and not cand.get('title')) else 'movie'
-            )
-            
-            scored.append({'data': cand, 'score': score})
-        
-        # Sort and return top 6
-        scored.sort(key=lambda x: x['score'], reverse=True)
-        return [s['data'] for s in scored[:6]]
+            popularity = float(cand.get('popularity') or 0)
+            popularity_score = min(popularity / 100.0, 1.0)
+            source_bonus = 0.5 if cand in recommended_candidates else 0.0
+
+            score = (genre_overlap * 3.5) + (era_score * 1.5) + (vote / 2.0) + popularity_score + source_bonus
+
+            cand['media_type'] = cand_media_type
+
+            existing = scored_by_id.get(cand['id'])
+            if not existing or score > existing['score']:
+                scored_by_id[cand['id']] = {'data': cand, 'score': score}
+
+        scored = sorted(scored_by_id.values(), key=lambda x: x['score'], reverse=True)
+        return [s['data'] for s in scored[:8]]
     
     except Exception as e:
         print(f"Error in recommendations: {e}")
@@ -92,29 +100,204 @@ def build_ai_style_recommendations(base_item, media_type):
         return []
 
 
+def _is_anime_from_details(details):
+    genre_ids = {g.get('id') for g in details.get('genres', []) if g.get('id') is not None}
+    if 16 not in genre_ids:
+        return False
+    origin_countries = set(details.get('origin_country') or [])
+    original_language = (details.get('original_language') or '').lower()
+    return original_language == 'ja' or 'JP' in origin_countries
+
+
+def _is_anime_candidate(item):
+    genre_ids = set(item.get('genre_ids') or [])
+    if 16 not in genre_ids:
+        return False
+    origin_countries = set(item.get('origin_country') or [])
+    original_language = (item.get('original_language') or '').lower()
+    return original_language == 'ja' or 'JP' in origin_countries
+
+
+def _candidate_bucket(item):
+    media_type = item.get('media_type')
+    if media_type == 'anime':
+        return 'anime'
+    if media_type == 'tv':
+        return 'anime' if _is_anime_candidate(item) else 'tv'
+    return 'movie'
+
+
+def _compute_target_mix(seed, limit):
+    media_counts = seed.get('media_counts') or {}
+    movie_count = int(media_counts.get('movie', 0))
+    tv_count = int(media_counts.get('tv', 0))
+    anime_count = int(media_counts.get('anime', 0))
+    tv_non_anime = max(0, tv_count - anime_count)
+
+    weighted = {
+        'movie': float(movie_count),
+        'tv': float(tv_non_anime),
+        'anime': float(anime_count) * 1.2,
+    }
+    total_weight = sum(weighted.values())
+    if total_weight <= 0:
+        return {'movie': limit, 'tv': 0, 'anime': 0}
+
+    raw = {k: (weighted[k] / total_weight) * limit for k in weighted}
+    base = {k: int(raw[k]) for k in raw}
+    remaining = max(0, limit - sum(base.values()))
+    order = sorted(raw.keys(), key=lambda k: (raw[k] - base[k]), reverse=True)
+    for key in order[:remaining]:
+        base[key] += 1
+
+    dominant_cap = max(1, int(limit * 0.65))
+    dominant_bucket = max(base.keys(), key=lambda k: base[k])
+    if base[dominant_bucket] > dominant_cap:
+        excess = base[dominant_bucket] - dominant_cap
+        base[dominant_bucket] = dominant_cap
+        recipients = [k for k in ('movie', 'tv', 'anime') if k != dominant_bucket]
+        for recipient in recipients:
+            if excess <= 0:
+                break
+            base[recipient] += 1
+            excess -= 1
+        idx = 0
+        while excess > 0 and recipients:
+            base[recipients[idx % len(recipients)]] += 1
+            idx += 1
+            excess -= 1
+
+    for bucket, source_count in (('movie', movie_count), ('anime', anime_count)):
+        if source_count > 0 and base[bucket] == 0 and limit >= 3:
+            donor = max(base.keys(), key=lambda k: base[k])
+            if donor != bucket and base[donor] > 1:
+                base[donor] -= 1
+                base[bucket] += 1
+
+    return base
+
+
+def _apply_media_mix(candidates, seed, limit=24, exclude_ids=None):
+    if exclude_ids is None:
+        exclude_ids = set()
+
+    quotas = _compute_target_mix(seed, limit)
+    buckets = {'anime': [], 'tv': [], 'movie': []}
+    unique_candidates = []
+    seen = set(exclude_ids)
+
+    for item in candidates:
+        item_id = item.get('id')
+        if not item_id or item_id in seen:
+            continue
+        seen.add(item_id)
+
+        bucket = _candidate_bucket(item)
+        if bucket == 'anime':
+            item['media_type'] = 'anime'
+        elif bucket == 'tv':
+            item['media_type'] = 'tv'
+        else:
+            item['media_type'] = 'movie'
+
+        buckets[bucket].append(item)
+        unique_candidates.append(item)
+
+    selected = []
+    selected_ids = set()
+
+    for bucket in ('anime', 'tv', 'movie'):
+        for item in buckets[bucket][:quotas.get(bucket, 0)]:
+            item_id = item.get('id')
+            if item_id in selected_ids:
+                continue
+            selected.append(item)
+            selected_ids.add(item_id)
+
+    if len(selected) < limit:
+        remaining = sorted(
+            [item for item in unique_candidates if item.get('id') not in selected_ids],
+            key=lambda m: float(m.get('vote_average') or 0.0),
+            reverse=True,
+        )
+        for item in remaining:
+            selected.append(item)
+            selected_ids.add(item.get('id'))
+            if len(selected) >= limit:
+                break
+
+    return selected[:limit]
+
+
 def _get_watchlist_recommendation_seed(watchlist_entries, max_title_items=15, max_genre_items=8):
-    """Build recommendation seed data while limiting expensive TMDB detail lookups."""
+    """Build recommendation seed and media preference profile from watchlist."""
     watchlist_titles = []
     watchlist_genres = []
+    watchlist_ids = []
+    media_counts = Counter()
+    movie_genre_counts = Counter()
+    tv_genre_counts = Counter()
+    anime_genre_counts = Counter()
 
-    for idx, entry in enumerate(watchlist_entries[:max_title_items]):
-        title = (entry.movie_title or "").strip()
+    details_cache = {}
+    seeded_entries = watchlist_entries[:max_title_items]
+
+    for idx, entry in enumerate(seeded_entries):
+        if getattr(entry, 'tmdb_movie_id', None):
+            watchlist_ids.append(entry.tmdb_movie_id)
+        entry_media_type = (getattr(entry, 'media_type', 'movie') or 'movie').strip().lower()
+        if entry_media_type not in {'movie', 'tv'}:
+            entry_media_type = 'movie'
+        media_counts[entry_media_type] += 1
+
+        needs_details = idx < max_genre_items or not (entry.movie_title or '').strip()
+        details = None
+
+        if needs_details:
+            cache_key = (entry.tmdb_movie_id, entry_media_type)
+            details = details_cache.get(cache_key)
+            if details is None:
+                fetch_details = TMDBService.get_tv_details if entry_media_type == 'tv' else TMDBService.get_movie_details
+                details = fetch_details(entry.tmdb_movie_id)
+                details_cache[cache_key] = details
+
+        title = (entry.movie_title or '').strip()
         if title:
             watchlist_titles.append(title)
-        else:
-            fetch_details = TMDBService.get_tv_details if getattr(entry, 'media_type', 'movie') == 'tv' else TMDBService.get_movie_details
-            details = fetch_details(entry.tmdb_movie_id)
-            if details:
-                watchlist_titles.append(details.get('title') or details.get('name') or 'Unknown')
+        elif details:
+            watchlist_titles.append((details.get('title') or details.get('name') or 'Unknown').strip())
 
-        # Pull genre signals from only the first few entries to cap network overhead.
-        if idx < max_genre_items:
-            fetch_details = TMDBService.get_tv_details if getattr(entry, 'media_type', 'movie') == 'tv' else TMDBService.get_movie_details
-            details = fetch_details(entry.tmdb_movie_id)
-            if details and details.get('genres'):
-                watchlist_genres.extend([g['name'] for g in details['genres'] if g.get('name')])
+        if idx < max_genre_items and details and details.get('genres'):
+            for genre in details.get('genres', []):
+                genre_name = (genre.get('name') or '').strip()
+                genre_id = genre.get('id')
+                if not genre_name:
+                    continue
+                watchlist_genres.append(genre_name)
 
-    return watchlist_titles, watchlist_genres
+                if entry_media_type == 'movie':
+                    movie_genre_counts[genre_name] += 1
+                else:
+                    tv_genre_counts[genre_name] += 1
+
+                if genre_id == 16 and _is_anime_from_details(details):
+                    anime_genre_counts[genre_name] += 1
+
+        if entry_media_type == 'tv' and details and _is_anime_from_details(details):
+            media_counts['anime'] += 1
+
+    if media_counts.get('anime', 0) > media_counts.get('tv', 0):
+        media_counts['anime'] = media_counts.get('tv', 0)
+
+    return {
+        'titles': watchlist_titles,
+        'genres': watchlist_genres,
+        'watchlist_ids': watchlist_ids,
+        'media_counts': dict(media_counts),
+        'movie_genres': [name for name, _ in movie_genre_counts.most_common(6)],
+        'tv_genres': [name for name, _ in tv_genre_counts.most_common(6)],
+        'anime_genres': [name for name, _ in anime_genre_counts.most_common(6)],
+    }
 
 
 def _call_anthropic_recommendation(prompt):
@@ -468,6 +651,14 @@ def movie_detail(movie_id):
                 None,
             )
 
+        if current_user.is_authenticated:
+            watchlist_ids = {
+                row.tmdb_movie_id
+                for row in Watchlist.query.with_entities(Watchlist.tmdb_movie_id).filter_by(user_id=current_user.id).all()
+                if row.tmdb_movie_id is not None
+            }
+            smart_recs = [item for item in smart_recs if item.get('id') not in watchlist_ids]
+
         return render_template(
             "movies/detail.html",
             movie=movie,
@@ -605,6 +796,14 @@ def tv_detail(tv_id):
                 ).first(),
                 None,
             )
+
+        if current_user.is_authenticated:
+            watchlist_ids = {
+                row.tmdb_movie_id
+                for row in Watchlist.query.with_entities(Watchlist.tmdb_movie_id).filter_by(user_id=current_user.id).all()
+                if row.tmdb_movie_id is not None
+            }
+            smart_recs = [item for item in smart_recs if item.get('id') not in watchlist_ids]
 
         return render_template(
             "movies/detail.html",
@@ -868,17 +1067,23 @@ def recommendations():
         flash("Add some movies to your watchlist first to get personalized recommendations!", "info")
         return redirect(url_for("users.profile"))
     
-    watchlist_titles, watchlist_genres = _get_watchlist_recommendation_seed(watchlist_entries)
+    recommendation_seed = _get_watchlist_recommendation_seed(watchlist_entries)
+    watchlist_ids = set(recommendation_seed.get('watchlist_ids', []))
     
     try:
         # Get 24 initial recommendations
-        recommended_items = get_personalized_recommendations(watchlist_titles, watchlist_genres, batch=0, items_per_batch=24)
+        recommended_items = get_personalized_recommendations(
+            recommendation_seed,
+            batch=0,
+            items_per_batch=24,
+            exclude_ids=watchlist_ids,
+        )
     except Exception as e:
         print(f"Recommendation generation error: {e}")
-        recommended_items = get_fallback_recommendations(watchlist_genres, limit=24)
+        recommended_items = get_fallback_recommendations(recommendation_seed, limit=24, exclude_ids=watchlist_ids)
     
     # Store seen IDs in session to prevent duplicates on load-more
-    session['seen_recommendation_ids'] = [item.get('id') for item in recommended_items]
+    session['seen_recommendation_ids'] = list(watchlist_ids) + [item.get('id') for item in recommended_items]
     
     return render_template(
         "movies/recommendations.html",
@@ -901,22 +1106,22 @@ def load_more_recommendations():
     if not watchlist_entries:
         return jsonify({"items": [], "error": "No watchlist"}), 400
 
-    watchlist_titles, watchlist_genres = _get_watchlist_recommendation_seed(watchlist_entries)
+    recommendation_seed = _get_watchlist_recommendation_seed(watchlist_entries)
+    watchlist_ids = set(recommendation_seed.get('watchlist_ids', []))
     
     # Get previously seen IDs from session
-    seen_ids = set(session.get('seen_recommendation_ids', []))
+    seen_ids = set(session.get('seen_recommendation_ids', [])) | watchlist_ids
     
     try:
         # Request a large batch and filter out seen items
         recommended_items = get_personalized_recommendations_paginated(
-            watchlist_titles, 
-            watchlist_genres, 
+            recommendation_seed,
             exclude_ids=seen_ids,
             limit=items_per_batch
         )
     except Exception as e:
         print(f"Load more recommendation error: {e}")
-        recommended_items = get_fallback_recommendations(watchlist_genres, limit=items_per_batch, exclude_ids=seen_ids)
+        recommended_items = get_fallback_recommendations(recommendation_seed, limit=items_per_batch, exclude_ids=seen_ids)
     
     # Update session with newly seen IDs
     new_ids = [item.get('id') for item in recommended_items]
@@ -937,23 +1142,39 @@ def load_more_recommendations():
     
     return jsonify({"items": items_data}), 200
 
-def get_personalized_recommendations(watchlist_titles, watchlist_genres, batch=0, items_per_batch=24):
+def get_personalized_recommendations(seed, batch=0, items_per_batch=24, exclude_ids=None):
+    watchlist_titles = seed.get('titles', [])
+    watchlist_genres = seed.get('genres', [])
+    media_counts = seed.get('media_counts', {})
+
+    if exclude_ids is None:
+        exclude_ids = set()
+
     if not watchlist_titles:
-        return get_fallback_recommendations(watchlist_genres, limit=items_per_batch)
+        return get_fallback_recommendations(seed, limit=items_per_batch, exclude_ids=exclude_ids)
     
     try:
         titles_str = ", ".join(watchlist_titles[:15])
         genres_str = ", ".join(set(watchlist_genres[:15]))
+        media_pref = (
+            f"Movies: {media_counts.get('movie', 0)}, "
+            f"Series: {media_counts.get('tv', 0)}, "
+            f"Anime: {media_counts.get('anime', 0)}"
+        )
         
         prompt = f"""Based on a user who enjoys these movies/shows: {titles_str}
 
 Their favorite genres are: {genres_str}
 
-Recommend {items_per_batch * 2} movies and TV shows that match their taste. Focus on:
+    Watchlist media preference profile: {media_pref}
+
+    Recommend {items_per_batch * 3} movies and TV shows that match their taste. Focus on:
 1. Similar plots and themes
 2. Same genres
 3. Similar tone and style
 4. Well-reviewed titles
+    5. Strictly follow the media preference profile; if anime count is highest, prioritize anime/JP animated series.
+    6. Avoid western kids/3D family cartoons unless they strongly match the seed titles.
 
 Return ONLY valid JSON array:
 [
@@ -963,56 +1184,70 @@ Return ONLY valid JSON array:
 
         recommendations = _call_anthropic_recommendation(prompt)
         if not recommendations:
-            return get_fallback_recommendations(watchlist_genres, limit=items_per_batch)
+            return get_fallback_recommendations(seed, limit=items_per_batch, exclude_ids=exclude_ids)
         
         results = []
-        seen_ids = set()
+        seen_ids = set(exclude_ids)
         for rec in recommendations:
             if not rec.get('title'):
                 continue
             
             title = rec['title']
-            movies = TMDBService.search_all(title, 3)
+            movies = TMDBService.search_all(title, 1)
             
             if movies:
                 for movie in movies:
                     if movie['id'] not in seen_ids:
                         seen_ids.add(movie['id'])
                         results.append(movie)
-                        if len(results) >= items_per_batch * 2:
+                        if len(results) >= items_per_batch * 4:
                             break
             
-            if len(results) >= items_per_batch * 2:
+            if len(results) >= items_per_batch * 4:
                 break
-        
-        return results[:items_per_batch] if results else get_fallback_recommendations(watchlist_genres, limit=items_per_batch)
+
+        mixed = _apply_media_mix(results, seed, limit=items_per_batch, exclude_ids=exclude_ids)
+        return mixed if mixed else get_fallback_recommendations(seed, limit=items_per_batch, exclude_ids=exclude_ids)
     
     except Exception as e:
         current_app.logger.warning("AI recommendation error: %s", e)
-        return get_fallback_recommendations(watchlist_genres, limit=items_per_batch)
+        return get_fallback_recommendations(seed, limit=items_per_batch, exclude_ids=exclude_ids)
 
 
-def get_personalized_recommendations_paginated(watchlist_titles, watchlist_genres, exclude_ids=None, limit=16):
+def get_personalized_recommendations_paginated(seed, exclude_ids=None, limit=16):
     """Get paginated recommendations excluding previously seen IDs"""
     if exclude_ids is None:
         exclude_ids = set()
+
+    watchlist_titles = seed.get('titles', [])
+    watchlist_genres = seed.get('genres', [])
+    media_counts = seed.get('media_counts', {})
     
     if not watchlist_titles:
-        return get_fallback_recommendations(watchlist_genres, limit=limit, exclude_ids=exclude_ids)
+        return get_fallback_recommendations(seed, limit=limit, exclude_ids=exclude_ids)
     
     try:
         titles_str = ", ".join(watchlist_titles[:15])
         genres_str = ", ".join(set(watchlist_genres[:15]))
+        media_pref = (
+            f"Movies: {media_counts.get('movie', 0)}, "
+            f"Series: {media_counts.get('tv', 0)}, "
+            f"Anime: {media_counts.get('anime', 0)}"
+        )
         
         prompt = f"""Based on a user who enjoys these movies/shows: {titles_str}
 
 Their favorite genres are: {genres_str}
 
-Recommend {limit * 3} DIFFERENT movies and TV shows (completely different from previous recommendations). Focus on:
+    Watchlist media preference profile: {media_pref}
+
+    Recommend {limit * 4} DIFFERENT movies and TV shows (completely different from previous recommendations). Focus on:
 1. Different themes but similar quality
 2. Same genres but lesser-known titles
 3. Similar tone but different stories
 4. Well-reviewed hidden gems
+    5. Follow the media preference profile; if anime count is highest, return mostly anime/JP animated series.
+    6. Avoid western kids/3D family cartoons unless highly relevant.
 
 Return ONLY valid JSON array:
 [
@@ -1022,77 +1257,84 @@ Return ONLY valid JSON array:
 
         recommendations = _call_anthropic_recommendation(prompt)
         if not recommendations:
-            return get_fallback_recommendations(watchlist_genres, limit=limit, exclude_ids=exclude_ids)
+            return get_fallback_recommendations(seed, limit=limit, exclude_ids=exclude_ids)
         
         results = []
+        temp_seen = set(exclude_ids)
         for rec in recommendations:
             if not rec.get('title'):
                 continue
             
             title = rec['title']
-            movies = TMDBService.search_all(title, 3)
+            movies = TMDBService.search_all(title, 1)
             
             if movies:
                 for movie in movies:
-                    if movie['id'] not in exclude_ids:
+                    movie_id = movie.get('id')
+                    if movie_id and movie_id not in temp_seen:
+                        temp_seen.add(movie_id)
                         results.append(movie)
-                        if len(results) >= limit:
+                        if len(results) >= limit * 4:
                             break
             
-            if len(results) >= limit:
+            if len(results) >= limit * 4:
                 break
-        
-        return results[:limit] if results else get_fallback_recommendations(watchlist_genres, limit=limit, exclude_ids=exclude_ids)
+
+        mixed = _apply_media_mix(results, seed, limit=limit, exclude_ids=exclude_ids)
+        return mixed if mixed else get_fallback_recommendations(seed, limit=limit, exclude_ids=exclude_ids)
     
     except Exception as e:
         current_app.logger.warning("AI paginated recommendation error: %s", e)
-        return get_fallback_recommendations(watchlist_genres, limit=limit, exclude_ids=exclude_ids)
+        return get_fallback_recommendations(seed, limit=limit, exclude_ids=exclude_ids)
 
 
-def get_fallback_recommendations(genres, limit=24, exclude_ids=None):
+def get_fallback_recommendations(seed, limit=24, exclude_ids=None):
     if exclude_ids is None:
         exclude_ids = set()
     
     try:
+        genres = seed.get('genres', [])
+        movie_genres = seed.get('movie_genres', [])
+        tv_genres = seed.get('tv_genres', [])
+        anime_genres = seed.get('anime_genres', [])
         all_genres = TMDBService.get_genres()
-        
-        if not genres or not all_genres:
-            popular = TMDBService.get_popular_movies(1)[:limit*2]
-            filtered = [m for m in popular if m['id'] not in exclude_ids]
-            return filtered[:limit]
-        
-        genre_counts = {}
-        for g in genres:
-            genre_counts[g] = genre_counts.get(g, 0) + 1
-        
-        top_genre_names = [g[0] for g in sorted(genre_counts.items(), key=lambda x: x[1], reverse=True)[:4]]
-        
-        genre_ids = [g['id'] for g in all_genres if g['name'] in top_genre_names]
-        
+
         results = []
-        
-        # Get movies from top genres with increased page sampling
-        for gid in genre_ids[:4]:
-            for page in range(1, 5):
-                movies = TMDBService.get_movies_by_genre(gid, page)
-                for movie in movies[:10]:
-                    if movie['id'] not in exclude_ids:
-                        results.append(movie)
-                        if len(results) >= limit:
-                            break
-                if len(results) >= limit:
-                    break
-        
-        # If still not enough, add popular movies
-        if len(results) < limit:
-            popular = TMDBService.get_popular_movies(1)[:20]
-            for movie in popular:
-                if movie['id'] not in exclude_ids:
-                    results.append(movie)
-                    if len(results) >= limit:
-                        break
-        
-        return results[:limit]
+
+        anime_pool = []
+        for item in TMDBService.get_trending_anime(page=1)[:24] + TMDBService.get_top_rated_anime(page=1)[:24]:
+            item['media_type'] = 'anime'
+            anime_pool.append(item)
+
+        tv_pool = TMDBService.get_trending_tv('week', page=1, limit=24)[:24] + TMDBService.get_top_rated_tv(page=1, limit=24)[:24]
+        movie_pool = TMDBService.get_popular_movies(1)[:24] + TMDBService.get_top_rated_movies(page=1, limit=24)[:24]
+
+        if all_genres and genres:
+            genre_counts = Counter(genres)
+            top_genre_names = [name for name, _ in genre_counts.most_common(6)]
+            if movie_genres:
+                top_genre_names = movie_genres[:3] + top_genre_names
+            if tv_genres:
+                top_genre_names = tv_genres[:3] + top_genre_names
+            if anime_genres:
+                top_genre_names = anime_genres[:3] + top_genre_names
+
+            top_genre_names = list(dict.fromkeys(top_genre_names))[:6]
+            genre_ids = [g['id'] for g in all_genres if g['name'] in top_genre_names]
+            for gid in genre_ids[:4]:
+                movie_pool.extend(TMDBService.get_movies_by_genre(gid, 1)[:12])
+
+        results.extend(anime_pool)
+        results.extend(tv_pool)
+        results.extend(movie_pool)
+
+        mixed = _apply_media_mix(results, seed, limit=limit, exclude_ids=exclude_ids)
+        if mixed:
+            return mixed
+
+        popular = TMDBService.get_popular_movies(1)[:limit * 2]
+        filtered = [m for m in popular if m.get('id') not in exclude_ids]
+        return filtered[:limit]
         
     except Exception as e:
         print(f"Fallback recommendation error: {e}")

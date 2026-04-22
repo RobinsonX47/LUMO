@@ -667,7 +667,7 @@ class TMDBService:
         """Get detailed information about a movie"""
         # Keep detail pages responsive under hosted-worker timeouts.
         data = TMDBService._make_request(f'movie/{movie_id}', {
-            'append_to_response': 'credits,videos,similar,images',
+            'append_to_response': 'credits,videos,similar,recommendations,images',
             'include_image_language': 'en,null'
         }, retries=2, timeout=10)
         if data and 'id' in data:
@@ -694,7 +694,7 @@ class TMDBService:
         """Get detailed information about a TV show"""
         # Keep detail pages responsive under hosted-worker timeouts.
         data = TMDBService._make_request(f'tv/{tv_id}', {
-            'append_to_response': 'credits,videos,similar,images',
+            'append_to_response': 'credits,videos,similar,recommendations,images',
             'include_image_language': 'en,null'
         }, retries=2, timeout=10)
         if data and 'id' in data:
