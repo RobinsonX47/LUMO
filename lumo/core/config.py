@@ -211,6 +211,11 @@ class Config:
     TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p"
     TMDB_POSTER_SIZE = "w500"  # Options: w92, w154, w185, w342, w500, w780, original
     TMDB_BACKDROP_SIZE = "w1280"  # Options: w300, w780, w1280, original
+    TMDB_WARMUP_ON_STARTUP = os.environ.get("TMDB_WARMUP_ON_STARTUP", "true").lower() == "true"
+    TMDB_WARMUP_BLOCKING = os.environ.get("TMDB_WARMUP_BLOCKING", "false").lower() == "true"
+    TMDB_WARMUP_PROFILE = (os.environ.get("TMDB_WARMUP_PROFILE") or "quick").strip().lower()
+    TMDB_WARMUP_GENRE_COUNT = max(0, int(os.environ.get("TMDB_WARMUP_GENRE_COUNT", "3")))
+    TMDB_WARMUP_COOLDOWN_SECONDS = max(60, int(os.environ.get("TMDB_WARMUP_COOLDOWN_SECONDS", "900")))
 
     # LLM Recommendations
     ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY") or ""

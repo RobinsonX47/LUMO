@@ -736,40 +736,60 @@ class TMDBService:
     # ===== CACHE WARMING =====
     
     @staticmethod
-    def warm_cache():
-        """Pre-populate cache with common requests"""
-        logger.info("Starting TMDB cache warmup")
-        
-        try:
-            # Initialize cache
-            TMDBService.init_cache()
-            
-            # Movies
-            logger.info("Warming movie caches")
-            TMDBService.get_trending_movies('week')
-            TMDBService.get_top_rated_movies()
-            TMDBService.get_popular_movies()
-            
-            # TV Series
-            logger.info("Warming TV caches")
-            TMDBService.get_trending_tv('week')
-            TMDBService.get_top_rated_tv()
-            TMDBService.get_popular_tv()
-            
-            # Anime
-            logger.info("Warming anime caches")
-            TMDBService.get_trending_anime()
-            TMDBService.get_top_rated_anime()
-            
-            # Genres
-            logger.info("Warming genre caches")
-            genres = TMDBService.get_genres()
-            for i, genre in enumerate(genres[:5]):  # Cache first 5 genres
-                logger.info("Warming genre %s/5: %s", i + 1, genre['name'])
-                TMDBService.get_movies_by_genre(genre['id'])
+    def warm_cache(profile="quick", genre_count=3):
+        """Pre-populate high-impact TMDB cache entries.
 
-            logger.info("TMDB cache warmup complete")
+        Profiles:
+        - quick: one-page homepage and browsing essentials
+        - balanced: quick + extra list views and anime lists
+        - full: balanced + genre pages
+        """
+        profile_name = (profile or "quick").strip().lower()
+        if profile_name not in {"quick", "balanced", "full"}:
+            profile_name = "quick"
+
+        safe_genre_count = max(0, int(genre_count or 0))
+        logger.info("Starting TMDB cache warmup (profile=%s, genre_count=%s)", profile_name, safe_genre_count)
+
+        try:
+            TMDBService.init_cache()
+
+            warm_steps = [
+                ("popular movies", lambda: TMDBService.get_popular_movies(page=1)),
+                ("hero movies", lambda: TMDBService.get_random_hero_movies(count=5)),
+                ("trending movies", lambda: TMDBService.get_trending_movies('week', page=1, limit=20)),
+                ("top rated movies", lambda: TMDBService.get_top_rated_movies(page=1, limit=20)),
+                ("trending tv", lambda: TMDBService.get_trending_tv('week', page=1, limit=20)),
+                ("top rated tv", lambda: TMDBService.get_top_rated_tv(page=1, limit=20)),
+            ]
+
+            if profile_name in {"balanced", "full"}:
+                warm_steps.extend([
+                    ("popular tv", lambda: TMDBService.get_popular_tv(page=1)),
+                    ("trending anime", lambda: TMDBService.get_trending_anime(page=1)),
+                    ("top rated anime", lambda: TMDBService.get_top_rated_anime(page=1)),
+                ])
+
+            genres = []
+            if profile_name == "full" and safe_genre_count > 0:
+                genres = TMDBService.get_genres() or []
+                logger.info("Warming genre caches for %s genres", min(safe_genre_count, len(genres)))
+
+            for step_name, step_callable in warm_steps:
+                try:
+                    step_callable()
+                    logger.debug("TMDB warmup step complete: %s", step_name)
+                except Exception as step_exc:
+                    logger.warning("TMDB warmup step failed (%s): %s", step_name, step_exc)
+
+            if genres:
+                for i, genre in enumerate(genres[:safe_genre_count]):
+                    try:
+                        TMDBService.get_movies_by_genre(genre['id'], page=1)
+                        logger.debug("TMDB warmup genre complete %s/%s: %s", i + 1, safe_genre_count, genre.get('name'))
+                    except Exception as genre_exc:
+                        logger.warning("TMDB warmup genre failed (%s): %s", genre.get('name'), genre_exc)
+
+            logger.info("TMDB cache warmup complete (profile=%s)", profile_name)
         except Exception as e:
             logger.exception("TMDB cache warming error: %s", e)
-            import traceback
-            traceback.print_exc()

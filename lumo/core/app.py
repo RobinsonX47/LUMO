@@ -8,6 +8,7 @@ from flask_limiter.util import get_remote_address
 import os
 import sys
 import threading
+import time
 import logging
 from logging.handlers import RotatingFileHandler
 from dotenv import load_dotenv
@@ -107,6 +108,73 @@ def _ensure_avatar_column_capacity(app):
     except Exception as exc:
         db.session.rollback()
         app.logger.warning("Could not auto-upgrade users.avatar column: %s", exc)
+
+
+def _startup_tmdb_warmup(app):
+    """Run TMDB warmup at startup with lock/cooldown to avoid duplicate work."""
+    if not app.config.get("TMDB_WARMUP_ON_STARTUP", True):
+        app.logger.info("TMDB startup warmup disabled")
+        return
+
+    if not app.config.get("TMDB_API_KEY") or app.config.get("TMDB_API_KEY") == "YOUR_TMDB_API_KEY_HERE":
+        app.logger.info("TMDB startup warmup skipped: TMDB API key not configured")
+        return
+
+    # Skip Flask reloader parent process to avoid duplicate startup work in debug mode.
+    if app.debug and os.environ.get("WERKZEUG_RUN_MAIN") != "true":
+        return
+
+    instance_base_dir = os.environ.get("LUMO_DESKTOP_DATA_DIR") or app.root_path
+    instance_dir = Path(instance_base_dir) / "instance"
+    instance_dir.mkdir(parents=True, exist_ok=True)
+
+    lock_file = instance_dir / "tmdb_warmup.lock"
+    state_file = instance_dir / "tmdb_warmup.last"
+    now_ts = time.time()
+    cooldown = int(app.config.get("TMDB_WARMUP_COOLDOWN_SECONDS", 900) or 900)
+
+    if state_file.exists():
+        try:
+            last_ts = float(state_file.read_text(encoding="utf-8").strip() or "0")
+            if now_ts - last_ts < cooldown:
+                app.logger.info("TMDB startup warmup skipped: cooldown active")
+                return
+        except Exception:
+            pass
+
+    try:
+        fd = os.open(str(lock_file), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(str(now_ts))
+    except FileExistsError:
+        app.logger.info("TMDB startup warmup skipped: another process is warming cache")
+        return
+
+    def run_warmup():
+        try:
+            with app.app_context():
+                TMDBService.warm_cache(
+                    profile=app.config.get("TMDB_WARMUP_PROFILE", "quick"),
+                    genre_count=app.config.get("TMDB_WARMUP_GENRE_COUNT", 3),
+                )
+                state_file.write_text(str(time.time()), encoding="utf-8")
+        except Exception as exc:
+            app.logger.warning("TMDB startup warmup failed: %s", exc)
+        finally:
+            try:
+                if lock_file.exists():
+                    lock_file.unlink()
+            except Exception:
+                pass
+
+    if app.config.get("TMDB_WARMUP_BLOCKING", False):
+        run_warmup()
+    else:
+        threading.Thread(target=run_warmup, daemon=True, name="tmdb-startup-warmup").start()
+        app.logger.info(
+            "TMDB startup warmup scheduled (profile=%s)",
+            app.config.get("TMDB_WARMUP_PROFILE", "quick"),
+        )
 
 def create_app():
     runtime_root = os.environ.get("LUMO_RUNTIME_ROOT")
@@ -376,9 +444,7 @@ def create_app():
         return render_template('errors/400.html', 
                              error_message="Security token expired. Please refresh and try again."), 400
 
-    # Removed background cache warming from app startup to prevent background thread
-    # duplication in multi-worker WSGI environments. Cache should be warmed via a 
-    # separate background job (e.g. Celery, clock process) if desired.
+    _startup_tmdb_warmup(app)
 
     return app
 
