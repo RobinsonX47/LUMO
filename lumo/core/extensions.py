@@ -2,6 +2,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_limiter import Limiter
 from flask_wtf.csrf import CSRFProtect
+from flask_compress import Compress
 
 
 def get_rate_limit_key():
@@ -14,6 +15,7 @@ def get_rate_limit_key():
 
 db = SQLAlchemy()
 login_manager = LoginManager()
+compress = Compress()
 
 # Initialize security extensions (will be configured in app.py)
 csrf = CSRFProtect()

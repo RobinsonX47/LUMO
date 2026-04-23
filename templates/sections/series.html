@@ -27,6 +27,12 @@ block content %}
           src="{{ show.poster_url }}"
           alt="{{ show.title }}"
           class="movie-poster"
+          srcset="{% if '/w780/' in show.poster_url %}{{ show.poster_url|replace('/w780/', '/w342/') }} 342w, {{ show.poster_url|replace('/w780/', '/w500/') }} 500w, {{ show.poster_url }} 780w{% else %}{{ show.poster_url }} 780w{% endif %}"
+          sizes="(max-width: 640px) 42vw, (max-width: 1024px) 28vw, 220px"
+          width="500"
+          height="750"
+          loading="lazy"
+          decoding="async"
         />
         {% else %}
         <div
@@ -66,6 +72,12 @@ block content %}
           src="{{ show.poster_url }}"
           alt="{{ show.title }}"
           class="movie-poster"
+          srcset="{% if '/w780/' in show.poster_url %}{{ show.poster_url|replace('/w780/', '/w342/') }} 342w, {{ show.poster_url|replace('/w780/', '/w500/') }} 500w, {{ show.poster_url }} 780w{% else %}{{ show.poster_url }} 780w{% endif %}"
+          sizes="(max-width: 640px) 42vw, (max-width: 1024px) 28vw, 220px"
+          width="500"
+          height="750"
+          loading="lazy"
+          decoding="async"
         />
         {% else %}
         <div

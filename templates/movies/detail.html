@@ -1363,6 +1363,7 @@
   let windowFocused = true;
   let hasScrolled = false;
   let isMetadataVisible = true;
+  const ENABLE_HERO_TRAILER_PLAYBACK = true;
 
   const FADE_DELAY = 5000; // 5 seconds
   const POSTER_DELAY = 2000; // 2 seconds
@@ -1381,7 +1382,7 @@
         playlist: "{{ movie.trailer_key }}",
         playsinline: 1,
         iv_load_policy: 3,
-        disablekb: 0,
+        disablekb: 1,
         fs: 1,
         quality: "highres",
       },
@@ -1410,9 +1411,20 @@
 
   function onPlayerReady(event) {
     const posterOverlay = document.getElementById("posterOverlay");
+    const muteBtn = document.getElementById("muteBtn");
     // Show metadata and scroll indicator for 5 seconds on page load
     showMetadata();
     scheduleMetadataFadeOut();
+
+    if (!ENABLE_HERO_TRAILER_PLAYBACK) {
+      if (posterOverlay) {
+        posterOverlay.classList.remove("is-hidden");
+      }
+      if (muteBtn) {
+        muteBtn.style.display = "none";
+      }
+      return;
+    }
 
     if (posterOverlay) {
       setTimeout(() => {
@@ -1607,8 +1619,47 @@
     }
   };
 
+  const suppressTransportControls = (event) => {
+    const targetTag = (event.target && event.target.tagName) ? event.target.tagName.toLowerCase() : "";
+    const isTypingField = ["input", "textarea", "select"].includes(targetTag) || event.target?.isContentEditable;
+    if (isTypingField) {
+      return;
+    }
+
+    const blockedKeys = new Set([
+      " ",
+      "k",
+      "K",
+      "j",
+      "J",
+      "l",
+      "L",
+      "MediaPlayPause",
+      "MediaStop",
+      "MediaTrackNext",
+      "MediaTrackPrevious",
+    ]);
+
+    if (blockedKeys.has(event.key)) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  };
+
+  if ("mediaSession" in navigator) {
+    ["play", "pause", "previoustrack", "nexttrack", "seekbackward", "seekforward", "seekto", "stop"].forEach((action) => {
+      try {
+        navigator.mediaSession.setActionHandler(action, () => {});
+      } catch (error) {
+        // Ignore unsupported mediaSession actions per browser.
+      }
+    });
+  }
+
   window.addEventListener("keydown", handleMovieHotkeys, true);
   document.addEventListener("keydown", handleMovieHotkeys, true);
+  window.addEventListener("keydown", suppressTransportControls, true);
+  document.addEventListener("keydown", suppressTransportControls, true);
 
   // Toggle watchlist without page reload
   function toggleWatchlist(movieId, mediaType = "movie") {

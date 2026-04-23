@@ -337,6 +337,8 @@
             src="{{ current_user.avatar }}"
             alt="{{ current_user.name }}"
             class="profile-avatar"
+            loading="lazy"
+            decoding="async"
           />
           {% else %}
           <div class="profile-avatar-placeholder">
@@ -430,8 +432,8 @@
         });
       });
     </script>
-    <script src="{{ url_for('static', filename='js/carousel.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/carousel.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
   </body>
 </html>
 

@@ -5,6 +5,8 @@ Handles all interactions with The Movie Database API with intelligent caching
 
 import requests
 from flask import current_app, has_request_context, has_app_context, g
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 import random
 import json
 import os
@@ -184,6 +186,32 @@ class TMDBService:
     cache = None
     last_request_time = 0
     min_request_interval = 0.25  # 4 requests per second (well under 40/10s limit)
+    _http_session = None
+    _session_lock = threading.Lock()
+
+    @staticmethod
+    def _get_http_session():
+        """Build a single pooled session for outbound TMDB calls."""
+        with TMDBService._session_lock:
+            if TMDBService._http_session is not None:
+                return TMDBService._http_session
+
+            retry = Retry(
+                total=2,
+                connect=2,
+                read=2,
+                backoff_factor=0.2,
+                status_forcelist=[429, 500, 502, 503, 504],
+                allowed_methods=frozenset(["GET"]),
+                raise_on_status=False,
+            )
+            adapter = HTTPAdapter(pool_connections=32, pool_maxsize=64, max_retries=retry)
+
+            session = requests.Session()
+            session.mount("https://", adapter)
+            session.mount("http://", adapter)
+            TMDBService._http_session = session
+            return TMDBService._http_session
 
     @staticmethod
     def _select_best_trailer(videos):
@@ -344,8 +372,12 @@ class TMDBService:
                 else:
                     logger.debug("TMDB API request: %s", endpoint)
                     
-                response = requests.get(f"{base_url}/{endpoint}", params=params, timeout=request_timeout,
-                                       verify=True)
+                response = TMDBService._get_http_session().get(
+                    f"{base_url}/{endpoint}",
+                    params=params,
+                    timeout=request_timeout,
+                    verify=True,
+                )
                 response.raise_for_status()
                 data = response.json()
                 
@@ -476,17 +508,31 @@ class TMDBService:
         return results
     
     @staticmethod
-    def get_popular_movies(page=1):
+    def get_popular_movies(page=1, limit=None):
         """Get popular movies"""
-        data = TMDBService._make_request('movie/popular', {'page': page})
-        if data and 'results' in data:
-            movies = data['results']
-            for movie in movies:
-                movie['poster_url'] = TMDBService.get_image_url(movie.get('poster_path'))
-                movie['backdrop_url'] = TMDBService.get_image_url(movie.get('backdrop_path'), is_backdrop=True)
-                movie['media_type'] = 'movie'
-            return movies
-        return []
+        current_page = max(1, int(page or 1))
+
+        if limit is None:
+            data = TMDBService._make_request('movie/popular', {'page': current_page})
+            if data and 'results' in data:
+                movies = data['results']
+                for movie in movies:
+                    movie['poster_url'] = TMDBService.get_image_url(movie.get('poster_path'))
+                    movie['backdrop_url'] = TMDBService.get_image_url(movie.get('backdrop_path'), is_backdrop=True)
+                    movie['media_type'] = 'movie'
+                return movies
+            return []
+
+        target = max(1, int(limit or 1))
+        max_pages = max(1, math.ceil(target / 20))
+        movies = TMDBService._get_results_multi_pages(
+            'movie/popular', {}, min_count=target, max_pages=max_pages, start_page=current_page
+        )
+        for movie in movies:
+            movie['poster_url'] = TMDBService.get_image_url(movie.get('poster_path'))
+            movie['backdrop_url'] = TMDBService.get_image_url(movie.get('backdrop_path'), is_backdrop=True)
+            movie['media_type'] = 'movie'
+        return movies
     
     @staticmethod
     def get_random_hero_movies(count=5):
@@ -618,22 +664,41 @@ class TMDBService:
         return []
     
     @staticmethod
-    def get_movies_by_genre(genre_id, page=1):
+    def get_movies_by_genre(genre_id, page=1, limit=None):
         """Get movies by genre"""
-        params = {
+        current_page = max(1, int(page or 1))
+        base_params = {
             'with_genres': genre_id,
             'sort_by': 'popularity.desc',
-            'page': page
         }
-        data = TMDBService._make_request('discover/movie', params)
-        if data and 'results' in data:
-            movies = data['results']
-            for movie in movies:
-                movie['poster_url'] = TMDBService.get_image_url(movie.get('poster_path'))
-                movie['backdrop_url'] = TMDBService.get_image_url(movie.get('backdrop_path'), is_backdrop=True)
-                movie['media_type'] = 'movie'
-            return movies
-        return []
+
+        if limit is None:
+            params = dict(base_params)
+            params['page'] = current_page
+            data = TMDBService._make_request('discover/movie', params)
+            if data and 'results' in data:
+                movies = data['results']
+                for movie in movies:
+                    movie['poster_url'] = TMDBService.get_image_url(movie.get('poster_path'))
+                    movie['backdrop_url'] = TMDBService.get_image_url(movie.get('backdrop_path'), is_backdrop=True)
+                    movie['media_type'] = 'movie'
+                return movies
+            return []
+
+        target = max(1, int(limit or 1))
+        max_pages = max(1, math.ceil(target / 20))
+        movies = TMDBService._get_results_multi_pages(
+            'discover/movie',
+            base_params,
+            min_count=target,
+            max_pages=max_pages,
+            start_page=current_page,
+        )
+        for movie in movies:
+            movie['poster_url'] = TMDBService.get_image_url(movie.get('poster_path'))
+            movie['backdrop_url'] = TMDBService.get_image_url(movie.get('backdrop_path'), is_backdrop=True)
+            movie['media_type'] = 'movie'
+        return movies
     
     # ===== DETAILS =====
 

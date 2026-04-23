@@ -29,6 +29,10 @@
         src="{{ movie.poster_url }}"
         alt="{{ movie.title }}"
         class="movie-poster"
+        srcset="{% if '/w780/' in movie.poster_url %}{{ movie.poster_url|replace('/w780/', '/w342/') }} 342w, {{ movie.poster_url|replace('/w780/', '/w500/') }} 500w, {{ movie.poster_url }} 780w{% else %}{{ movie.poster_url }} 780w{% endif %}"
+        sizes="(max-width: 640px) 42vw, (max-width: 1024px) 28vw, 220px"
+        width="500"
+        height="750"
         loading="lazy"
         decoding="async"
       />

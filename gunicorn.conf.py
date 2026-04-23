@@ -13,15 +13,15 @@ backlog = 2048
 # Default low concurrency is safer for free-tier memory limits.
 default_workers = 2
 workers = int(os.getenv('WEB_CONCURRENCY', os.getenv('GUNICORN_WORKERS', default_workers)))
-worker_class = 'sync'  # or 'gevent' for async
+worker_class = os.getenv('GUNICORN_WORKER_CLASS', 'gthread')
 worker_connections = 1000
 max_requests = 1000  # Restart workers after X requests (prevent memory leaks)
 max_requests_jitter = 50  # Add randomness to prevent thundering herd
 timeout = 30  # Timeout for worker processes
-keepalive = 2
+keepalive = int(os.getenv('GUNICORN_KEEPALIVE', 5))
 
 # Threading
-threads = int(os.getenv('GUNICORN_THREADS', 1))  # Threads per worker
+threads = int(os.getenv('GUNICORN_THREADS', 2))  # Threads per worker
 
 # Logging
 accesslog = '-'  # Log to stdout

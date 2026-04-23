@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, abort
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, abort, jsonify
 from flask_login import login_required, current_user
 from ...core.extensions import db
 from ...core.models import Movie
@@ -33,6 +33,32 @@ def movies():
     admin_required()
     movies = Movie.query.order_by(Movie.created_at.desc()).all()
     return render_template('admin/movies_list.html', movies=movies)
+
+
+@admin_bp.route('/cache/clear', methods=['POST'])
+@login_required
+def clear_public_cache():
+    """Clear the in-process public fragment cache."""
+    admin_required()
+
+    cache_store = current_app.extensions.get('public_fragment_cache')
+    cache_lock = current_app.extensions.get('public_fragment_cache_lock')
+
+    if cache_store is not None:
+        if cache_lock:
+            with cache_lock:
+                cache_store.clear()
+        else:
+            cache_store.clear()
+
+    if request.accept_mimetypes.accept_json and not request.accept_mimetypes.accept_html:
+        return jsonify({
+            'success': True,
+            'message': 'Public cache cleared',
+        })
+
+    flash('Public cache cleared', 'success')
+    return redirect(url_for('admin.movies'))
 
 
 @admin_bp.route('/movies/add', methods=['GET', 'POST'])

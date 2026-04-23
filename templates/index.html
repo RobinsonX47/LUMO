@@ -10,6 +10,12 @@ Series{% endblock %} {% block content %}
       class="hero-bg"
       src="{{ movie.backdrop_url }}"
       alt="{{ movie.title }}"
+      srcset="{% if movie.backdrop_url and '/w1280/' in movie.backdrop_url %}{{ movie.backdrop_url|replace('/w1280/', '/w780/') }} 780w, {{ movie.backdrop_url }} 1280w{% else %}{{ movie.backdrop_url }} 1280w{% endif %}"
+      sizes="100vw"
+      width="1280"
+      height="720"
+      loading="{% if loop.first %}eager{% else %}lazy{% endif %}"
+      fetchpriority="{% if loop.first %}high{% else %}auto{% endif %}"
       decoding="async"
     />
     <div class="hero-overlay-left"></div>
@@ -68,6 +74,10 @@ Series{% endblock %} {% block content %}
           src="{{ item.poster_url }}"
           alt="{{ item.title or item.name }}"
           class="movie-poster"
+          srcset="{% if item.poster_url and '/w780/' in item.poster_url %}{{ item.poster_url|replace('/w780/', '/w342/') }} 342w, {{ item.poster_url|replace('/w780/', '/w500/') }} 500w, {{ item.poster_url }} 780w{% else %}{{ item.poster_url }} 780w{% endif %}"
+          sizes="(max-width: 640px) 42vw, (max-width: 1024px) 28vw, 220px"
+          width="500"
+          height="750"
           loading="lazy"
           decoding="async"
         />
@@ -99,7 +109,7 @@ Series{% endblock %} {% block content %}
     <a href="{{ url_for('movies.tv_detail', tv_id=item.id, season=item.saved_progress.season or 1, episode=item.saved_progress.episode or 1) if item.media_type == 'tv' else url_for('movies.movie_detail', movie_id=item.id) }}" style="text-decoration: none; color: inherit;">
       <div class="card-glass">
         {% if item.poster_url %}
-        <img src="{{ item.poster_url }}" alt="{{ item.title or item.name }}" class="movie-poster" loading="lazy" decoding="async" />
+        <img src="{{ item.poster_url }}" alt="{{ item.title or item.name }}" class="movie-poster" srcset="{% if item.poster_url and '/w780/' in item.poster_url %}{{ item.poster_url|replace('/w780/', '/w342/') }} 342w, {{ item.poster_url|replace('/w780/', '/w500/') }} 500w, {{ item.poster_url }} 780w{% else %}{{ item.poster_url }} 780w{% endif %}" sizes="(max-width: 640px) 42vw, (max-width: 1024px) 28vw, 220px" width="500" height="750" loading="lazy" decoding="async" />
         {% endif %}
         <div class="movie-title">{{ (item.title or item.name)|truncate_words(6) }}</div>
         <div class="movie-meta">{{ item.resume_label }} • {{ item.progress_percent|round(0) }}%</div>

@@ -35,6 +35,20 @@ def _get_request_cache(cache_name):
     return cache
 
 
+def _invalidate_unread_notifications_cache(user_id):
+    """Invalidate app-level unread notification cache for one user."""
+    cache_store = current_app.extensions.get("unread_notifications_count_cache") if current_app else None
+    cache_lock = current_app.extensions.get("unread_notifications_count_lock") if current_app else None
+    if not cache_store:
+        return
+
+    if cache_lock:
+        with cache_lock:
+            cache_store.pop(user_id, None)
+    else:
+        cache_store.pop(user_id, None)
+
+
 def _get_following_ids():
     if not current_user.is_authenticated:
         return set()
@@ -434,6 +448,7 @@ def follow_user(user_id):
     
     db.session.add(notification)
     db.session.commit()
+    _invalidate_unread_notifications_cache(user_to_follow.id)
     
     return jsonify({"success": True, "message": f"Now following {user_to_follow.name}"})
 
@@ -654,6 +669,7 @@ def mark_notifications_as_read():
     """Mark all notifications as read"""
     Notification.query.filter_by(user_id=current_user.id, is_read=False).update({'is_read': True})
     db.session.commit()
+    _invalidate_unread_notifications_cache(current_user.id)
     
     return jsonify({"success": True})
 
@@ -668,6 +684,7 @@ def mark_notification_as_read(notification_id):
     
     notification.is_read = True
     db.session.commit()
+    _invalidate_unread_notifications_cache(current_user.id)
     
     return jsonify({"success": True})
 

@@ -1,10 +1,11 @@
-from flask import Flask, render_template, jsonify, g
-from .extensions import db, login_manager, csrf, limiter
+from flask import Flask, render_template, jsonify, g, request
+from .extensions import db, login_manager, csrf, limiter, compress
 from ..services.tmdb_service import TMDBService
 from flask_login import current_user
 from flask_talisman import Talisman
 from flask_wtf.csrf import CSRFError
 from flask_limiter.util import get_remote_address
+from sqlalchemy import event
 import os
 import sys
 import threading
@@ -110,6 +111,55 @@ def _ensure_avatar_column_capacity(app):
         app.logger.warning("Could not auto-upgrade users.avatar column: %s", exc)
 
 
+def _get_cached_unread_notifications_count(app, user_id):
+    """Return unread notification count with a short in-memory TTL cache."""
+    ttl_seconds = int(app.config.get("UNREAD_COUNT_CACHE_SECONDS", 30) or 30)
+    cache_store = app.extensions.setdefault("unread_notifications_count_cache", {})
+    cache_lock = app.extensions.setdefault("unread_notifications_count_lock", threading.Lock())
+    now_ts = time.time()
+
+    with cache_lock:
+        cached = cache_store.get(user_id)
+        if cached and cached[0] > now_ts:
+            return int(cached[1])
+
+    from models import Notification
+
+    count = Notification.query.filter_by(user_id=user_id, is_read=False).count()
+    with cache_lock:
+        cache_store[user_id] = (now_ts + ttl_seconds, int(count))
+    return int(count)
+
+
+def _wire_sql_observability(app):
+    """Attach lightweight SQL timing listeners for slow-query logging."""
+    if not app.config.get("ENABLE_SLOW_QUERY_LOGGING", True):
+        return
+    if app.extensions.get("slow_query_hooks_registered"):
+        return
+
+    threshold = float(app.config.get("SLOW_QUERY_LOG_SECONDS", 0.10) or 0.10)
+
+    with app.app_context():
+        engine = db.engine
+
+        @event.listens_for(engine, "before_cursor_execute")
+        def before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
+            context._query_start_time = time.perf_counter()
+
+        @event.listens_for(engine, "after_cursor_execute")
+        def after_cursor_execute(conn, cursor, statement, parameters, context, executemany):
+            start = getattr(context, "_query_start_time", None)
+            if start is None:
+                return
+            elapsed = time.perf_counter() - start
+            if elapsed >= threshold:
+                snippet = " ".join((statement or "").split())[:240]
+                app.logger.warning("Slow query %.3fs: %s", elapsed, snippet)
+
+    app.extensions["slow_query_hooks_registered"] = True
+
+
 def _startup_tmdb_warmup(app):
     """Run TMDB warmup at startup with lock/cooldown to avoid duplicate work."""
     if not app.config.get("TMDB_WARMUP_ON_STARTUP", True):
@@ -203,6 +253,9 @@ def create_app():
     app.config["DESKTOP_MODE"] = os.environ.get("LUMO_DESKTOP_MODE") == "1"
     app.config["DESKTOP_PRIVATE_SESSION"] = os.environ.get("LUMO_DESKTOP_PRIVATE_SESSION", "0").lower() in {"1", "true", "yes", "on"}
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
+    if app.config.get("COMPRESS_ENABLED", True):
+        compress.init_app(app)
 
     # Fail fast on required secrets in production.
     is_production = os.environ.get("FLASK_ENV") == "production"
@@ -312,21 +365,22 @@ def create_app():
 
     # Initialize database and login manager
     db.init_app(app)
+    _wire_sql_observability(app)
 
     # Import models before create_all so SQLAlchemy metadata is populated.
     # Without this, fresh deployments can miss tables like `users`.
     import models  # noqa: F401
 
-    # Bootstrap schema for fresh deployments (idempotent: only creates missing tables).
-    # This prevents runtime failures (e.g., OAuth callback) when a new managed DB is attached.
-    with app.app_context():
-        try:
-            db.create_all()
-            _ensure_avatar_column_capacity(app)
-            app.logger.info("Database schema ensured")
-        except Exception as exc:
-            app.logger.error("Failed to initialize database schema: %s", exc)
-            raise
+    # Bootstrap schema for fresh deployments only when explicitly enabled.
+    if app.config.get("AUTO_CREATE_SCHEMA", False):
+        with app.app_context():
+            try:
+                db.create_all()
+                _ensure_avatar_column_capacity(app)
+                app.logger.info("Database schema ensured")
+            except Exception as exc:
+                app.logger.error("Failed to initialize database schema: %s", exc)
+                raise
 
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
@@ -392,19 +446,45 @@ def create_app():
     @app.context_processor
     def get_unread_notifications_count():
         if current_user.is_authenticated:
-            from models import Notification
             try:
                 cached_count = getattr(g, 'unread_notifications_count', None)
                 if cached_count is not None:
                     return {'unread_notifications_count': cached_count}
 
-                count = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
+                count = _get_cached_unread_notifications_count(app, current_user.id)
                 g.unread_notifications_count = count
                 return {'unread_notifications_count': count}
             except Exception as exc:
                 app.logger.warning('Notification count unavailable: %s', exc)
                 return {'unread_notifications_count': 0}
         return {'unread_notifications_count': 0}
+
+    @app.before_request
+    def _track_request_start_time():
+        g.request_start_time = time.perf_counter()
+
+    @app.after_request
+    def _apply_performance_headers_and_log(response):
+        elapsed = None
+        started = getattr(g, "request_start_time", None)
+        if started is not None:
+            elapsed = time.perf_counter() - started
+
+        if request.method == "GET":
+            if request.path.startswith("/static/"):
+                static_ttl = int(app.config.get("STATIC_CACHE_SECONDS", 604800) or 604800)
+                response.headers.setdefault(
+                    "Cache-Control",
+                    f"public, max-age={static_ttl}, stale-while-revalidate=86400",
+                )
+            elif (response.mimetype or "").startswith("text/html"):
+                response.headers.setdefault("Cache-Control", "no-cache, must-revalidate")
+
+        slow_threshold = float(app.config.get("SLOW_REQUEST_LOG_SECONDS", 0.35) or 0.35)
+        if elapsed is not None and elapsed >= slow_threshold:
+            app.logger.warning("Slow request %.3fs: %s %s", elapsed, request.method, request.full_path)
+
+        return response
 
     # Error handlers for production
     @app.errorhandler(404)

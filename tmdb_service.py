@@ -475,17 +475,31 @@ class TMDBService:
         return results
     
     @staticmethod
-    def get_popular_movies(page=1):
+    def get_popular_movies(page=1, limit=None):
         """Get popular movies"""
-        data = TMDBService._make_request('movie/popular', {'page': page})
-        if data and 'results' in data:
-            movies = data['results']
-            for movie in movies:
-                movie['poster_url'] = TMDBService.get_image_url(movie.get('poster_path'))
-                movie['backdrop_url'] = TMDBService.get_image_url(movie.get('backdrop_path'), is_backdrop=True)
-                movie['media_type'] = 'movie'
-            return movies
-        return []
+        current_page = max(1, int(page or 1))
+
+        if limit is None:
+            data = TMDBService._make_request('movie/popular', {'page': current_page})
+            if data and 'results' in data:
+                movies = data['results']
+                for movie in movies:
+                    movie['poster_url'] = TMDBService.get_image_url(movie.get('poster_path'))
+                    movie['backdrop_url'] = TMDBService.get_image_url(movie.get('backdrop_path'), is_backdrop=True)
+                    movie['media_type'] = 'movie'
+                return movies
+            return []
+
+        target = max(1, int(limit or 1))
+        max_pages = max(1, math.ceil(target / 20))
+        movies = TMDBService._get_results_multi_pages(
+            'movie/popular', {}, min_count=target, max_pages=max_pages, start_page=current_page
+        )
+        for movie in movies:
+            movie['poster_url'] = TMDBService.get_image_url(movie.get('poster_path'))
+            movie['backdrop_url'] = TMDBService.get_image_url(movie.get('backdrop_path'), is_backdrop=True)
+            movie['media_type'] = 'movie'
+        return movies
     
     @staticmethod
     def get_random_hero_movies(count=5):
@@ -617,22 +631,41 @@ class TMDBService:
         return []
     
     @staticmethod
-    def get_movies_by_genre(genre_id, page=1):
+    def get_movies_by_genre(genre_id, page=1, limit=None):
         """Get movies by genre"""
-        params = {
+        current_page = max(1, int(page or 1))
+        base_params = {
             'with_genres': genre_id,
             'sort_by': 'popularity.desc',
-            'page': page
         }
-        data = TMDBService._make_request('discover/movie', params)
-        if data and 'results' in data:
-            movies = data['results']
-            for movie in movies:
-                movie['poster_url'] = TMDBService.get_image_url(movie.get('poster_path'))
-                movie['backdrop_url'] = TMDBService.get_image_url(movie.get('backdrop_path'), is_backdrop=True)
-                movie['media_type'] = 'movie'
-            return movies
-        return []
+
+        if limit is None:
+            params = dict(base_params)
+            params['page'] = current_page
+            data = TMDBService._make_request('discover/movie', params)
+            if data and 'results' in data:
+                movies = data['results']
+                for movie in movies:
+                    movie['poster_url'] = TMDBService.get_image_url(movie.get('poster_path'))
+                    movie['backdrop_url'] = TMDBService.get_image_url(movie.get('backdrop_path'), is_backdrop=True)
+                    movie['media_type'] = 'movie'
+                return movies
+            return []
+
+        target = max(1, int(limit or 1))
+        max_pages = max(1, math.ceil(target / 20))
+        movies = TMDBService._get_results_multi_pages(
+            'discover/movie',
+            base_params,
+            min_count=target,
+            max_pages=max_pages,
+            start_page=current_page,
+        )
+        for movie in movies:
+            movie['poster_url'] = TMDBService.get_image_url(movie.get('poster_path'))
+            movie['backdrop_url'] = TMDBService.get_image_url(movie.get('backdrop_path'), is_backdrop=True)
+            movie['media_type'] = 'movie'
+        return movies
     
     # ===== DETAILS =====
     

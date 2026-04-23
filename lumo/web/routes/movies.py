@@ -84,14 +84,14 @@ def build_ai_style_recommendations(base_item, media_type):
                 scored_by_id[cand['id']] = {'data': cand, 'score': score}
 
         scored = sorted(scored_by_id.values(), key=lambda x: x['score'], reverse=True)
-        return [s['data'] for s in scored[:8]]
+        return [s['data'] for s in scored[:12]]
     
     except Exception as e:
         print(f"Error in recommendations: {e}")
-        # Fallback: return first 6 similar items
+        # Fallback: return first 12 similar items
         similar_block = base_item.get('similar', {})
         if isinstance(similar_block, dict):
-            results = similar_block.get('results', [])[:6]
+            results = similar_block.get('results', [])[:12]
             for r in results:
                 r['media_type'] = r.get('media_type') or (
                     'tv' if (r.get('name') and not r.get('title')) else 'movie'

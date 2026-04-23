@@ -154,6 +154,29 @@ class Config:
     SECURITY_HEADERS = True
     SECURITY_HEADERS_ENABLED = os.environ.get("SECURITY_HEADERS_ENABLED", "true").lower() == "true"
     ENFORCE_HTTPS = os.environ.get("ENFORCE_HTTPS", "false").lower() == "true"
+
+    # ========================================
+    # PERFORMANCE / OBSERVABILITY
+    # ========================================
+
+    COMPRESS_ENABLED = os.environ.get("COMPRESS_ENABLED", "true").lower() == "true"
+    STATIC_CACHE_SECONDS = max(60, int(os.environ.get("STATIC_CACHE_SECONDS", "604800")))
+    PUBLIC_FRAGMENT_CACHE_SECONDS = max(10, int(os.environ.get("PUBLIC_FRAGMENT_CACHE_SECONDS", "90")))
+    PUBLIC_DISCOVERY_CACHE_SECONDS = max(10, int(os.environ.get("PUBLIC_DISCOVERY_CACHE_SECONDS", "120")))
+    PUBLIC_HERO_CACHE_SECONDS = max(10, int(os.environ.get("PUBLIC_HERO_CACHE_SECONDS", "180")))
+    PUBLIC_GENRES_CACHE_SECONDS = max(30, int(os.environ.get("PUBLIC_GENRES_CACHE_SECONDS", "3600")))
+    PUBLIC_FRAGMENT_CACHE_MAX_ENTRIES = max(64, int(os.environ.get("PUBLIC_FRAGMENT_CACHE_MAX_ENTRIES", "512")))
+    PUBLIC_FRAGMENT_CACHE_VERSION = (
+        (os.environ.get("PUBLIC_FRAGMENT_CACHE_VERSION") or "").strip()
+        or (os.environ.get("RENDER_GIT_COMMIT") or "").strip()
+        or (os.environ.get("APP_RELEASE") or "").strip()
+        or "v1"
+    )
+    UNREAD_COUNT_CACHE_SECONDS = max(5, int(os.environ.get("UNREAD_COUNT_CACHE_SECONDS", "30")))
+    AUTO_CREATE_SCHEMA = os.environ.get("AUTO_CREATE_SCHEMA", "false" if os.environ.get("FLASK_ENV") == "production" else "true").lower() == "true"
+    SLOW_REQUEST_LOG_SECONDS = max(0.0, float(os.environ.get("SLOW_REQUEST_LOG_SECONDS", "0.35")))
+    SLOW_QUERY_LOG_SECONDS = max(0.0, float(os.environ.get("SLOW_QUERY_LOG_SECONDS", "0.10")))
+    ENABLE_SLOW_QUERY_LOGGING = os.environ.get("ENABLE_SLOW_QUERY_LOGGING", "true").lower() == "true"
     
     # ========================================
     # DATABASE CONFIGURATION
