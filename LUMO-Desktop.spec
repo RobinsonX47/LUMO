@@ -4,7 +4,7 @@
 a = Analysis(
     ['desktop\\launcher.py'],
     pathex=[],
-    binaries=[],
+    binaries=[('C:/Users/robin/AppData/Local/Programs/Python/Python312/python312.dll', '.')],
     datas=[('templates', 'templates'), ('static', 'static'), ('.env', '.')],
     hiddenimports=[],
     hookspath=[],
@@ -29,11 +29,10 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=False,
+    console=True,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['static\\images\\logo.ico'],
 )
