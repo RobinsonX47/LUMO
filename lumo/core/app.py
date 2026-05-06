@@ -310,6 +310,7 @@ def create_app():
             ],
             'frame-src': ["'self'", "https://www.youtube.com", "https://www.youtube-nocookie.com"],
             'child-src': ["'self'", "https://www.youtube.com", "https://www.youtube-nocookie.com"],
+            'navigate-to': ["'self'"],
             'media-src': ["'self'", "https://*.googlevideo.com", "https://*.youtube.com"],
             'object-src': ["'none'"],
         }
