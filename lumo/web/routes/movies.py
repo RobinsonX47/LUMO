@@ -1207,16 +1207,39 @@ def recommendations():
     watchlist_ids = set(recommendation_seed.get('watchlist_ids', []))
     
     try:
-        # Get 24 initial recommendations
+        # Get 16 initial recommendations
         recommended_items = get_personalized_recommendations(
             recommendation_seed,
             batch=0,
-            items_per_batch=24,
+            items_per_batch=16,
             exclude_ids=watchlist_ids,
         )
     except Exception as e:
         print(f"Recommendation generation error: {e}")
-        recommended_items = get_fallback_recommendations(recommendation_seed, limit=24, exclude_ids=watchlist_ids)
+        recommended_items = get_fallback_recommendations(recommendation_seed, limit=16, exclude_ids=watchlist_ids)
+
+    # Log and pad results if the recommendation generation returned fewer items than requested
+    try:
+        current_app.logger.info("recommendations: initial_count=%s, watchlist_count=%s", len(recommended_items), len(watchlist_entries))
+    except Exception:
+        pass
+
+    if isinstance(recommended_items, list) and len(recommended_items) < 16:
+        existing_ids = {item.get('id') for item in recommended_items if item.get('id')}
+        existing_ids.update(watchlist_ids)
+        needed = 16 - len(recommended_items)
+        try:
+            extra = get_fallback_recommendations(recommendation_seed, limit=needed, exclude_ids=existing_ids)
+            # Append unique extras
+            for it in extra:
+                if it.get('id') not in existing_ids:
+                    recommended_items.append(it)
+                    existing_ids.add(it.get('id'))
+                    if len(recommended_items) >= 16:
+                        break
+            current_app.logger.info("recommendations: after_padding_count=%s", len(recommended_items))
+        except Exception as e:
+            current_app.logger.warning("Error padding recommendations: %s", e)
     
     # Store seen IDs in session to prevent duplicates on load-more
     session['seen_recommendation_ids'] = list(watchlist_ids) + [item.get('id') for item in recommended_items]
